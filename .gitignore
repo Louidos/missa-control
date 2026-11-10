@@ -1,0 +1,29 @@
+# Geheimnisse und lokale Daten – nie committen
+.env
+.env.*
+!.env.example
+/data/
+/backups/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / Frontend
+node_modules/
+/frontend/dist/
+*.tsbuildinfo
+
+# Editor und Betriebssystem
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

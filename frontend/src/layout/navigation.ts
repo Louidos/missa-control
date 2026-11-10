@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
+import { Clients } from "../gateway/Clients";
+import { Freigaben } from "../gateway/Freigaben";
+import { Protokoll } from "../gateway/Protokoll";
 import { Integrationen } from "../integrationen/Integrationen";
 import { Katalog } from "../integrationen/Katalog";
 import { Zugaenge } from "../zugaenge/Zugaenge";
@@ -123,18 +126,21 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Freigaben",
         symbol: ShieldCheck,
         beschreibung: "Aktionen, bei denen Missa erst nachfragen muss: erlauben oder ablehnen.",
+        seite: Freigaben,
       },
       {
         pfad: "/clients",
         titel: "Clients",
         symbol: MonitorSmartphone,
         beschreibung: "Wer sich mit Missa Control verbinden darf (z. B. missa-core) – mit eigenem Token.",
+        seite: Clients,
       },
       {
         pfad: "/protokoll",
         titel: "Protokoll",
         symbol: ScrollText,
         beschreibung: "Alle Aufrufe von Funktionen: wann, von wem, mit welchem Ergebnis.",
+        seite: Protokoll,
       },
       {
         pfad: "/serverlast",

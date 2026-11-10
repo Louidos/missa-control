@@ -5,6 +5,7 @@ import { NavLink, useLocation } from "react-router";
 
 import { api } from "../api";
 import { AUTH_STATUS, useAuthStatus } from "../auth/authStatus";
+import { useOffeneFreigaben } from "../gateway/freigaben";
 import { Knopf } from "../ui/ui";
 import { ALLE_EINTRAEGE, NAVIGATION } from "./navigation";
 
@@ -14,6 +15,7 @@ export function Rahmen({ children }: { children: ReactNode }) {
   const ort = useLocation();
   const queryClient = useQueryClient();
   const status = useAuthStatus();
+  const offeneFreigaben = useOffeneFreigaben().data?.offen ?? 0;
 
   const abmelden = useMutation({
     mutationFn: () => api.post("/api/auth/abmelden"),
@@ -49,6 +51,11 @@ export function Rahmen({ children }: { children: ReactNode }) {
               >
                 <eintrag.symbol aria-hidden />
                 <span>{eintrag.titel}</span>
+                {eintrag.pfad === "/freigaben" && offeneFreigaben > 0 && (
+                  <span className="nav-zaehler" aria-label={`${offeneFreigaben} offene Freigaben`}>
+                    {offeneFreigaben}
+                  </span>
+                )}
               </NavLink>
             ))}
           </div>

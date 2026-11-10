@@ -3,6 +3,11 @@
 Grundsatz: Alles unter `/api/`, `/mcp` und `/v1/` ist gesperrt, solange es nicht ausdrücklich
 freigegeben ist. Neue Routen sind dadurch automatisch geschützt. Die Oberfläche selbst (HTML, JS,
 CSS) enthält keine Daten und wird ohne Anmeldung ausgeliefert, damit der Login angezeigt werden kann.
+
+Es gibt zwei getrennte Wege hinein:
+- das Panel selbst: nur mit der Sitzung des Admins (Cookie nach Login mit Passwort + 2FA)
+- die Anschlüsse für Clients wie missa-core (`/mcp`, `/v1/`, `/api/events`, `/api/config/`):
+  nur mit einem Client-Token. Eine Admin-Sitzung öffnet diese Anschlüsse nicht – und umgekehrt.
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from missa_control.auth.dienst import AuthDienst
 from missa_control.auth.routen import SITZUNGS_COOKIE
+from missa_control.clients.dienst import ClientAngaben, ClientDienst
 from missa_control.db import Datenbank
 from missa_control.fehler import fehler_antwort
 
@@ -43,6 +49,16 @@ SICHERHEITS_HEADER = {
 }
 
 
+CLIENT_SCHLUESSEL = "missa_control.client"
+
+
+def ist_client_pfad(pfad: str) -> bool:
+    """Anschlüsse für Clients (missa-core, Apps): Zugriff nur mit Client-Token."""
+    return pfad in ("/mcp", "/v1", "/api/events") or pfad.startswith(
+        ("/mcp/", "/v1/", "/api/events/", "/api/config/")
+    )
+
+
 def ist_geschuetzt(pfad: str) -> bool:
     return pfad.startswith(("/api/", "/v1/", "/mcp/")) or pfad in ("/api", "/v1", "/mcp")
 
@@ -50,9 +66,12 @@ def ist_geschuetzt(pfad: str) -> bool:
 class Zugriffsschutz:
     """ASGI-Middleware: prüft die Sitzung, wehrt fremde Seiten ab (CSRF) und setzt Sicherheits-Header."""
 
-    def __init__(self, app: ASGIApp, *, auth: AuthDienst, datenbank: Datenbank) -> None:
+    def __init__(
+        self, app: ASGIApp, *, auth: AuthDienst, clients: ClientDienst, datenbank: Datenbank
+    ) -> None:
         self.app = app
         self.auth = auth
+        self.clients = clients
         self.datenbank = datenbank
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -81,6 +100,18 @@ class Zugriffsschutz:
         if not ist_geschuetzt(pfad):
             return None
         headers = Headers(scope=scope)
+        if ist_client_pfad(pfad):
+            client = self._client(headers)
+            if client is None:
+                antwort = fehler_antwort(
+                    401,
+                    "Kein gültiger Client-Token.",
+                    "Im Panel unter „Clients“ einen Token erzeugen und als „Authorization: Bearer <Token>“ mitsenden.",
+                )
+                antwort.headers["WWW-Authenticate"] = "Bearer"
+                return antwort
+            scope[CLIENT_SCHLUESSEL] = client
+            return None
         if scope["method"] not in _LESENDE_METHODEN and not _gleiche_herkunft(headers):
             return fehler_antwort(403, "Anfrage von einer fremden Seite abgelehnt.")
         if pfad in OEFFENTLICHE_PFADE:
@@ -88,6 +119,13 @@ class Zugriffsschutz:
         if not self._angemeldet(headers):
             return fehler_antwort(401, "Nicht angemeldet.", "Bitte mit Passwort und Code anmelden.")
         return None
+
+    def _client(self, headers: Headers) -> ClientAngaben | None:
+        art, _, token = headers.get("authorization", "").partition(" ")
+        if art.lower() != "bearer" or not token.strip():
+            return None
+        with self.datenbank.sitzung() as db:
+            return self.clients.pruefen(db, token.strip())
 
     def _angemeldet(self, headers: Headers) -> bool:
         cookies: SimpleCookie = SimpleCookie()

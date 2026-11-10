@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from missa_control.db import get_db
 from missa_control.fehler import PanelFehler
-from missa_control.integrationen.dienst import IntegrationsDienst, ergebnis_als_text
+from missa_control.integrationen.dienst import IntegrationsDienst, ergebnis_als_text, gateway_name
 from missa_control.integrationen.katalog import MAX_ZIP_BYTES
 from missa_control.integrationen.typen import IntegrationsFehler
 
@@ -134,11 +135,28 @@ async def aufrufen(
     """„Ausprobieren“ im Panel: ruft eine Funktion direkt auf (unabhängig von den Rechten für Missa)."""
     dienst = _dienst(request)
     integration = dienst.holen(db, integration_id)
+    name = gateway_name(integration.kennung, eingabe.funktion)
+    start = time.monotonic()
+
+    def protokollieren(ok: bool, fehler: str = "") -> None:
+        request.app.state.protokoll.eintragen(
+            quelle="panel",
+            client_name="Panel (Ausprobieren)",
+            integration_name=integration.name,
+            funktion=name,
+            ok=ok,
+            fehler=fehler,
+            dauer_ms=int((time.monotonic() - start) * 1000),
+        )
+
     try:
         ergebnis = await dienst.aufrufen(db, integration, eingabe.funktion, eingabe.argumente)
     except IntegrationsFehler as fehler:
+        protokollieren(False, fehler.meldung)
         return {"ok": False, "meldung": fehler.meldung, "hinweis": fehler.hinweis}
-    return {"ok": not ergebnis.ist_fehler, "ergebnis": ergebnis_als_text(ergebnis)}
+    text = ergebnis_als_text(ergebnis)
+    protokollieren(not ergebnis.ist_fehler, text[:300] if ergebnis.ist_fehler else "")
+    return {"ok": not ergebnis.ist_fehler, "ergebnis": text}
 
 
 @router.delete("/integrationen/{integration_id}")

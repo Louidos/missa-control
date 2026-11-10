@@ -19,7 +19,8 @@ Version: noch keine Veröffentlichung.
 | Installation per Skript, Login mit Passwort + 2FA | vorhanden |
 | Zugänge (API-Keys, Tokens, Passwörter) verschlüsselt verwalten | vorhanden |
 | Integrations-Katalog: MCP-Server, REST-APIs (OpenAPI), eigene Python-Integrationen | vorhanden |
-| Gateway, Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Ein Anschluss für Missa: MCP-Gateway mit Client-Tokens, Freigaben, Protokoll und Ereignissen | vorhanden |
+| Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 
@@ -71,6 +72,12 @@ Alle Einstellungen stehen kommentiert in [`.env.example`](.env.example).
 
 Lesende Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“. Eigene Integrationen mit
 wenig Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
+
+## Missa anbinden
+
+Missa Control verändert missa-core nie – missa-core holt sich Funktionen, Ereignisse und
+Konfiguration selbst ab. Dafür im Panel unter **Clients** einen Client anlegen und dessen Token in
+missa-core eintragen. Die ganze Anleitung: [docs/anbindung-missa-core.md](docs/anbindung-missa-core.md).
 
 ## Aufbau des Repos
 

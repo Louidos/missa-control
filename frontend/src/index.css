@@ -977,3 +977,128 @@ textarea:focus-visible {
   color: var(--akzent-stark);
   border-bottom-color: var(--akzent);
 }
+
+/* ---------- Charakter ---------- */
+
+.zweispaltig {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.seitenspalte {
+  position: sticky;
+  top: 1rem;
+}
+
+@media (max-width: 1100px) {
+  .zweispaltig {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .seitenspalte {
+    position: static;
+  }
+}
+
+.speicherleiste {
+  position: sticky;
+  bottom: 0;
+  flex-wrap: nowrap;
+  padding: 0.75rem 0 0.25rem;
+  background: var(--flaeche);
+  border-top: 1px solid var(--rand);
+}
+
+.speicherleiste input {
+  min-width: 5rem;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 14rem;
+  max-height: 26rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+  background: var(--flaeche-2);
+  border-radius: 8px;
+}
+
+.blase {
+  max-width: 85%;
+  padding: 0.5rem 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 12px 12px 12px 3px;
+}
+
+.blase.nutzer {
+  align-self: flex-end;
+  color: var(--auf-akzent);
+  background: var(--akzent);
+  border-color: var(--akzent);
+  border-radius: 12px 12px 3px;
+}
+
+.versionen {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+}
+
+.versionen li {
+  border-bottom: 1px solid var(--rand);
+}
+
+.versionen li:last-child {
+  border-bottom: none;
+}
+
+.version-kopf {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.version-kopf:hover {
+  background: var(--flaeche-2);
+}
+
+.version-inhalt {
+  padding: 0 0.75rem 0.75rem;
+}
+
+.diff {
+  padding: 0.5rem 0.6rem;
+  margin: 0.2rem 0 0;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  background: var(--flaeche-2);
+  border-radius: 6px;
+}
+
+.diff .entfernt {
+  color: var(--fehler);
+  background: var(--fehler-hell);
+}
+
+.diff .neu {
+  color: var(--ok);
+  background: var(--ok-hell);
+}

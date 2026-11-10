@@ -27,3 +27,7 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   testen (Antwortzeit, Tokens/s), Rollen mit Haupt- und Ersatzmodell, OpenAI-kompatibler Anschluss
   unter `/v1` mit den festen Namen `missa-schnell` und `missa-stark` (auch mit Streaming),
   Statistik der letzten 7 Tage (#11)
+- Charakterprofil bearbeiten mit Versionsverlauf und Test-Chat: Seite „Charakter“ mit Feldern für
+  Name, Aussprache, Wesen, Sprechweise, Regeln, Verhalten gegenüber Fremden und freiem Systemprompt;
+  jede Speicherung ist eine Version (Unterschiede ansehen, wiederherstellen); Export und Import als
+  YAML; Test-Chat direkt mit dem Modell, auch mit ungespeichertem Profil (#13)

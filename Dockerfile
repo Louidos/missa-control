@@ -37,7 +37,8 @@ ENV PYTHONUNBUFFERED=1 \
     MISSA_CONTROL_PORT=8090 \
     MISSA_CONTROL_DATA_DIR=/data \
     MISSA_CONTROL_FRONTEND_DIR=/app/frontend \
-    MISSA_CONTROL_INTEGRATIONS_DIR=/app/integrations
+    MISSA_CONTROL_INTEGRATIONS_DIR=/app/integrations \
+    MISSA_CONTROL_CONFIG_DIR=/app/config
 RUN groupadd --gid 10001 missa \
     && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin missa \
     && mkdir /data \

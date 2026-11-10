@@ -44,6 +44,11 @@ from missa_control.zugaenge.modelle import Zugang
 log = logging.getLogger(__name__)
 
 TEST_SEKUNDEN = 45.0
+# Die regelmässige Prüfung wartet kürzer: Antwortet die Gegenstelle so lange nicht, gilt sie als ausgefallen.
+PRUEF_SEKUNDEN = 8.0
+# Arten mit einer Gegenstelle, die ausfallen kann. Geräte melden ihren Zustand selbst (MQTT),
+# ein Webhook wartet nur auf Eingänge.
+REGELMAESSIG_GEPRUEFT = ("mcp", "openapi", "python")
 VORSCHAU_SEKUNDEN = 10.0
 TEST_GUELTIG = timedelta(minutes=15)
 # Ab so vielen Funktionen (grosse REST-APIs) ist zunächst nichts ausgewählt – man wählt gezielt aus.
@@ -246,9 +251,11 @@ class IntegrationsDienst:
 
     # ------------------------------------------------------------------ Verbindung testen
 
-    async def _test_ausfuehren(self, adapter: Adapter, kontext: Kontext) -> TestErgebnis:
+    async def _test_ausfuehren(
+        self, adapter: Adapter, kontext: Kontext, sekunden: float = TEST_SEKUNDEN
+    ) -> TestErgebnis:
         try:
-            with anyio.fail_after(TEST_SEKUNDEN):
+            with anyio.fail_after(sekunden):
                 return await adapter.testen(kontext)
         except Exception as fehler:
             meldung, hinweis = fehler_erklaeren(fehler)
@@ -603,6 +610,43 @@ class IntegrationsDienst:
         if ergebnis.ok:
             integration.zustand = ergebnis.zustand or integration.zustand
             self._funktionen_abgleichen(integration, eintrag.manifest, ergebnis.funktionen, rechte)
+
+    async def alle_pruefen(self, db: Session) -> int:
+        """Prüft die Verbindung aller aktiven Integrationen, die eine Gegenstelle haben – regelmässig,
+        damit ein Ausfall auch dann auffällt, wenn Missa gerade nichts aufruft.
+
+        Es ändert sich nur der Status (mit Ereignis bei Ausfall bzw. Rückkehr). Die Funktionsliste und
+        die Rechte bleiben, wie sie sind: Neue Funktionen einer Gegenstelle kommen erst mit „Testen“ dazu.
+        Gibt zurück, wie viele Integrationen geprüft wurden.
+        """
+        geprueft = 0
+        for integration in list(db.scalars(select(Integration).where(Integration.aktiv))):
+            eintrag = self.katalog.eintraege.get(integration.manifest_id)
+            if eintrag is None or eintrag.manifest.art not in REGELMAESSIG_GEPRUEFT:
+                continue
+            try:
+                kontext = self._kontext(
+                    db,
+                    eintrag,
+                    name=integration.name,
+                    kennung=integration.kennung,
+                    konfig=integration.konfig,
+                    zustand=integration.zustand,
+                    integration_id=integration.id,
+                )
+                ergebnis = await self._test_ausfuehren(
+                    self._adapter(eintrag.manifest), kontext, PRUEF_SEKUNDEN
+                )
+            except Exception:
+                log.exception("Prüfung der Integration „%s“ fehlgeschlagen", integration.name)
+                continue
+            db.refresh(integration)
+            if not integration.aktiv:
+                continue  # inzwischen ausgeschaltet
+            self._status_setzen(integration, ergebnis)
+            db.commit()
+            geprueft += 1
+        return geprueft
 
     def entfernen(self, db: Session, integration_id: int) -> None:
         integration = self.holen(db, integration_id)

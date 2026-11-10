@@ -29,6 +29,7 @@ import { Katalog } from "../integrationen/Katalog";
 import { Modelle } from "../modelle/Modelle";
 import { Regeln } from "../regeln/Regeln";
 import { Serverlast } from "../serverlast/Serverlast";
+import { Uebersicht } from "../uebersicht/Uebersicht";
 import { Zugaenge } from "../zugaenge/Zugaenge";
 
 export interface NavEintrag {
@@ -55,6 +56,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Übersicht",
         symbol: Network,
         beschreibung: "Alles Eingerichtete als Verbindungsbaum mit Live-Status.",
+        seite: Uebersicht,
       },
     ],
   },

@@ -1558,3 +1558,316 @@ textarea:focus-visible {
   height: 1rem;
   color: var(--text-2);
 }
+
+/* ---------------------------------------------------------------------- Übersicht (Verbindungsbaum) */
+
+.uebersicht {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.uebersicht.mit-details {
+  grid-template-columns: minmax(0, 1fr) 21rem;
+}
+
+@media (max-width: 860px) {
+  .uebersicht.mit-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.graph {
+  height: min(68vh, 44rem);
+  min-height: 22rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.graph .react-flow {
+  --xy-background-color: var(--flaeche);
+  --xy-background-pattern-color: var(--rand);
+  --xy-edge-stroke: var(--grau);
+  --xy-edge-stroke-width: 1.5;
+  --xy-controls-button-background-color: var(--flaeche);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-border-color: var(--rand);
+
+  border-radius: var(--radius);
+}
+
+.graph .react-flow__handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+  border: none;
+}
+
+.graph-knoten {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0.45rem 0.65rem;
+  color: var(--text);
+  cursor: pointer;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-left: 4px solid var(--grau);
+  border-radius: 10px;
+  box-shadow: var(--schatten);
+}
+
+.graph-knoten.ok {
+  border-left-color: var(--ok);
+}
+
+.graph-knoten.warn {
+  border-left-color: var(--warn);
+}
+
+.graph-knoten.fehler {
+  background: var(--fehler-hell);
+  border-left-color: var(--fehler);
+}
+
+.graph-knoten.missa {
+  background: var(--akzent-hell);
+  border-color: var(--akzent);
+  border-left-width: 4px;
+}
+
+.graph-knoten.gewaehlt {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
+.graph-knoten.funktion {
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+  border-left-width: 1px;
+  border-left-color: var(--rand);
+  box-shadow: none;
+}
+
+.graph-knoten.funktion code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-symbol {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  background: var(--flaeche-2);
+  border-radius: 8px;
+}
+
+.graph-symbol svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  color: var(--text-2);
+}
+
+.graph-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.graph-name {
+  overflow: hidden;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-untertitel {
+  overflow: hidden;
+  font-size: 0.78rem;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-aufklapper {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+  padding: 0;
+  margin-top: 0.1rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--akzent);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.graph-aufklapper svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.status-zeichen {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--grau);
+}
+
+.status-zeichen svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.status-zeichen.ok {
+  color: var(--ok);
+}
+
+.status-zeichen.warn {
+  color: var(--warn);
+}
+
+.status-zeichen.fehler {
+  color: var(--fehler);
+}
+
+.graph-kante .react-flow__edge-path {
+  stroke: var(--grau);
+  stroke-width: 1.5;
+}
+
+.graph-kante.ersatz .react-flow__edge-path,
+.graph-kante.aktion .react-flow__edge-path {
+  stroke-dasharray: 5 4;
+}
+
+.graph-kante.aktion .react-flow__edge-path {
+  stroke: var(--akzent);
+}
+
+.plus-knopf {
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.plus-knopf svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.filter-knopf {
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+}
+
+.filter-knopf[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--akzent-hell);
+  border-color: var(--akzent);
+}
+
+.filter-knopf[aria-pressed="false"] {
+  text-decoration: line-through;
+}
+
+.seitenleiste h2 {
+  overflow-wrap: anywhere;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.details dt {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.funktions-liste,
+.knoten-liste {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.funktions-liste li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  border-top: 1px solid var(--rand);
+}
+
+.funktions-liste code {
+  overflow-wrap: anywhere;
+}
+
+.knoten-liste li + li {
+  border-top: 1px solid var(--rand);
+}
+
+.knoten-liste button {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.55rem 0.25rem;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 8px;
+}
+
+.knoten-liste button:hover,
+.knoten-liste button[aria-current="true"] {
+  background: var(--flaeche-2);
+}
+
+.knoten-liste button > svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-2);
+}
+
+.knoten-liste-text {
+  display: block;
+}

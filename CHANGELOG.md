@@ -80,6 +80,17 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   meldet sie als Ereignis. Echte Adapter (SIP, App) lassen sich als Integration ergänzen, siehe
   `docs/telefonie.md` (#27)
 
+- Grafischer Verbindungsbaum mit Live-Status als Startseite: Die „Übersicht“ zeigt Missa in der
+  Mitte und darum Clients, Rollen und Modelle, Integrationen mit ihren Funktionen (aufklappbar),
+  Geräte, Zugänge und Regeln – verbunden, wie sie zusammenhängen. Grün, gelb, rot und grau zeigen
+  den Zustand; ein Klick öffnet Details mit Link zur Bearbeitung, das „+“ den Katalog. Knoten lassen
+  sich verschieben (wird gespeichert), nach Art filtern und als Liste anzeigen (#29)
+- Das Panel prüft alle Integrationen mit Gegenstelle alle 20 Sekunden von selbst: Ein Ausfall ist
+  innerhalb einer Minute in der Übersicht zu sehen und wird als Ereignis gemeldet – auch wenn Missa
+  gerade nichts aufruft (#29)
+- Neue optionale Einstellung `MISSA_CORE_HEALTH_URL`: zeigt in der Übersicht, ob missa-core läuft.
+  Das Panel fragt die Adresse nur lesend ab (HTTP-GET); ohne die Einstellung bleibt der Knoten grau (#29)
+
 ### Geändert
 
 - `update.sh` übergibt nach dem Holen der neuen Version an `install.sh`: So werden auch die Ports

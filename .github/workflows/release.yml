@@ -1,0 +1,43 @@
+name: Release
+
+# Wird ein Versions-Tag (vX.Y.Z) gepusht, entsteht daraus das GitHub-Release.
+# Der Text kommt aus dem passenden Abschnitt im CHANGELOG. Tags werden nie verschoben oder gelöscht.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: GitHub-Release anlegen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Version im Projekt muss zum Tag passen
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -qx "version = \"$version\"" backend/pyproject.toml
+          grep -q "^  \"version\": \"$version\",$" frontend/package.json
+      - name: Abschnitt aus dem CHANGELOG lesen
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v kopf="## [$version]" '
+            index($0, kopf) == 1 { drin = 1; next }
+            drin && /^## / { exit }
+            drin && /^\[[^]]+\]: / { next }
+            drin { print }
+          ' CHANGELOG.md > notizen.md
+          if ! grep -q '[^[:space:]]' notizen.md; then
+            echo "Im CHANGELOG fehlt der Abschnitt für $version"
+            exit 1
+          fi
+          cat notizen.md
+      - name: Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag \
+            --title "Missa Control ${GITHUB_REF_NAME#v}" --notes-file notizen.md

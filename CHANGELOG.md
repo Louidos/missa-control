@@ -7,6 +7,16 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unveröffentlicht
 
+## [0.1.0] - 2026-11-10
+
+Erste Veröffentlichung: Alle Bereiche des Panels sind vorhanden. Noch nicht gegen die echte
+Gegenstelle erprobt sind die Anbindung an missa-core, eine echte Nextcloud, ein echtes Home
+Assistant, Geräte-Firmware auf echter Hardware und Telefonie mit einem echten Telefon – siehe
+„Projektstand“ im README.
+
+Wer das Panel schon vor dieser Version installiert hatte, führt nach dem Update einmal
+`./scripts/install.sh` aus – das startet den MQTT-Broker für Geräte.
+
 ### Hinzugefügt
 
 - Panel mit Login (Passwort + 2FA) und Installation per Skript: Einrichtung beim ersten Aufruf,
@@ -97,13 +107,10 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   MQTT-Port nur fürs Geräte-Netz, Umgang mit `.env` und Backups). Ist die Authenticator-App
   verloren, setzt `./scripts/reset-2fa.sh` die Zwei-Faktor-Anmeldung zurück: Danach fragt das Panel
   nach dem bisherigen Passwort und zeigt einen neuen QR-Code; alle Daten bleiben erhalten (#31)
-
-### Geändert
-
 - `update.sh` übergibt nach dem Holen der neuen Version an `install.sh`: So werden auch die Ports
-  geprüft und Ordner angelegt, die eine neue Version braucht. Wer von einem älteren Stand kommt,
-  führt nach dem Update einmal `./scripts/install.sh` aus – das startet den MQTT-Broker (#25)
+  geprüft und Ordner angelegt, die eine neue Version braucht (#25)
+- Ist die Gegenstelle einer Integration nicht erreichbar oder lehnt sie den Zugang ab, gilt die
+  Integration als ausgefallen (Status „Fehler“, Ereignis für Regeln) – bei MCP-Servern, REST-APIs
+  und eigenen Python-Integrationen (#23)
 
-- Ist die Gegenstelle einer eigenen Python-Integration nicht erreichbar oder lehnt sie den Zugang
-  ab, gilt die Integration jetzt als ausgefallen (Status „Fehler“, Ereignis für Regeln) – bisher
-  galt das nur für MCP-Server und REST-APIs (#23)
+[0.1.0]: https://github.com/Louidos/missa-control/releases/tag/v0.1.0

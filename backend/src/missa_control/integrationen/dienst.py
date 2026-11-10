@@ -620,7 +620,14 @@ class IntegrationsDienst:
         Gibt zurück, wie viele Integrationen geprüft wurden.
         """
         geprueft = 0
-        for integration in list(db.scalars(select(Integration).where(Integration.aktiv))):
+        nummern = list(db.scalars(select(Integration.id).where(Integration.aktiv)))
+        for nummer in nummern:
+            # Jede Prüfung kann einige Sekunden dauern. In der Zwischenzeit kann die Integration im Panel
+            # entfernt oder ausgeschaltet worden sein – deshalb wird sie jedes Mal frisch gelesen.
+            db.expire_all()
+            integration = db.get(Integration, nummer)
+            if integration is None or not integration.aktiv:
+                continue
             eintrag = self.katalog.eintraege.get(integration.manifest_id)
             if eintrag is None or eintrag.manifest.art not in REGELMAESSIG_GEPRUEFT:
                 continue
@@ -640,9 +647,10 @@ class IntegrationsDienst:
             except Exception:
                 log.exception("Prüfung der Integration „%s“ fehlgeschlagen", integration.name)
                 continue
-            db.refresh(integration)
-            if not integration.aktiv:
-                continue  # inzwischen ausgeschaltet
+            db.expire_all()
+            integration = db.get(Integration, nummer)
+            if integration is None or not integration.aktiv:
+                continue  # während der Prüfung entfernt oder ausgeschaltet
             self._status_setzen(integration, ergebnis)
             db.commit()
             geprueft += 1

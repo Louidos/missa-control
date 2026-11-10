@@ -16,21 +16,50 @@ Version: noch keine Veröffentlichung.
 
 | Bereich | Stand |
 | --- | --- |
-| Repo-Struktur, CI, Docker-Grundgerüst | vorhanden |
-| Panel mit Login, Integrationen, Gateway, … | in Arbeit (siehe [CHANGELOG](CHANGELOG.md)) |
+| Installation per Skript, Login mit Passwort + 2FA | vorhanden |
+| Zugänge, Integrationen, Gateway, Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 
-Voraussetzung: Docker mit Docker Compose.
+Voraussetzung: Debian (oder ein anderes Linux) mit Docker und Docker Compose.
 
 ```bash
 git clone https://github.com/Louidos/missa-control.git
-cd missa-control
-docker compose -p missa-control up -d --build
 ```
 
-Danach antwortet das Grundgerüst unter `http://<adresse-von-ai01>:8090/api/health`.
-Das Installationsskript `scripts/install.sh` folgt mit dem Panel selbst.
+```bash
+cd missa-control
+```
+
+```bash
+./scripts/install.sh
+```
+
+Das Skript prüft Docker und den Port, erzeugt `.env` mit zufälligen Schlüsseln, legt `data/` an,
+startet das Panel und gibt am Ende die Adresse aus (Standard: `http://<adresse-von-ai01>:8090`).
+
+- Es kann beliebig oft ausgeführt werden: Eine vorhandene `.env` und vorhandene Daten bleiben unverändert.
+- Ist der Port belegt, bricht es mit einer Meldung ab – es stoppt nie etwas Fremdes.
+  Anderen Port wählen: in `.env` bei `MISSA_CONTROL_BIND` eintragen, Skript erneut starten.
+
+**Erster Aufruf:** Passwort setzen (mindestens 10 Zeichen), QR-Code mit einer Authenticator-App
+scannen, Code bestätigen. Danach ist das Panel nur noch mit Passwort **und** Code erreichbar.
+Bitte gleich nach der Installation erledigen – bis dahin kann jeder im Netz das Panel einrichten.
+
+## Betrieb
+
+| Aufgabe | Befehl |
+| --- | --- |
+| Aktualisieren (sichert vorher die Daten) | `./scripts/update.sh` |
+| Backup von `data/` und `.env` nach `backups/` | `./scripts/backup.sh` |
+| Protokoll ansehen | `docker compose -p missa-control logs missa-control` |
+| Anhalten | `docker compose -p missa-control down` |
+
+Backup wiederherstellen: Panel anhalten, `tar -xzf backups/missa-control-<datum>.tar.gz` im
+Repo-Ordner, dann `./scripts/install.sh`. Das Backup enthält die Schlüssel aus `.env` und gehört an
+einen sicheren Ort.
+
+Alle Einstellungen stehen kommentiert in [`.env.example`](.env.example).
 
 ## Aufbau des Repos
 
@@ -40,7 +69,7 @@ Das Installationsskript `scripts/install.sh` folgt mit dem Panel selbst.
 | `frontend/` | React + TypeScript (Vite), vitest-Tests in `frontend/tests/` |
 | `integrations/` | eingebaute Integrationen, je ein Ordner mit `integration.yaml` |
 | `examples/geraete/` | Beispiel-Firmware für Geräte (Pico 2 W, ESP32) |
-| `scripts/` | Installation, Update, Backup |
+| `scripts/` | `install.sh`, `update.sh`, `backup.sh` |
 | `docs/` | Anleitungen |
 | `config/` | Beispiel-Konfiguration |
 

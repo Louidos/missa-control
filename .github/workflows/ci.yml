@@ -56,11 +56,40 @@ jobs:
         run: npm run build
 
   docker:
-    name: Docker (compose build)
+    name: Docker (compose build, install.sh)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: .env aus Beispiel erzeugen
-        run: cp .env.example .env
       - name: Image bauen
-        run: docker compose -p missa-control build
+        run: |
+          cp .env.example .env
+          docker compose -p missa-control build
+          rm .env
+      - name: Installation mit install.sh
+        run: |
+          ./scripts/install.sh
+          curl -fsS http://127.0.0.1:8090/api/health
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/api/auth/abmelden -X POST)" = "401"
+      - name: Zweiter Lauf überschreibt weder .env noch Daten
+        run: |
+          sha256sum .env > /tmp/env.sum
+          ./scripts/install.sh
+          sha256sum -c /tmp/env.sum
+          test -f data/missa-control.db
+      - name: Backup enthält Datenbank und .env
+        run: |
+          ./scripts/backup.sh
+          tar -tzf backups/missa-control-*.tar.gz | sort | tee /tmp/inhalt.txt
+          grep -qx 'data/missa-control.db' /tmp/inhalt.txt
+          grep -qx '.env' /tmp/inhalt.txt
+      - name: Belegter Port bricht ab, ohne etwas Fremdes zu stoppen
+        run: |
+          docker compose -p missa-control down
+          python3 -m http.server 8090 >/dev/null 2>&1 &
+          sleep 2
+          if ./scripts/install.sh; then echo "install.sh hätte abbrechen müssen"; exit 1; fi
+          curl -fsS -o /dev/null http://127.0.0.1:8090/
+          test -z "$(docker compose -p missa-control ps -q)"
+      - name: Protokoll bei Fehler
+        if: failure()
+        run: docker compose -p missa-control logs --no-color || true

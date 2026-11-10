@@ -1,0 +1,142 @@
+import {
+  Activity,
+  BellRing,
+  Brain,
+  Cpu,
+  KeyRound,
+  LayoutGrid,
+  type LucideIcon,
+  MonitorSmartphone,
+  Network,
+  NotebookPen,
+  Phone,
+  Plug,
+  ScrollText,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import type { ComponentType } from "react";
+
+export interface NavEintrag {
+  pfad: string;
+  titel: string;
+  symbol: LucideIcon;
+  /** Kurz erklärt, was es in diesem Bereich gibt (auch Text der Platzhalter-Seite). */
+  beschreibung: string;
+  /** Die fertige Seite. Fehlt sie, erscheint ein Platzhalter. */
+  seite?: ComponentType;
+}
+
+export interface NavGruppe {
+  titel: string | null;
+  eintraege: NavEintrag[];
+}
+
+export const NAVIGATION: NavGruppe[] = [
+  {
+    titel: null,
+    eintraege: [
+      {
+        pfad: "/",
+        titel: "Übersicht",
+        symbol: Network,
+        beschreibung: "Alles Eingerichtete als Verbindungsbaum mit Live-Status.",
+      },
+    ],
+  },
+  {
+    titel: "Integrationen",
+    eintraege: [
+      {
+        pfad: "/katalog",
+        titel: "Katalog",
+        symbol: LayoutGrid,
+        beschreibung: "Neue Fähigkeiten für Missa in 3 Schritten hinzufügen: MCP-Server, REST-APIs, Vorlagen.",
+      },
+      {
+        pfad: "/integrationen",
+        titel: "Integrationen",
+        symbol: Plug,
+        beschreibung: "Eingerichtete Integrationen verwalten, testen, Rechte pro Funktion festlegen.",
+      },
+      {
+        pfad: "/zugaenge",
+        titel: "Zugänge",
+        symbol: KeyRound,
+        beschreibung: "API-Keys, Tokens und Passwörter verschlüsselt speichern.",
+      },
+      {
+        pfad: "/geraete",
+        titel: "Geräte",
+        symbol: Cpu,
+        beschreibung: "Mikrocontroller (ESP32, Raspberry Pi Pico) als Sensoren und Knöpfe anbinden.",
+      },
+    ],
+  },
+  {
+    titel: "Missa",
+    eintraege: [
+      {
+        pfad: "/charakter",
+        titel: "Charakter",
+        symbol: Sparkles,
+        beschreibung: "Missas Charakterprofil bearbeiten, mit Versionsverlauf und Test-Chat.",
+      },
+      {
+        pfad: "/modelle",
+        titel: "Modelle",
+        symbol: Brain,
+        beschreibung: "Schnelles und starkes Modell verwalten, mit Ersatzmodell bei Ausfall.",
+      },
+      {
+        pfad: "/gedaechtnis",
+        titel: "Gedächtnis",
+        symbol: NotebookPen,
+        beschreibung: "Was Missa sich gemerkt hat: ansehen, korrigieren, löschen.",
+      },
+      {
+        pfad: "/regeln",
+        titel: "Regeln",
+        symbol: BellRing,
+        beschreibung: "Regeln und Alarme wie „Serverlast über 90 % → Missa meldet sich“.",
+      },
+      {
+        pfad: "/anrufe",
+        titel: "Anrufe",
+        symbol: Phone,
+        beschreibung: "Telefonie: erlaubte Anrufer, Ruhezeiten und Anrufverlauf.",
+      },
+    ],
+  },
+  {
+    titel: "Betrieb",
+    eintraege: [
+      {
+        pfad: "/freigaben",
+        titel: "Freigaben",
+        symbol: ShieldCheck,
+        beschreibung: "Aktionen, bei denen Missa erst nachfragen muss: erlauben oder ablehnen.",
+      },
+      {
+        pfad: "/clients",
+        titel: "Clients",
+        symbol: MonitorSmartphone,
+        beschreibung: "Wer sich mit Missa Control verbinden darf (z. B. missa-core) – mit eigenem Token.",
+      },
+      {
+        pfad: "/protokoll",
+        titel: "Protokoll",
+        symbol: ScrollText,
+        beschreibung: "Alle Aufrufe von Funktionen: wann, von wem, mit welchem Ergebnis.",
+      },
+      {
+        pfad: "/serverlast",
+        titel: "Serverlast",
+        symbol: Activity,
+        beschreibung: "CPU, Arbeitsspeicher, Speicherplatz und GPU von ai01 mit Verlauf.",
+      },
+    ],
+  },
+];
+
+export const ALLE_EINTRAEGE: NavEintrag[] = NAVIGATION.flatMap((gruppe) => gruppe.eintraege);

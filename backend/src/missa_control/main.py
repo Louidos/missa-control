@@ -15,6 +15,9 @@ from missa_control.config import Einstellungen
 from missa_control.db import Datenbank
 from missa_control.fehler import fehlerbehandlung_einrichten
 from missa_control.krypto import Krypto
+from missa_control.zugaenge import routen as zugaenge_routen
+from missa_control.zugaenge.dienst import ZugangsDienst
+from missa_control.zugaenge.schwaerzen import SCHWAERZER, log_schutz_einrichten
 
 
 def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
@@ -24,12 +27,14 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     datenbank.migrieren()
     krypto = Krypto(einstellungen.secret_key, einstellungen.encryption_key)
     auth = AuthDienst(einstellungen, krypto)
+    log_schutz_einrichten()
 
     app = FastAPI(title="Missa Control", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.einstellungen = einstellungen
     app.state.datenbank = datenbank
     app.state.krypto = krypto
     app.state.auth = auth
+    app.state.zugaenge = ZugangsDienst(krypto, SCHWAERZER)
 
     fehlerbehandlung_einrichten(app)
     app.add_middleware(Zugriffsschutz, auth=auth, datenbank=datenbank)
@@ -39,6 +44,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
         return {"status": "ok", "version": __version__}
 
     app.include_router(auth_routen.router)
+    app.include_router(zugaenge_routen.router)
 
     if einstellungen.frontend_ordner is not None:
         _frontend_einbinden(app, einstellungen.frontend_ordner)

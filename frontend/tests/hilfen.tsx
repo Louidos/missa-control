@@ -6,7 +6,8 @@ import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router";
 import { vi } from "vitest";
 
-type Antwort = unknown | ((koerper: unknown) => unknown);
+type JsonWert = object | string | number | boolean | null;
+type Antwort = JsonWert | ((koerper: unknown) => unknown);
 
 export interface Aufruf {
   methode: string;
@@ -37,8 +38,8 @@ export function backend(routen: Record<string, Antwort>) {
     if (!(schluessel in routen)) {
       return json({ meldung: `Im Test nicht vorgesehen: ${schluessel}` }, 500);
     }
-    let antwort = routen[schluessel];
-    if (typeof antwort === "function") antwort = (antwort as (k: unknown) => unknown)(koerper);
+    const eintrag = routen[schluessel];
+    const antwort: unknown = typeof eintrag === "function" ? eintrag(koerper) : eintrag;
     if (antwort instanceof TestFehler) {
       return json({ meldung: antwort.meldung, hinweis: antwort.hinweis }, antwort.status);
     }

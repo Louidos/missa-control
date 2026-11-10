@@ -1520,3 +1520,41 @@ textarea:focus-visible {
 .schritt-liste li + li {
   margin-top: 0.2rem;
 }
+
+/* ---------------------------------------------------------------------- Anrufe */
+
+.liste-feld {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+
+.liste-feld legend {
+  padding: 0;
+  font-weight: 600;
+}
+
+.liste-feld .feld-hilfe {
+  margin: 0;
+}
+
+.liste-feld input[type="time"] {
+  width: auto;
+}
+
+.zwei-spalten {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: 1.5rem;
+}
+
+.symbol-klein {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-2);
+}

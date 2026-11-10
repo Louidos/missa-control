@@ -29,6 +29,8 @@ __all__ = [
     "aufruf_weiterer_funktionen",
     "auth_header",
     "funktion",
+    "telefon_anrufen",
+    "telefon_auflegen",
     "verbindungstest",
     "weitere_funktionen",
 ]
@@ -37,6 +39,8 @@ FUNKTION_MERKMAL = "__missa_funktion__"
 TEST_MERKMAL = "__missa_verbindungstest__"
 QUELLE_MERKMAL = "__missa_weitere_funktionen__"
 WEITERLEITUNG_MERKMAL = "__missa_aufruf_weiterer_funktionen__"
+TELEFON_ANRUFEN_MERKMAL = "__missa_telefon_anrufen__"
+TELEFON_AUFLEGEN_MERKMAL = "__missa_telefon_auflegen__"
 
 
 @dataclass(frozen=True)
@@ -114,4 +118,23 @@ def aufruf_weiterer_funktionen[F: Callable[..., Any]](fn: F) -> F:
     MCP-Servers unverändert durchzureichen.
     """
     setattr(fn, WEITERLEITUNG_MERKMAL, True)
+    return fn
+
+
+def telefon_anrufen[F: Callable[..., Any]](fn: F) -> F:
+    """Macht die Integration zum Telefonie-Adapter: Diese Funktion baut einen Anruf auf (höchstens eine).
+
+    Sie bekommt `(kontext, auftrag)` – `auftrag` hat `anruf_id`, `nummer`, `name`, `text` und
+    `dringlichkeit`. Wartet sie bis zum Ende des Gesprächs, gibt sie z. B.
+    `{"ergebnis": "beendet", "dauer_sekunden": 42}` zurück („beendet“ oder „nicht_erreicht“). Gibt sie
+    nichts zurück, läuft der Anruf weiter – das Ende meldet der Adapter dann mit
+    `kontext.panel.telefonie.anruf_beendet(anruf_id, dauer_sekunden=…)`. Mehr in `docs/telefonie.md`.
+    """
+    setattr(fn, TELEFON_ANRUFEN_MERKMAL, True)
+    return fn
+
+
+def telefon_auflegen[F: Callable[..., Any]](fn: F) -> F:
+    """Markiert die Funktion, die einen laufenden Anruf beendet: `(kontext, anruf_id)` (optional)."""
+    setattr(fn, TELEFON_AUFLEGEN_MERKMAL, True)
     return fn

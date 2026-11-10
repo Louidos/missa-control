@@ -246,6 +246,11 @@ Aufruf oder Test stellt den Status wieder her.
 
 `main.py` darf weitere Dateien aus demselben Ordner einbinden: `from .hilfen import rechne`.
 
+### Telefonie-Adapter
+
+Enthält `main.py` eine Funktion mit `@telefon_anrufen`, wird die Integration zum Telefonie-Adapter
+und steht auf der Seite „Anrufe“ zur Wahl. Wie das geht: [telefonie.md](telefonie.md).
+
 ## Ausprobieren und Fehler finden
 
 - Unter **Integrationen → Funktionen und Rechte** hat jede Funktion einen Knopf **Ausprobieren**.

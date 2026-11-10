@@ -24,6 +24,8 @@ from missa_control.integrationen.typen import AufrufErgebnis, FunktionsInfo, Int
 from missa_control.sdk import (
     FUNKTION_MERKMAL,
     QUELLE_MERKMAL,
+    TELEFON_ANRUFEN_MERKMAL,
+    TELEFON_AUFLEGEN_MERKMAL,
     TEST_MERKMAL,
     WEITERLEITUNG_MERKMAL,
     FunktionsAngaben,
@@ -57,6 +59,9 @@ class GeladenesModul:
     # Meldet weitere Funktionen, die erst zur Laufzeit feststehen, bzw. führt sie aus.
     quelle: Callable[..., Any] | None = None
     weiterleitung: Callable[..., Any] | None = None
+    # Bringt die Integration einen Telefonie-Adapter mit? – siehe `@telefon_anrufen`.
+    telefon_anrufen: Callable[..., Any] | None = None
+    telefon_auflegen: Callable[..., Any] | None = None
 
 
 _geladen: dict[Path, tuple[tuple[tuple[str, int], ...], GeladenesModul]] = {}
@@ -104,9 +109,13 @@ def modul_laden(ordner: Path, manifest_id: str) -> GeladenesModul:
     test: Callable[..., Any] | None = None
     quelle: Callable[..., Any] | None = None
     weiterleitung: Callable[..., Any] | None = None
+    telefon: dict[str, Callable[..., Any]] = {}
     for objekt in vars(modul).values():
         if not callable(objekt) or getattr(objekt, "__module__", None) != modul.__name__:
             continue
+        for merkmal in (TELEFON_ANRUFEN_MERKMAL, TELEFON_AUFLEGEN_MERKMAL):
+            if getattr(objekt, merkmal, False):
+                telefon[merkmal] = objekt
         if getattr(objekt, TEST_MERKMAL, False):
             test = objekt
         if getattr(objekt, QUELLE_MERKMAL, False):
@@ -128,7 +137,13 @@ def modul_laden(ordner: Path, manifest_id: str) -> GeladenesModul:
             "Zu @weitere_funktionen gehört eine Funktion mit @aufruf_weiterer_funktionen.",
         )
     ergebnis = GeladenesModul(
-        funktionen=funktionen, test=test, modul=modul, quelle=quelle, weiterleitung=weiterleitung
+        funktionen=funktionen,
+        test=test,
+        modul=modul,
+        quelle=quelle,
+        weiterleitung=weiterleitung,
+        telefon_anrufen=telefon.get(TELEFON_ANRUFEN_MERKMAL),
+        telefon_auflegen=telefon.get(TELEFON_AUFLEGEN_MERKMAL),
     )
     _geladen[ordner] = (stand, ergebnis)
     return ergebnis
@@ -241,6 +256,9 @@ async def _ausfuehren(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     if inspect.iscoroutinefunction(fn):
         return await fn(*args, **kwargs)
     return await anyio.to_thread.run_sync(lambda: fn(*args, **kwargs))
+
+
+ausfuehren = _ausfuehren
 
 
 def _geladene_funktion(kontext: Kontext, name: str) -> GeladeneFunktion:

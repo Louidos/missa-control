@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
+import { Anrufe } from "../anrufe/Anrufe";
 import { Charakter } from "../charakter/Charakter";
 import { Clients } from "../gateway/Clients";
 import { Freigaben } from "../gateway/Freigaben";
@@ -126,6 +127,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Anrufe",
         symbol: Phone,
         beschreibung: "Telefonie: erlaubte Anrufer, Ruhezeiten und Anrufverlauf.",
+        seite: Anrufe,
       },
     ],
   },

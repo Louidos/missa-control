@@ -566,7 +566,7 @@ def test_anlegen_aendern_loeschen_und_optionen(app: FastAPI, angemeldet: TestCli
         "webhook",
         "integration_ausgefallen",
     ]
-    assert [a["wert"] for a in optionen["aktionen"]] == ["ereignis", "funktion"]
+    assert [a["wert"] for a in optionen["aktionen"]] == ["ereignis", "funktion", "anruf"]
     assert {m["kennung"] for m in optionen["messwerte"]} >= {"cpu", "ram", "speicher", "gpu"}
     assert optionen["zeitzone"] == "Europe/Zurich"
     assert optionen["standard_ruhezeit"] == 30

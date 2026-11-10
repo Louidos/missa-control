@@ -564,7 +564,7 @@ class RegelDienst:
     # ------------------------------------------------------------------ Aktionen
 
     @staticmethod
-    def _platzhalter(text: str, regel: Regel, anlass: Anlass) -> str:
+    def platzhalter(text: str, regel: Regel, anlass: Anlass) -> str:
         """In der Nachricht stehen {wert}, {anlass} und {name} für den aktuellen Wert, den Anlass und die Regel."""
         wert = anlass.daten.get("wert")
         ersetzungen = {
@@ -583,7 +583,7 @@ class RegelDienst:
         self.ereignisse.melden(
             "regel",
             f"Regel „{regel.name}“ ausgelöst" + (" (Test)" if test else ""),
-            self._platzhalter(str(aktion.get("nachricht", "")), regel, anlass),
+            self.platzhalter(str(aktion.get("nachricht", "")), regel, anlass),
             dringlichkeit=str(aktion.get("dringlichkeit", "normal")),
             quelle="Regeln",
             daten={
@@ -687,7 +687,7 @@ class RegelDienst:
         aktion_art = neu.get("aktion") or alte.get("art") or ("funktion" if "funktion" in neu else "ereignis")
         aktion = {**alte} if aktion_art == alte.get("art") else {}
         aktion["art"] = aktion_art
-        for feld in ("nachricht", "dringlichkeit", "funktion", "argumente"):
+        for feld in ("nachricht", "dringlichkeit", "funktion", "argumente", "nummer"):
             if feld in neu:
                 aktion[feld] = neu[feld]
         regel["aktion"] = aktion

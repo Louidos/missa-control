@@ -27,7 +27,8 @@ Version: noch keine Veröffentlichung.
 | Regeln und Alarme mit Zeitplan, Schwellwerten, Ruhezeit und Verlauf – auch von Missa selbst anlegbar | vorhanden |
 | Fertige Integrationen: Nextcloud-Kalender (CalDAV), Home Assistant, eingehende Webhooks | vorhanden |
 | Geräte (ESP32, Raspberry Pi Pico) per MQTT: koppeln, Werte mit Verlauf, Knöpfe und Schalter | vorhanden |
-| Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Telefonie vorbereitet: erlaubte Anrufer, Ruhezeiten, Anrufe aus Regeln, Verlauf (mit Test-Adapter, noch ohne echtes Telefon) | vorhanden |
+| Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 
@@ -83,8 +84,8 @@ Alle Einstellungen stehen kommentiert in [`.env.example`](.env.example).
 Lesende Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“.
 
 Fertige Karten gibt es für MCP-Server, REST-APIs (OpenAPI), Nextcloud-Kalender, Home Assistant,
-eingehende Webhooks, Geräte sowie Serverlast, Gedächtnis und Regeln. Eigene Integrationen mit wenig
-Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
+eingehende Webhooks, Geräte sowie Serverlast, Gedächtnis, Regeln und Telefonie. Eigene Integrationen
+mit wenig Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
 
 ## Geräte anbinden (ESP32, Raspberry Pi Pico)
 
@@ -97,6 +98,14 @@ Das Gerät sagt selbst, was es kann: Sensoren werden zu lesenden Funktionen und 
 Regeln, Knöpfe zu Ereignissen, Schalter zu Funktionen, die erst nachfragen. Ist ein Gerät weg,
 zeigt das Panel es nach spätestens 45 Sekunden als offline. Alles Weitere, auch für eigene
 Firmware: [docs/geraete.md](docs/geraete.md).
+
+## Anrufe
+
+Auf der Seite **Anrufe** steht, wer Missa erreichen darf (eigene Nummern, erlaubte Anrufer), wann sie
+nicht anrufen soll (Ruhezeiten, ausser dringend) und was bisher geschah (Verlauf). Regeln können
+anrufen („Wenn …, dann ruft Missa dich an“), Missa selbst erst nach Freigabe. Noch ist kein echtes
+Telefon angeschlossen: Der mitgelieferte Test-Adapter protokolliert Anrufe nur. Wie später ein
+echter Adapter dazukommt: [docs/telefonie.md](docs/telefonie.md).
 
 ## Missa anbinden
 

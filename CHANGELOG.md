@@ -72,6 +72,14 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 - Neue Einstellungen `MQTT_BIND` (Adresse und Port des MQTT-Brokers) und `COMPOSE_PROFILES` (leer =
   ohne Broker); `install.sh` prüft auch den MQTT-Port und bricht ab, wenn er belegt ist (#25)
 
+- Telefonie vorbereitet: Anrufverlauf, erlaubte Anrufer, Anrufe aus Regeln – neue Seite „Anrufe“ mit
+  eigenen Nummern, erlaubten Anrufern (alle anderen werden abgewiesen und protokolliert), Ruhezeiten
+  (nur dringende Anrufe gehen durch) und Verlauf mit Zeit, Richtung, Nummer, Dauer und Grund. Regeln
+  haben die neue Aktion „Anrufen“; Missa ruft über die Funktion `telefon_anrufen` an – erst nach
+  Freigabe. Noch ohne echtes Telefon: Der mitgelieferte Test-Adapter protokolliert Anrufe nur und
+  meldet sie als Ereignis. Echte Adapter (SIP, App) lassen sich als Integration ergänzen, siehe
+  `docs/telefonie.md` (#27)
+
 ### Geändert
 
 - `update.sh` übergibt nach dem Holen der neuen Version an `install.sh`: So werden auch die Ports

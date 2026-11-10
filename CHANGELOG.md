@@ -60,7 +60,23 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 - Eigene Integrationen können Funktionen abhängig von der Einrichtung anbieten (`wenn=`) und
   Funktionen durchreichen, die erst zur Laufzeit feststehen (`@weitere_funktionen`) (#23)
 
+- Geräte (ESP32, Pico) per Kopplungscode anbinden: neue Seite „Geräte“ – Gerät hinzufügen, fertige
+  Konfigurationsdatei herunterladen, aufs Gerät kopieren. Das Gerät erscheint als online und sagt
+  selbst, was es kann: Sensoren werden zu Funktionen für Missa und zu Messwerten für Regeln, Knöpfe
+  zu Ereignissen, Schalter zu Funktionen, die erst nachfragen. Letzte Werte, Verlauf über 7 Tage,
+  Schalten direkt im Panel; offline wird nach spätestens 45 Sekunden angezeigt. Dazu ein eigener
+  MQTT-Broker (Port 1883, jedes Gerät mit eigenem Zugang), Beispiel-Firmware für Pico 2 W und
+  ESP32 in `examples/geraete/` und die Anleitung `docs/geraete.md` (#25)
+- Regeln: Beim Auslöser „Gerät meldet etwas“ steht zur Auswahl, was das Gerät melden kann (seine
+  Knöpfe, „geht offline“, „kommt online“) (#25)
+- Neue Einstellungen `MQTT_BIND` (Adresse und Port des MQTT-Brokers) und `COMPOSE_PROFILES` (leer =
+  ohne Broker); `install.sh` prüft auch den MQTT-Port und bricht ab, wenn er belegt ist (#25)
+
 ### Geändert
+
+- `update.sh` übergibt nach dem Holen der neuen Version an `install.sh`: So werden auch die Ports
+  geprüft und Ordner angelegt, die eine neue Version braucht. Wer von einem älteren Stand kommt,
+  führt nach dem Update einmal `./scripts/install.sh` aus – das startet den MQTT-Broker (#25)
 
 - Ist die Gegenstelle einer eigenen Python-Integration nicht erreichbar oder lehnt sie den Zugang
   ab, gilt die Integration jetzt als ausgefallen (Status „Fehler“, Ereignis für Regeln) – bisher

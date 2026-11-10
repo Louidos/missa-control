@@ -19,6 +19,27 @@ interface Props {
   onAbbrechen: () => void;
 }
 
+const STATUS_MELDUNGEN = [
+  { wert: "offline", titel: "geht offline" },
+  { wert: "online", titel: "kommt online" },
+];
+
+/**
+ * Was als Auslöser „Gerät meldet etwas“ zur Wahl steht: die Knöpfe des gewählten Geräts (bei „Jedes Gerät“:
+ * die Knöpfe aller Geräte) und dazu „geht offline“ / „kommt online“. `gewaehlt` bleibt wählbar, auch wenn
+ * das Gerät es gerade nicht (mehr) meldet.
+ */
+function geraeteMeldungen(optionen: Optionen, geraetId: number | null, gewaehlt?: string): { wert: string; titel: string }[] {
+  const geraete = optionen.geraete.filter((geraet) => geraetId === null || geraet.id === geraetId);
+  const status = STATUS_MELDUNGEN.map((meldung) => meldung.wert);
+  const liste: { wert: string; titel: string }[] = [];
+  for (const meldung of [...geraete.flatMap((geraet) => geraet.meldungen).filter((m) => !status.includes(m.wert)), ...STATUS_MELDUNGEN]) {
+    if (!liste.some((vorhandene) => vorhandene.wert === meldung.wert)) liste.push(meldung);
+  }
+  if (gewaehlt && !liste.some((meldung) => meldung.wert === gewaehlt)) liste.unshift({ wert: gewaehlt, titel: gewaehlt });
+  return liste;
+}
+
 function nummer(wert: string): number | null {
   return wert === "" ? null : Number(wert);
 }
@@ -137,7 +158,16 @@ export function RegelEditor({ regel, optionen, onFertig, onAbbrechen }: Props) {
         {ausloeser.art === "geraet" && (
           <div className="felder-reihe">
             <Feld titel="Gerät" fuer={`${id}-geraet`} hilfe={optionen.geraete.length === 0 ? "Noch kein Gerät eingerichtet – die Regel gilt für jedes, das dazukommt." : undefined}>
-              <select id={`${id}-geraet`} value={ausloeser.geraet_id ?? ""} onChange={(e) => setzeAusloeser({ geraet_id: nummer(e.target.value) })}>
+              <select
+                id={`${id}-geraet`}
+                value={ausloeser.geraet_id ?? ""}
+                onChange={(e) => {
+                  const geraetId = nummer(e.target.value);
+                  // Was das neue Gerät nicht melden kann, wird nicht mitgenommen.
+                  const bleibt = geraeteMeldungen(optionen, geraetId).some((meldung) => meldung.wert === ausloeser.faehigkeit);
+                  setzeAusloeser({ geraet_id: geraetId, faehigkeit: bleibt ? ausloeser.faehigkeit : "" });
+                }}
+              >
                 <option value="">Jedes Gerät</option>
                 {optionen.geraete.map((eines) => (
                   <option key={eines.id} value={eines.id}>
@@ -146,8 +176,15 @@ export function RegelEditor({ regel, optionen, onFertig, onAbbrechen }: Props) {
                 ))}
               </select>
             </Feld>
-            <Feld titel="Was es meldet" fuer={`${id}-faehigkeit`} hilfe="z. B. knopf – leer lassen für alles">
-              <input id={`${id}-faehigkeit`} type="text" value={ausloeser.faehigkeit ?? ""} onChange={(e) => setzeAusloeser({ faehigkeit: e.target.value })} />
+            <Feld titel="Was es meldet" fuer={`${id}-faehigkeit`}>
+              <select id={`${id}-faehigkeit`} value={ausloeser.faehigkeit ?? ""} onChange={(e) => setzeAusloeser({ faehigkeit: e.target.value })}>
+                <option value="">Alles (jede Meldung)</option>
+                {geraeteMeldungen(optionen, ausloeser.geraet_id ?? null, ausloeser.faehigkeit).map((meldung) => (
+                  <option key={meldung.wert} value={meldung.wert}>
+                    {meldung.titel}
+                  </option>
+                ))}
+              </select>
             </Feld>
           </div>
         )}

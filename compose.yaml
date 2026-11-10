@@ -16,6 +16,10 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       MISSA_CONTROL_COOKIE_SECURE: ${MISSA_CONTROL_COOKIE_SECURE:-auto}
       MISSA_CONTROL_ZEITZONE: ${MISSA_CONTROL_ZEITZONE:-Europe/Zurich}
+      # MQTT-Broker für Geräte: der Dienst „mqtt“ weiter unten (nur im eigenen Netz erreichbar).
+      MISSA_CONTROL_MQTT_HOST: mqtt
+      # Nur zur Anzeige: unter diesem Port erreichen die Geräte den Broker von aussen.
+      MQTT_BIND: ${MQTT_BIND:-0.0.0.0:1883}
     ports:
       - "${MISSA_CONTROL_BIND:-0.0.0.0:8090}:8090"
     volumes:
@@ -33,19 +37,32 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # MQTT-Broker für Geräte (ESP32, Raspberry Pi Pico).
-  # Startet nur mit dem Profil "geraete" und wird mit der Geräte-Anbindung fertig eingerichtet.
+  # MQTT-Broker für Geräte (ESP32, Raspberry Pi Pico) – gehört zum Profil "geraete".
+  # Das Profil ist standardmässig aktiv (COMPOSE_PROFILES=geraete in .env). Wer keine Geräte
+  # anbinden will, trägt dort COMPOSE_PROFILES= ein; dann startet dieser Dienst nicht.
   mqtt:
     image: eclipse-mosquitto:2
     profiles:
       - geraete
     restart: unless-stopped
+    # Derselbe Benutzer wie das Panel (nie root): so gehören alle Dateien in data/ demselben Benutzer.
+    user: "${MISSA_CONTROL_UID:-10001}:${MISSA_CONTROL_GID:-10001}"
     ports:
       - "${MQTT_BIND:-0.0.0.0:1883}:1883"
     volumes:
       - ./data/mosquitto:/mosquitto/data
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    # Das Image sieht für /mosquitto/log ein Volume vor. Der Broker schreibt sein Protokoll aber auf
+    # die Konsole (docker compose logs) – so entsteht kein namenloses Docker-Volume.
+    tmpfs:
+      - /mosquitto/log
     networks:
       - missa-control-net
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
 networks:
   missa-control-net:

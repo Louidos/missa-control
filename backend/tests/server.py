@@ -4,15 +4,21 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import shutil
 import socket
+import subprocess
 import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 import httpx2
+import paho.mqtt.client as mqtt
 import uvicorn
+import yaml
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from mcp.server.mcpserver import MCPServer
@@ -463,3 +469,152 @@ class HomeAssistant:
             await self._mcp_geschuetzt(scope, receive, send)
             return
         await self.rest(scope, receive, send)
+
+
+# ---------------------------------------------------------------------- MQTT (echter Broker: Mosquitto)
+
+REPO = Path(__file__).resolve().parents[2]
+
+
+def docker_vorhanden() -> bool:
+    """Gibt es hier Docker? Die Geräte-Tests brauchen den echten MQTT-Broker aus compose.yaml."""
+    if shutil.which("docker") is None:
+        return False
+    return subprocess.run(["docker", "info"], capture_output=True, check=False).returncode == 0
+
+
+class MqttBroker:
+    """Der Mosquitto aus compose.yaml – mit der Konfiguration aus dem Repo, als eigener Test-Container.
+
+    Der Container heisst `missa-control-test-mqtt-…`, läuft nur für die Dauer der Tests und wird danach
+    wieder gestoppt (er entfernt sich dann selbst). Andere Container werden nie angefasst.
+    """
+
+    def __init__(self, ordner: Path) -> None:
+        compose = yaml.safe_load((REPO / "compose.yaml").read_text(encoding="utf-8"))
+        self.image: str = compose["services"]["mqtt"]["image"]
+        self.daten = ordner / "mosquitto"
+        self.daten.mkdir(parents=True, exist_ok=True)
+        # Wie im Betrieb läuft der Broker nie als root: unter dem eigenen Benutzer – oder, falls die
+        # Tests selbst als root laufen, unter 10001 (dann muss der Ordner für ihn beschreibbar sein).
+        self.benutzer = os.getuid() or 10001
+        if os.getuid() == 0:
+            self.daten.chmod(0o777)
+            for eltern in self.daten.parents:
+                if eltern == Path(eltern.anchor) or not os.access(eltern, os.W_OK):
+                    break
+                eltern.chmod(eltern.stat().st_mode | 0o011)  # Durchgang erlauben
+        self.port = freier_port()
+        self.name = f"missa-control-test-mqtt-{uuid.uuid4().hex[:8]}"
+
+    @property
+    def passwort_datei(self) -> Path:
+        return self.daten / "dynamic-security.json.pw"
+
+    def __enter__(self) -> MqttBroker:
+        subprocess.run(
+            [
+                "docker", "run", "-d", "--rm", "--name", self.name,
+                "--user", f"{self.benutzer}:{self.benutzer if os.getuid() == 0 else os.getgid()}",
+                "--read-only", "--cap-drop", "ALL", "--tmpfs", "/mosquitto/log",
+                "-p", f"127.0.0.1:{self.port}:1883",
+                "-v", f"{REPO / 'config' / 'mosquitto.conf'}:/mosquitto/config/mosquitto.conf:ro",
+                "-v", f"{self.daten}:/mosquitto/data",
+                self.image,
+            ],
+            check=True,
+            capture_output=True,
+        )  # fmt: skip
+        for _ in range(150):
+            if self.passwort_datei.is_file() and self._erreichbar():
+                return self
+            time.sleep(0.1)
+        self.__exit__()
+        raise RuntimeError("Der Test-Broker (Mosquitto) startet nicht")
+
+    def _erreichbar(self) -> bool:
+        try:
+            with socket.create_connection(("127.0.0.1", self.port), timeout=0.5):
+                return True
+        except OSError:
+            return False
+
+    def __exit__(self, *_: object) -> None:
+        subprocess.run(["docker", "stop", "-t", "1", self.name], capture_output=True, check=False)
+
+
+class SimuliertesGeraet:
+    """Ein Gerät, wie es die Beispiel-Firmware vormacht – nur als Programm statt als Mikrocontroller."""
+
+    def __init__(
+        self, port: int, kopplung: dict[str, Any], keepalive: int = 30, passwort: str | None = None
+    ) -> None:
+        self.port = port
+        self.benutzer: str = kopplung["benutzer"]
+        self.basis: str = kopplung["themen"]["basis"]
+        self.keepalive = keepalive
+        self.befehle: list[tuple[str, str]] = []
+        self.verbunden = threading.Event()
+        self.abgelehnt = threading.Event()
+        self.abos: list[str] = []
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=self.benutzer)
+        self.client.username_pw_set(self.benutzer, passwort or kopplung["passwort"])
+        # Letzter Wille: Bricht die Verbindung ab, meldet der Broker das Gerät als offline.
+        self.client.will_set(f"{self.basis}/status", "offline", qos=1, retain=True)
+        self.client.on_connect = self._bei_verbindung
+        self.client.on_message = self._bei_befehl
+        self.client.on_subscribe = lambda _c, _u, _m, gruende, _e=None: self.abos.extend(
+            str(g) for g in gruende
+        )
+
+    def _bei_verbindung(
+        self, client: mqtt.Client, _daten: Any, _flags: Any, grund: Any, _e: Any = None
+    ) -> None:
+        if getattr(grund, "is_failure", False):
+            self.abgelehnt.set()
+            return
+        client.subscribe(f"{self.basis}/befehl/#", qos=1)
+        client.publish(f"{self.basis}/status", "online", qos=1, retain=True)
+        self.verbunden.set()
+
+    def _bei_befehl(self, client: mqtt.Client, _daten: Any, nachricht: mqtt.MQTTMessage) -> None:
+        kennung = nachricht.topic.rsplit("/", 1)[-1]
+        befehl = nachricht.payload.decode()
+        self.befehle.append((kennung, befehl))
+        client.publish(f"{self.basis}/zustand/{kennung}", befehl, qos=1, retain=True)  # Rückmeldung
+
+    def verbinden(self, sekunden: float = 5.0) -> bool:
+        """Verbindet das Gerät. Gibt zurück, ob der Broker es hereingelassen hat."""
+        self.client.connect("127.0.0.1", self.port, keepalive=self.keepalive)
+        self.client.loop_start()
+        ende = time.monotonic() + sekunden
+        while time.monotonic() < ende:
+            if self.verbunden.is_set():
+                return True
+            if self.abgelehnt.is_set():
+                return False
+            time.sleep(0.02)
+        return False
+
+    def melden(self, faehigkeiten: list[dict[str, Any]], firmware: str = "test-firmware 1.0") -> None:
+        inhalt = json.dumps({"firmware": firmware, "faehigkeiten": faehigkeiten})
+        self.client.publish(f"{self.basis}/faehigkeiten", inhalt, qos=1, retain=True)
+
+    def wert(self, kennung: str, wert: Any) -> None:
+        self.client.publish(f"{self.basis}/wert/{kennung}", str(wert), qos=1)
+
+    def knopf(self, kennung: str, text: str = "gedrueckt") -> None:
+        self.client.publish(f"{self.basis}/ereignis/{kennung}", text, qos=1)
+
+    def senden(self, thema: str, inhalt: str) -> None:
+        self.client.publish(thema, inhalt, qos=1)
+
+    def trennen(self, hart: bool = False) -> None:
+        """`hart=True`: Strom weg – das Gerät verstummt einfach (keine Abmeldung, die Verbindung bleibt
+        offen). Der Broker merkt es erst am fehlenden Lebenszeichen."""
+        if hart:
+            self.client.loop_stop()
+        else:
+            self.client.publish(f"{self.basis}/status", "offline", qos=1, retain=True).wait_for_publish(2)
+            self.client.disconnect()
+            self.client.loop_stop()

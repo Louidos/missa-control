@@ -22,6 +22,7 @@ import { Clients } from "../gateway/Clients";
 import { Freigaben } from "../gateway/Freigaben";
 import { Protokoll } from "../gateway/Protokoll";
 import { Gedaechtnis } from "../gedaechtnis/Gedaechtnis";
+import { Geraete } from "../geraete/Geraete";
 import { Integrationen } from "../integrationen/Integrationen";
 import { Katalog } from "../integrationen/Katalog";
 import { Modelle } from "../modelle/Modelle";
@@ -85,6 +86,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Geräte",
         symbol: Cpu,
         beschreibung: "Mikrocontroller (ESP32, Raspberry Pi Pico) als Sensoren und Knöpfe anbinden.",
+        seite: Geraete,
       },
     ],
   },

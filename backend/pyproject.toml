@@ -13,6 +13,7 @@ dependencies = [
     "httpx2>=2.10",
     "icalendar>=7.3.0",
     "mcp>=2.3,<3",
+    "paho-mqtt>=2.1",
     "psutil>=6.0",
     "pyotp>=2.9",
     "python-multipart>=0.0.20",
@@ -40,6 +41,8 @@ packages = ["src/missa_control"]
 line-length = 110
 target-version = "py312"
 src = ["src", "tests"]
+# Unverändert übernommene MicroPython-Bibliothek (nur für den Firmware-Prüfstand).
+extend-exclude = ["tests/micropython"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["missa_control", "hilfen"]

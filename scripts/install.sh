@@ -102,12 +102,18 @@ fi
 
 schritt "Prüfe Ports"
 port_pruefen "$DIENST" 8090 MISSA_CONTROL_BIND 0.0.0.0:8090
+if geraete_aktiv; then
+  port_pruefen mqtt 1883 MQTT_BIND 0.0.0.0:1883
+else
+  meldung "MQTT-Broker für Geräte ist abgeschaltet (COMPOSE_PROFILES in .env)."
+fi
 
 schritt "Lege Datenordner an"
-mkdir -p data
+# data/mosquitto gehört dem MQTT-Broker für Geräte; er läuft unter demselben Benutzer wie das Panel.
+mkdir -p data data/mosquitto
 ziel_uid="$(wert_aus_env MISSA_CONTROL_UID 10001)"
 ziel_gid="$(wert_aus_env MISSA_CONTROL_GID 10001)"
-if [ "$(stat -c %u data)" != "$ziel_uid" ]; then
+if [ "$(stat -c %u data)" != "$ziel_uid" ] || [ "$(stat -c %u data/mosquitto)" != "$ziel_uid" ]; then
   if [ "$(id -u)" -eq 0 ]; then
     chown -R "$ziel_uid:$ziel_gid" data
   else
@@ -127,11 +133,19 @@ if ! warte_auf_start; then
     "Ursache ansehen mit: docker compose -p $PROJEKT logs $DIENST"
 fi
 
+meldung ""
+if [ -n "${MISSA_CONTROL_NACH_UPDATE:-}" ]; then
+  meldung "Missa Control ist aktuell und läuft."
+else
+  meldung "Missa Control läuft."
+fi
+meldung ""
+meldung "  Adresse:  $(panel_adresse)"
+if geraete_aktiv; then
+  meldung "  Geräte:   MQTT-Broker auf $(erreichbar_unter MQTT_BIND 0.0.0.0:1883) (Geräte im Panel unter „Geräte“ hinzufügen)"
+fi
+[ -z "${MISSA_CONTROL_NACH_UPDATE:-}" ] || exit 0
 cat <<FERTIG
-
-Missa Control läuft.
-
-  Adresse:  $(panel_adresse)
 
 Beim ersten Aufruf: Passwort setzen und die Zwei-Faktor-Anmeldung einrichten.
 Bitte gleich erledigen – bis dahin kann jeder im Netz das Panel einrichten.

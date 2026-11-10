@@ -27,3 +27,7 @@ node_modules/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Beispiel-Firmware: die echte Konfiguration enthält Passwörter
+/examples/geraete/**/config.py
+/examples/geraete/**/config.h

@@ -317,6 +317,60 @@ test("Intervall, Webhook und Integration ausgefallen bieten die passenden Felder
 
   await nutzer.selectOptions(within(dialog).getByLabelText("Auslöser"), "Gerät meldet etwas");
   expect(within(dialog).getByText(/Noch kein Gerät eingerichtet/)).toBeInTheDocument();
+  // Auch ohne Gerät lässt sich schon auf „offline“ reagieren.
+  expect(within(within(dialog).getByLabelText("Was es meldet")).getAllByRole("option").map((option) => option.textContent)).toEqual([
+    "Alles (jede Meldung)",
+    "geht offline",
+    "kommt online",
+  ]);
+});
+
+test("Auslöser „Gerät meldet etwas“: Auswahl aus dem, was das Gerät melden kann", async () => {
+  const meldung = (wert: string, titel: string) => ({ wert, titel });
+  const status = [meldung("offline", "geht offline"), meldung("online", "kommt online")];
+  const optionen: Optionen = {
+    ...OPTIONEN,
+    geraete: [
+      { id: 7, name: "Wohnzimmer", meldungen: [meldung("knopf", "Knopf"), ...status] },
+      { id: 8, name: "Haustür", meldungen: [meldung("klingel", "Klingel"), ...status] },
+    ],
+  };
+  const aufrufe = backend({
+    "GET /api/regeln": { regeln: [], optionen },
+    [VERLAUF]: LEER,
+    "GET /api/katalog": KATALOG_AKTIV,
+    "POST /api/regeln/satz": { ok: true, satz: "Wenn das Gerät „Wohnzimmer“ „Knopf“ meldet, dann …" },
+    "POST /api/regeln": (koerper) => regel({ ...(koerper as Regel), id: 2 }),
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Regeln />);
+  await nutzer.click(await screen.findByRole("button", { name: "Neue Regel" }));
+  const dialog = screen.getByRole("dialog");
+  await nutzer.selectOptions(within(dialog).getByLabelText("Auslöser"), "Gerät meldet etwas");
+  const was = within(dialog).getByLabelText("Was es meldet");
+  const namen = () => within(was).getAllByRole("option").map((option) => option.textContent);
+
+  // „Jedes Gerät“: die Knöpfe aller Geräte.
+  expect(namen()).toEqual(["Alles (jede Meldung)", "Knopf", "Klingel", "geht offline", "kommt online"]);
+  await nutzer.selectOptions(within(dialog).getByLabelText("Gerät"), "Wohnzimmer");
+  expect(namen()).toEqual(["Alles (jede Meldung)", "Knopf", "geht offline", "kommt online"]);
+  await nutzer.selectOptions(was, "Knopf");
+
+  // Was das andere Gerät nicht melden kann, wird beim Wechsel nicht mitgenommen – „offline“ schon.
+  await nutzer.selectOptions(within(dialog).getByLabelText("Gerät"), "Haustür");
+  expect(was).toHaveValue("");
+  await nutzer.selectOptions(was, "geht offline");
+  await nutzer.selectOptions(within(dialog).getByLabelText("Gerät"), "Wohnzimmer");
+  expect(was).toHaveValue("offline");
+  await nutzer.selectOptions(was, "Knopf");
+
+  await nutzer.type(within(dialog).getByLabelText(/^Name/), "Klingel");
+  await nutzer.type(within(dialog).getByLabelText(/Nachricht an Missa/), "Es hat geklingelt");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Speichern" }));
+  await waitFor(() => expect(aufrufe.some((aufruf) => aufruf.methode === "POST" && aufruf.pfad === "/api/regeln")).toBe(true));
+  expect(aufrufe.find((aufruf) => aufruf.methode === "POST" && aufruf.pfad === "/api/regeln")?.koerper).toMatchObject({
+    ausloeser: { art: "geraet", geraet_id: 7, faehigkeit: "knopf" },
+  });
 });
 
 test("Regel bearbeiten, Fehler beim Speichern anzeigen und Regel löschen", async () => {

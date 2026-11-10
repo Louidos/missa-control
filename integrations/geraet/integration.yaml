@@ -1,0 +1,12 @@
+# Ein Gerät (ESP32, Raspberry Pi Pico) per MQTT anbinden – als Sensor, Knopf oder Aktor.
+id: geraet
+name: Gerät (ESP32, Pico)
+beschreibung: Einen Mikrocontroller als Sensor, Knopf oder Schalter anbinden. Seine Werte und Ereignisse stehen Missa und den Regeln zur Verfügung.
+symbol: "📟"
+art: geraet
+version: 1.0.0
+hinweis: >-
+  Gib dem Gerät einen Namen, der sagt, wo es steht oder was es tut (z. B. „Wohnzimmer“). Daraus
+  entstehen die Namen seiner Funktionen, etwa „wohnzimmer_temperatur“. Nach dem Aktivieren zeigt
+  das Panel die Zugangsdaten und eine fertige Konfigurationsdatei für die Beispiel-Firmware. Was das
+  Gerät kann, meldet es beim Start von selbst.

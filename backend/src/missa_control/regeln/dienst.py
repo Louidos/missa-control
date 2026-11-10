@@ -118,6 +118,7 @@ class RegelDienst:
         # Weitere Messwerte bzw. Geräte (kommen mit den Geräten dazu).
         self.messwert_quellen: list[Callable[[Session], dict[str, tuple[str, str]]]] = []
         self.geraete_quelle: Callable[[Session], dict[int, str]] | None = None
+        self.geraete_meldungen: Callable[[Session], dict[int, list[tuple[str, str]]]] | None = None
 
         self._zustand = threading.Lock()
         self._erfuellt_seit: dict[int, datetime] = {}  # Schwellwert-Regeln: seit wann über/unter der Schwelle
@@ -148,6 +149,7 @@ class RegelDienst:
             integrationen=integrationen,
             webhooks=webhooks,
             geraete=self.geraete_quelle(db) if self.geraete_quelle else {},
+            geraete_meldungen=self.geraete_meldungen(db) if self.geraete_meldungen else {},
             funktionen={
                 name: FunktionsAngabe(
                     integration=integration.name,
@@ -179,7 +181,16 @@ class RegelDienst:
             ],
             "integrationen": [{"id": nr, "name": name} for nr, name in umfeld.integrationen.items()],
             "webhooks": [{"id": nr, "name": name} for nr, name in umfeld.webhooks.items()],
-            "geraete": [{"id": nr, "name": name} for nr, name in umfeld.geraete.items()],
+            "geraete": [
+                {
+                    "id": nr,
+                    "name": name,
+                    "meldungen": [
+                        {"wert": wert, "titel": titel} for wert, titel in umfeld.geraete_meldungen.get(nr, [])
+                    ],
+                }
+                for nr, name in umfeld.geraete.items()
+            ],
             "funktionen": [
                 {
                     "name": name,

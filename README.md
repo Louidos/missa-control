@@ -26,7 +26,8 @@ Version: noch keine Veröffentlichung.
 | Gedächtnis: Missa merkt sich Dinge; ansehen, suchen, korrigieren, löschen, Export als JSON | vorhanden |
 | Regeln und Alarme mit Zeitplan, Schwellwerten, Ruhezeit und Verlauf – auch von Missa selbst anlegbar | vorhanden |
 | Fertige Integrationen: Nextcloud-Kalender (CalDAV), Home Assistant, eingehende Webhooks | vorhanden |
-| Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Geräte (ESP32, Raspberry Pi Pico) per MQTT: koppeln, Werte mit Verlauf, Knöpfe und Schalter | vorhanden |
+| Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 
@@ -44,12 +45,15 @@ cd missa-control
 ./scripts/install.sh
 ```
 
-Das Skript prüft Docker und den Port, erzeugt `.env` mit zufälligen Schlüsseln, legt `data/` an,
-startet das Panel und gibt am Ende die Adresse aus (Standard: `http://<adresse-von-ai01>:8090`).
+Das Skript prüft Docker und die Ports, erzeugt `.env` mit zufälligen Schlüsseln, legt `data/` an,
+startet das Panel und den MQTT-Broker für Geräte und gibt am Ende die Adresse aus
+(Standard: `http://<adresse-von-ai01>:8090`).
 
 - Es kann beliebig oft ausgeführt werden: Eine vorhandene `.env` und vorhandene Daten bleiben unverändert.
-- Ist der Port belegt, bricht es mit einer Meldung ab – es stoppt nie etwas Fremdes.
-  Anderen Port wählen: in `.env` bei `MISSA_CONTROL_BIND` eintragen, Skript erneut starten.
+- Ist ein Port belegt (Panel 8090, MQTT 1883), bricht es mit einer Meldung ab – es stoppt nie
+  etwas Fremdes. Anderen Port wählen: in `.env` bei `MISSA_CONTROL_BIND` bzw. `MQTT_BIND`
+  eintragen, Skript erneut starten.
+- Ohne Geräte braucht es den MQTT-Broker nicht: in `.env` `COMPOSE_PROFILES=` (leer) eintragen.
 
 **Erster Aufruf:** Passwort setzen (mindestens 10 Zeichen), QR-Code mit einer Authenticator-App
 scannen, Code bestätigen. Danach ist das Panel nur noch mit Passwort **und** Code erreichbar.
@@ -61,7 +65,7 @@ Bitte gleich nach der Installation erledigen – bis dahin kann jeder im Netz da
 | --- | --- |
 | Aktualisieren (sichert vorher die Daten) | `./scripts/update.sh` |
 | Backup von `data/` und `.env` nach `backups/` | `./scripts/backup.sh` |
-| Protokoll ansehen | `docker compose -p missa-control logs missa-control` |
+| Protokoll ansehen | `docker compose -p missa-control logs missa-control` (MQTT-Broker: `… logs mqtt`) |
 | Anhalten | `docker compose -p missa-control down` |
 
 Backup wiederherstellen: Panel anhalten, `tar -xzf backups/missa-control-<datum>.tar.gz` im
@@ -79,8 +83,20 @@ Alle Einstellungen stehen kommentiert in [`.env.example`](.env.example).
 Lesende Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“.
 
 Fertige Karten gibt es für MCP-Server, REST-APIs (OpenAPI), Nextcloud-Kalender, Home Assistant,
-eingehende Webhooks sowie Serverlast, Gedächtnis und Regeln. Eigene Integrationen mit wenig Code:
-siehe [docs/eigene-integration.md](docs/eigene-integration.md).
+eingehende Webhooks, Geräte sowie Serverlast, Gedächtnis und Regeln. Eigene Integrationen mit wenig
+Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
+
+## Geräte anbinden (ESP32, Raspberry Pi Pico)
+
+1. Im Panel **Geräte → Gerät hinzufügen**: Namen eingeben, testen, aktivieren.
+2. WLAN-Daten eintragen und die fertige `config.py` (Pico) bzw. `config.h` (ESP32) herunterladen.
+3. Die Datei mit der Beispiel-Firmware aus `examples/geraete/` aufs Gerät bringen – es erscheint
+   als online.
+
+Das Gerät sagt selbst, was es kann: Sensoren werden zu lesenden Funktionen und Messwerten für
+Regeln, Knöpfe zu Ereignissen, Schalter zu Funktionen, die erst nachfragen. Ist ein Gerät weg,
+zeigt das Panel es nach spätestens 45 Sekunden als offline. Alles Weitere, auch für eigene
+Firmware: [docs/geraete.md](docs/geraete.md).
 
 ## Missa anbinden
 
@@ -98,7 +114,7 @@ missa-core eintragen. Die ganze Anleitung: [docs/anbindung-missa-core.md](docs/a
 | `examples/geraete/` | Beispiel-Firmware für Geräte (Pico 2 W, ESP32) |
 | `scripts/` | `install.sh`, `update.sh`, `backup.sh` |
 | `docs/` | Anleitungen |
-| `config/` | Beispiel-Charakterprofil (`profil.example.yaml`), Zusatz für GPU-Werte (`compose.gpu.yaml`) |
+| `config/` | Beispiel-Charakterprofil (`profil.example.yaml`), Zusatz für GPU-Werte (`compose.gpu.yaml`), Einstellungen des MQTT-Brokers (`mosquitto.conf`) |
 
 ## Entwicklung
 
@@ -109,6 +125,9 @@ uv sync
 uv run ruff check .
 uv run pytest
 ```
+
+Die Geräte-Tests starten den echten MQTT-Broker als Test-Container (`missa-control-test-mqtt-…`,
+wird danach wieder gestoppt). Ohne Docker werden sie übersprungen.
 
 ```bash
 # Frontend (Node 22)

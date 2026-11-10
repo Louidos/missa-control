@@ -25,6 +25,12 @@ def _vorhandener_ordner(pfad: str) -> Path | None:
     return ordner if ordner is not None and ordner.is_dir() else None
 
 
+def _port_aus(bind: str, standard: int) -> int:
+    """„0.0.0.0:1883“ → 1883."""
+    teil = bind.strip().rsplit(":", 1)[-1]
+    return int(teil) if teil.isdigit() else standard
+
+
 class EinstellungsFehler(RuntimeError):
     """Eine Einstellung fehlt oder ist ungültig. Die Meldung sagt, was zu tun ist."""
 
@@ -65,6 +71,13 @@ class Einstellungen:
     zeitzone: str = "Europe/Zurich"
     # Regeln: so oft wird der Zeitplan geprüft (Sekunden).
     regel_takt_sekunden: float = 10.0
+    # MQTT-Broker für Geräte (im Compose-Projekt: der Dienst „mqtt“). Leer = keine Geräte.
+    mqtt_host: str = ""
+    mqtt_port: int = 1883
+    # Unter diesem Port erreichen die Geräte den Broker von aussen (aus MQTT_BIND, nur zur Anzeige).
+    mqtt_port_aussen: int = 1883
+    # Hier legt Mosquitto das Verwalter-Passwort ab (Standard: data/mosquitto/dynamic-security.json.pw).
+    mqtt_passwort_datei_pfad: Path | None = None
 
     def __post_init__(self) -> None:
         if len(self.secret_key) < 32:
@@ -95,6 +108,10 @@ class Einstellungen:
         return self.daten_ordner / "missa-control.db"
 
     @property
+    def mqtt_passwort_datei(self) -> Path:
+        return self.mqtt_passwort_datei_pfad or self.daten_ordner / "mosquitto" / "dynamic-security.json.pw"
+
+    @property
     def eigene_integrationen_ordner(self) -> Path:
         """Hier liegen selbst geschriebene oder hochgeladene Integrationen."""
         return self.daten_ordner / "integrations"
@@ -120,4 +137,7 @@ class Einstellungen:
             port=int(umgebung.get("MISSA_CONTROL_PORT", "8090")),
             cookie_secure=umgebung.get("MISSA_CONTROL_COOKIE_SECURE", "auto").strip().lower() or "auto",
             zeitzone=umgebung.get("MISSA_CONTROL_ZEITZONE", "").strip() or "Europe/Zurich",
+            mqtt_host=umgebung.get("MISSA_CONTROL_MQTT_HOST", "").strip(),
+            mqtt_port=int(umgebung.get("MISSA_CONTROL_MQTT_PORT", "1883")),
+            mqtt_port_aussen=_port_aus(umgebung.get("MQTT_BIND", ""), 1883),
         )

@@ -88,6 +88,7 @@ def test_einrichtung_ablauf(client: TestClient, uhr: Uhr) -> None:
     assert daten["qr_svg"].startswith("data:image/svg+xml")
     assert client.get("/api/auth/status").json() == {
         "eingerichtet": False,
+        "zwei_faktor_neu": False,
         "angemeldet": False,
         "version": client.get("/api/health").json()["version"],
     }

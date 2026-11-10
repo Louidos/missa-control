@@ -54,6 +54,11 @@ class AuthDienst:
         admin = self.admin(db)
         return bool(admin and admin.eingerichtet)
 
+    def zwei_faktor_neu(self, db: Session) -> bool:
+        """Wurde die Zwei-Faktor-Anmeldung zurückgesetzt und muss (mit dem bisherigen Passwort) neu eingerichtet werden?"""
+        admin = self.admin(db)
+        return bool(admin and not admin.eingerichtet and admin.zwei_faktor_neu)
+
     # ---------- Einrichtung ----------
 
     def einrichtung_beginnen(self, db: Session, passwort: str) -> Einrichtungsdaten:
@@ -61,6 +66,8 @@ class AuthDienst:
         admin = self.admin(db)
         if admin and admin.eingerichtet:
             raise PanelFehler(409, "Das Panel ist bereits eingerichtet.", "Bitte normal anmelden.")
+        if admin and admin.zwei_faktor_neu:
+            return self._zwei_faktor_neu_beginnen(db, admin, passwort)
         if len(passwort) < MIN_PASSWORT_LAENGE:
             raise PanelFehler(
                 422,
@@ -84,9 +91,40 @@ class AuthDienst:
         admin.gesperrt_bis = None
         db.commit()
 
+        return self._einrichtungsdaten(geheimnis, token)
+
+    @staticmethod
+    def _einrichtungsdaten(geheimnis: str, token: str) -> Einrichtungsdaten:
         url = pyotp.TOTP(geheimnis).provisioning_uri(name=KONTO, issuer_name=AUSSTELLER)
         qr = segno.make(url, error="m").svg_data_uri(scale=5, border=2, dark="#000000", light="#ffffff")
         return Einrichtungsdaten(geheimnis=geheimnis, otpauth_url=url, qr_svg=qr, einrichtungs_token=token)
+
+    def _zwei_faktor_neu_beginnen(self, db: Session, admin: Admin, passwort: str) -> Einrichtungsdaten:
+        """Nach dem Notfall-Reset: Nur wer das bisherige Passwort kennt, bekommt einen neuen QR-Code.
+
+        Das Passwort bleibt, wie es ist. Fehlversuche zählen wie bei der Anmeldung (mit Sperre).
+        """
+        self._sperre_pruefen(admin)
+        if not self._passwort_pruefen(admin, passwort[:MAX_PASSWORT_LAENGE]):
+            verbleibend = self._fehlversuch(db, admin)
+            if verbleibend == 0:
+                raise self._gesperrt_fehler(admin)
+            raise PanelFehler(
+                401,
+                "Das Passwort stimmt nicht.",
+                "Die Zwei-Faktor-Anmeldung lässt sich nur mit dem bisherigen Passwort neu einrichten "
+                f"(noch {verbleibend} Versuch(e)). Ist auch das Passwort verloren: auf ai01 "
+                "./scripts/reset-2fa.sh --auch-passwort ausführen.",
+            )
+        geheimnis = pyotp.random_base32()
+        token = self.krypto.neuer_token()
+        admin.totp_geheimnis = self.krypto.verschluesseln(geheimnis)
+        admin.einrichtung_pruefsumme = self.krypto.token_pruefsumme(token)
+        admin.totp_letzter_schritt = None
+        admin.fehlversuche = 0
+        admin.gesperrt_bis = None
+        db.commit()
+        return self._einrichtungsdaten(geheimnis, token)
 
     def einrichtung_abschliessen(self, db: Session, code: str, einrichtungs_token: str | None) -> str:
         """Schritt 2: Code aus der Authenticator-App bestätigen. Gibt den Sitzungs-Token zurück."""
@@ -115,9 +153,39 @@ class AuthDienst:
                 "Stimmt die Uhrzeit auf dem Handy?",
             )
         admin.eingerichtet = True
+        admin.zwei_faktor_neu = False
         admin.einrichtung_pruefsumme = None
         admin.fehlversuche = 0
         return self._sitzung_erzeugen(db)
+
+    # ---------- Notfall ----------
+
+    def zwei_faktor_zuruecksetzen(self, db: Session, *, auch_passwort: bool = False) -> str:
+        """Für `scripts/reset-2fa.sh`: Die Zwei-Faktor-Anmeldung wird ungültig und muss neu eingerichtet werden.
+
+        Alle Anmeldungen enden sofort. Das Passwort bleibt – ausser mit `auch_passwort`: dann beginnt die
+        Einrichtung von vorn, wie nach der Installation. Alle anderen Daten bleiben unberührt.
+        """
+        admin = self.admin(db)
+        if admin is None or (not admin.eingerichtet and not admin.zwei_faktor_neu):
+            return "Das Panel ist noch nicht eingerichtet – es gibt nichts zurückzusetzen."
+        admin.eingerichtet = False
+        admin.zwei_faktor_neu = not auch_passwort
+        admin.einrichtung_pruefsumme = None
+        admin.totp_letzter_schritt = None
+        admin.fehlversuche = 0
+        admin.gesperrt_bis = None
+        db.execute(delete(Sitzung))
+        db.commit()
+        if auch_passwort:
+            return (
+                "Passwort und Zwei-Faktor-Anmeldung sind zurückgesetzt, alle Anmeldungen beendet. "
+                "Beim nächsten Aufruf des Panels wird beides neu eingerichtet."
+            )
+        return (
+            "Die Zwei-Faktor-Anmeldung ist zurückgesetzt, alle Anmeldungen sind beendet. "
+            "Beim nächsten Aufruf fragt das Panel nach dem bisherigen Passwort und zeigt einen neuen QR-Code."
+        )
 
     # ---------- Anmeldung ----------
 

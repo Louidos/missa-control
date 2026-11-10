@@ -100,6 +100,8 @@ export interface Integration {
   status_hinweis: string;
   geprueft: string | null;
   funktionen: Funktion[];
+  /** Nur bei Webhooks: der Pfad der geheimen Adresse, an die andere Dienste senden. */
+  webhook?: { pfad: string | null };
 }
 
 export const KATALOG = ["katalog"] as const;

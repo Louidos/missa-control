@@ -48,3 +48,20 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   aufrufen; Ruhezeit gegen Dauer-Alarme (Standard 30 Minuten), Regeln lassen sich pausieren (#19)
 - Neue Einstellung `MISSA_CONTROL_ZEITZONE` für Uhrzeiten in Regeln; `install.sh` übernimmt die
   Zeitzone von ai01, sonst gilt Europe/Zurich (#19)
+- Fertige Integrationen für Nextcloud-Kalender, Home Assistant und Webhooks, jeweils in 3 Schritten
+  eingerichtet (#23):
+  - Nextcloud-Kalender: Termine anzeigen, eintragen, ändern und löschen (schreibende Funktionen erst
+    nach Freigabe); nach dem Verbindungstest stehen die gefundenen Kalender zur Auswahl
+  - Home Assistant: Geräte anzeigen, Zustände lesen, schalten und Dienste aufrufen; ist in Home
+    Assistant der MCP-Server eingerichtet, nutzt Missa stattdessen dessen Werkzeuge
+  - Webhook: eine geheime Adresse, an die andere Dienste und Geräte Meldungen schicken – jede Meldung
+    wird zum Ereignis für Missa und kann Regeln auslösen; das Panel zeigt ein `curl`-Beispiel
+- Freigaben für Kalender und Home Assistant sagen, welcher Termin bzw. welches Gerät gemeint ist (#23)
+- Eigene Integrationen können Funktionen abhängig von der Einrichtung anbieten (`wenn=`) und
+  Funktionen durchreichen, die erst zur Laufzeit feststehen (`@weitere_funktionen`) (#23)
+
+### Geändert
+
+- Ist die Gegenstelle einer eigenen Python-Integration nicht erreichbar oder lehnt sie den Zugang
+  ab, gilt die Integration jetzt als ausgefallen (Status „Fehler“, Ereignis für Regeln) – bisher
+  galt das nur für MCP-Server und REST-APIs (#23)

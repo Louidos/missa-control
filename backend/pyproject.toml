@@ -11,6 +11,7 @@ dependencies = [
     "cryptography>=44",
     "fastapi>=0.115",
     "httpx2>=2.10",
+    "icalendar>=7.3.0",
     "mcp>=2.3,<3",
     "psutil>=6.0",
     "pyotp>=2.9",
@@ -24,6 +25,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.3",
+    "radicale>=3.9.0",
     "ruff>=0.9",
 ]
 
@@ -57,5 +59,9 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.File", "f
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    # Der CalDAV-Testserver (Radicale) nutzt eine Schnittstelle, die Python künftig entfernt.
+    "ignore::DeprecationWarning:radicale.*",
+]
 pythonpath = ["tests"]
 addopts = "-q"

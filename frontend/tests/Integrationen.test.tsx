@@ -487,3 +487,174 @@ test("Integration, deren Katalog-Eintrag fehlt, zeigt den Fehler und lässt sich
   expect(screen.getByRole("button", { name: "Notizen bearbeiten" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Notizen entfernen" })).toBeEnabled();
 });
+
+// ---------------------------------------------------------------- Vorlagen: Kalender und Webhook
+
+test("Auswahl nach dem Test ist vorbelegt – mit einem Kalender bleibt es bei drei Schritten", async () => {
+  const kalender = karte({
+    id: "nextcloud-kalender",
+    name: "Nextcloud-Kalender",
+    felder: [
+      feld({ name: "url", titel: "Adresse der Nextcloud", typ: "url", pflicht: true }),
+      feld({ name: "kalender", titel: "Kalender für neue Termine", typ: "auswahl", pflicht: true, nach_test: true }),
+    ],
+  });
+  const aufrufe = backend({
+    "GET /api/katalog": { eintraege: [kalender], probleme: [] },
+    "POST /api/integrationen/testen": {
+      ...TEST_OK,
+      meldung: "Verbunden als louis – 2 Kalender gefunden.",
+      optionen: { kalender: [{ wert: "/louis/arbeit/", titel: "Arbeit" }, { wert: "/louis/privat/", titel: "Persönlich" }] },
+    },
+    "POST /api/integrationen": integration({ name: "Nextcloud-Kalender" }),
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Katalog />, "/katalog?neu=nextcloud-kalender");
+
+  const dialog = await screen.findByRole("dialog");
+  await nutzer.type(within(dialog).getByLabelText(/Adresse der Nextcloud/), "https://cloud.example.ch");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Verbindung testen" }));
+  expect(await within(dialog).findByLabelText(/Kalender für neue Termine/)).toHaveValue("/louis/arbeit/"); // Vorschlag
+  await nutzer.click(within(dialog).getByRole("button", { name: "Aktivieren" }));
+
+  await within(dialog).findByText(/ist aktiv/);
+  expect(aufrufe.find((a) => a.methode === "POST" && a.pfad === "/api/integrationen")?.koerper).toMatchObject({
+    konfig: { url: "https://cloud.example.ch", kalender: "/louis/arbeit/" },
+  });
+});
+
+const WEBHOOK = karte({
+  id: "webhook",
+  name: "Webhook",
+  symbol: "📨",
+  art: "webhook",
+  art_name: "Webhook",
+  felder: [
+    feld({
+      name: "dringlichkeit",
+      titel: "Dringlichkeit der Meldungen",
+      typ: "auswahl",
+      standard: "normal",
+      optionen: [
+        { wert: "normal", titel: "normal" },
+        { wert: "hoch", titel: "hoch" },
+      ],
+    }),
+  ],
+});
+
+function webhook(teil: Partial<Integration> = {}): Integration {
+  return integration({
+    id: 4,
+    manifest_id: "webhook",
+    manifest: WEBHOOK,
+    name: "Waschmaschine",
+    kennung: "waschmaschine",
+    symbol: "📨",
+    art: "webhook",
+    art_name: "Webhook",
+    konfig: { dringlichkeit: "normal" },
+    funktionen: [],
+    webhook: { pfad: "/api/webhook/geheimer-schluessel-123" },
+    ...teil,
+  });
+}
+
+test("Webhook einrichten: keine Rechte nötig, danach stehen die geheime Adresse und ein curl-Beispiel da", async () => {
+  const aufrufe = backend({
+    "GET /api/katalog": { eintraege: [WEBHOOK], probleme: [] },
+    "POST /api/integrationen/testen": { ...TEST_OK, meldung: "Bereit. Die geheime Adresse zum Senden steht nach dem Aktivieren bereit.", details: [], funktionen: [] },
+    "POST /api/integrationen": webhook(),
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Katalog />, "/katalog?neu=webhook");
+
+  const dialog = await screen.findByRole("dialog");
+  await nutzer.clear(within(dialog).getByLabelText(/^Name/));
+  await nutzer.type(within(dialog).getByLabelText(/^Name/), "Waschmaschine");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Verbindung testen" }));
+
+  expect(await within(dialog).findByText(/Ein Webhook hat keine Funktionen für Missa/)).toBeInTheDocument();
+  expect(within(dialog).queryByText("Was darf Missa?")).not.toBeInTheDocument();
+  await nutzer.click(within(dialog).getByRole("button", { name: "Aktivieren" }));
+
+  expect(await within(dialog).findByText(/werden ab jetzt zu Ereignissen für Missa/)).toBeInTheDocument();
+  expect(within(dialog).getByLabelText("Geheime Adresse")).toHaveValue("http://localhost:3000/api/webhook/geheimer-schluessel-123");
+  const beispiel = within(dialog).getByLabelText("Beispiel mit curl");
+  expect(beispiel).toHaveTextContent('curl -X POST "http://localhost:3000/api/webhook/geheimer-schluessel-123"');
+  expect(beispiel).toHaveTextContent('{"nachricht": "Die Waschmaschine ist fertig"}');
+  expect(within(dialog).queryByText(/Funktionen nutzen/)).not.toBeInTheDocument();
+  expect(aufrufe.find((a) => a.methode === "POST" && a.pfad === "/api/integrationen")?.koerper).toMatchObject({
+    manifest_id: "webhook",
+    name: "Waschmaschine",
+    konfig: { dringlichkeit: "normal" },
+  });
+});
+
+test("Webhook auf der Seite Integrationen: Adresse ansehen und eine neue erzeugen", async () => {
+  let aktuell = webhook();
+  const aufrufe = backend({
+    "GET /api/integrationen": () => [aktuell],
+    "POST /api/integrationen/4/webhook/erneuern": () => {
+      aktuell = webhook({ webhook: { pfad: "/api/webhook/ganz-neuer-schluessel-456" } });
+      return aktuell;
+    },
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Integrationen />, "/integrationen");
+
+  const eintrag = await screen.findByRole("region", { name: "Waschmaschine" });
+  expect(within(eintrag).getByText(/Webhook · empfängt Meldungen/)).toBeInTheDocument();
+  await nutzer.click(within(eintrag).getByRole("button", { name: "Adresse und Beispiel" }));
+  expect(within(eintrag).getByLabelText("Geheime Adresse")).toHaveValue("http://localhost:3000/api/webhook/geheimer-schluessel-123");
+
+  await nutzer.click(within(eintrag).getByRole("button", { name: "Neue Adresse erzeugen" }));
+  const rueckfrage = screen.getByRole("dialog", { name: "Neue Adresse erzeugen?" });
+  expect(within(rueckfrage).getByText(/Die alte gilt sofort nicht mehr/)).toBeInTheDocument();
+  await nutzer.click(within(rueckfrage).getByRole("button", { name: "Neue Adresse erzeugen" }));
+
+  await waitFor(() =>
+    expect(within(eintrag).getByLabelText("Geheime Adresse")).toHaveValue("http://localhost:3000/api/webhook/ganz-neuer-schluessel-456"),
+  );
+  expect(aufrufe.some((a) => a.methode === "POST" && a.pfad === "/api/integrationen/4/webhook/erneuern")).toBe(true);
+});
+
+test("Bearbeiten lädt die Auswahl aus dem Verbindungstest von selbst (z. B. die Kalender)", async () => {
+  const kalenderKarte = karte({
+    id: "nextcloud-kalender",
+    name: "Nextcloud-Kalender",
+    felder: [
+      feld({ name: "url", titel: "Adresse der Nextcloud", typ: "url", pflicht: true }),
+      feld({ name: "kalender", titel: "Kalender für neue Termine", typ: "auswahl", pflicht: true, nach_test: true }),
+    ],
+  });
+  const eingerichtet = integration({
+    id: 6,
+    manifest_id: "nextcloud-kalender",
+    manifest: kalenderKarte,
+    name: "Kalender",
+    konfig: { url: "https://cloud.example.ch", kalender: "/louis/privat/" },
+  });
+  const aufrufe = backend({
+    "GET /api/integrationen": [eingerichtet],
+    "POST /api/integrationen/testen": {
+      ...TEST_OK,
+      optionen: { kalender: [{ wert: "/louis/arbeit/", titel: "Arbeit" }, { wert: "/louis/privat/", titel: "Persönlich" }] },
+    },
+    "PUT /api/integrationen/6": (koerper) => ({ ...eingerichtet, konfig: (koerper as { konfig: Integration["konfig"] }).konfig }),
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Integrationen />, "/integrationen");
+
+  await nutzer.click(await screen.findByRole("button", { name: "Kalender bearbeiten" }));
+  const dialog = screen.getByRole("dialog");
+  const auswahl = await within(dialog).findByRole("combobox", { name: /Kalender für neue Termine/ });
+  expect(auswahl).toHaveValue("/louis/privat/"); // die bisherige Wahl, jetzt mit Namen statt Pfad
+  expect(within(dialog).getByRole("option", { name: "Persönlich" })).toBeInTheDocument();
+  expect(aufrufe.find((a) => a.pfad === "/api/integrationen/testen")?.koerper).toMatchObject({ integration_id: 6 });
+
+  await nutzer.selectOptions(auswahl, "Arbeit");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Speichern und testen" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(aufrufe.find((a) => a.methode === "PUT")?.koerper).toMatchObject({ konfig: { kalender: "/louis/arbeit/" } });
+});

@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, selectinload
 from missa_control import zeit
 from missa_control.fehler import PanelFehler
 from missa_control.integrationen.adapter import Adapter, standard_adapter
+from missa_control.integrationen.adapter import webhook as webhook_adapter
 from missa_control.integrationen.fehlertexte import fehler_erklaeren
 from missa_control.integrationen.katalog import Katalog, KatalogEintrag
 from missa_control.integrationen.kontext import Kontext
@@ -358,7 +359,12 @@ class IntegrationsDienst:
             for feld in manifest.felder:
                 if feld.typ == "datei" and isinstance(konfig.get(feld.name), str):
                     konfig[feld.name] = {"datei": True, "zeichen": len(konfig[feld.name])}
+        zusatz: dict[str, Any] = {}
+        if manifest and manifest.art == "webhook" and self.panel is not None:
+            # Die geheime Adresse, an die andere Dienste senden – nur der angemeldete Besitzer sieht sie.
+            zusatz["webhook"] = {"pfad": webhook_adapter.pfad(integration.zustand, self.panel.krypto)}
         return {
+            **zusatz,
             "id": integration.id,
             "manifest_id": integration.manifest_id,
             "manifest": self._manifest_ansicht(manifest) if manifest else None,

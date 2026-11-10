@@ -153,6 +153,30 @@ Nachfrage aus: die Freigabe der Regel gilt dafür.
 Löst eine Regel mit der Aktion „Ereignis an Missa“ aus, kommt das als Ereignis der Art `regel`
 (siehe Schritt 4).
 
+### Kalender und Home Assistant
+
+Die fertigen Integrationen aus dem Katalog bringen diese Funktionen mit (Vorsilbe wie im Panel
+angezeigt; bei mehreren Kalendern heisst der zweite `kalender_2_…`):
+
+| Funktion | Zweck | Standardrecht |
+| --- | --- | --- |
+| `kalender_termine_anzeigen` | Termine in einem Zeitraum (`von`, `bis`, `suche`) – ohne Angaben die nächsten 7 Tage | erlaubt |
+| `kalender_termin_eintragen` | neuer Termin (`titel`, `beginn`, optional `ende`, `ort`, `beschreibung`) | erst nachfragen |
+| `kalender_termin_aendern` | Termin ändern (`id` aus dem Anzeigen, dazu nur das, was sich ändert) | erst nachfragen |
+| `kalender_termin_loeschen` | Termin löschen (`id`) | erst nachfragen |
+| `home_assistant_geraete_anzeigen` | Geräte mit Zustand (`art`, `suche`) | erlaubt |
+| `home_assistant_zustand_lesen` | ein Gerät genau (`id`, z. B. `light.wohnzimmer`) | erlaubt |
+| `home_assistant_einschalten` / `…_ausschalten` | Gerät schalten (`id`) | erst nachfragen |
+| `home_assistant_dienst_aufrufen` | beliebiger Dienst (`dienst`, `id`, `daten`) | erst nachfragen |
+
+Zeitangaben für den Kalender dürfen `2026-11-12 14:00`, `12.11.2026 14:00`, `heute`, `morgen` oder
+`morgen 9:30` sein; gemeint ist immer die Ortszeit (`MISSA_CONTROL_ZEITZONE`). Die Antwort von
+`kalender_termine_anzeigen` nennt das heutige Datum – praktisch, falls Missa es nicht kennt.
+
+Ist in Home Assistant der **MCP-Server** eingerichtet (Integration „Model Context Protocol Server“),
+reicht das Panel stattdessen dessen Werkzeuge durch, z. B. `home_assistant_HassTurnOn` und
+`home_assistant_GetLiveContext`. Welche Geräte dabei sichtbar sind, bestimmt Home Assistant.
+
 ## Schritt 4: Ereignisse abholen
 
 Ereignisse sind Dinge, die Missa wissen sollte, ohne gefragt zu haben: eine Regel hat ausgelöst,
@@ -202,7 +226,7 @@ Antwort: `{"ereignisse": [...], "letzte_id": 42}` – älteste zuerst.
 | `titel` | kurze Überschrift |
 | `nachricht` | ausformulierter Text, den Missa vorlesen kann |
 | `dringlichkeit` | `niedrig`, `normal`, `hoch` oder `dringend` |
-| `daten` | weitere Angaben je nach Art (z. B. Messwert, Nummer der Freigabe) |
+| `daten` | weitere Angaben je nach Art (z. B. Messwert, Nummer der Freigabe; bei `webhook` steht unter `inhalt`, was empfangen wurde) |
 
 Ereignisse bleiben 30 Tage gespeichert.
 

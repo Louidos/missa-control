@@ -16,13 +16,27 @@ from dataclasses import dataclass
 from typing import Any
 
 from missa_control.integrationen.kontext import Kontext, auth_header
+from missa_control.integrationen.typen import AufrufErgebnis, FunktionsInfo
 from missa_control.integrationen.typen import IntegrationsFehler as Fehler
 from missa_control.zugaenge.dienst import Zugangsdaten
 
-__all__ = ["Fehler", "Kontext", "Zugangsdaten", "auth_header", "funktion", "verbindungstest"]
+__all__ = [
+    "AufrufErgebnis",
+    "Fehler",
+    "FunktionsInfo",
+    "Kontext",
+    "Zugangsdaten",
+    "aufruf_weiterer_funktionen",
+    "auth_header",
+    "funktion",
+    "verbindungstest",
+    "weitere_funktionen",
+]
 
 FUNKTION_MERKMAL = "__missa_funktion__"
 TEST_MERKMAL = "__missa_verbindungstest__"
+QUELLE_MERKMAL = "__missa_weitere_funktionen__"
+WEITERLEITUNG_MERKMAL = "__missa_aufruf_weiterer_funktionen__"
 
 
 @dataclass(frozen=True)
@@ -31,6 +45,7 @@ class FunktionsAngaben:
     beschreibung: str | None
     schreibend: bool
     vorschau: Callable[..., Any] | None = None
+    wenn: Callable[[Kontext], bool] | None = None
 
 
 def funktion(
@@ -41,6 +56,7 @@ def funktion(
     schreibend: bool = True,
     name: str | None = None,
     vorschau: Callable[..., Any] | None = None,
+    wenn: Callable[[Kontext], bool] | None = None,
 ) -> Any:
     """Macht aus einer Python-Funktion eine Funktion für Missa.
 
@@ -51,6 +67,8 @@ def funktion(
     - `vorschau`: optionale Funktion mit denselben Parametern, die in einem Satz sagt, was der Aufruf
       bewirken würde (z. B. „Löscht den Termin ‚Zahnarzt‘ am 3. Mai“). Der Satz steht in der Freigabe,
       wenn die Funktion „erst nachfragen“ muss. Löst sie `Fehler` aus, wird gar nicht erst nachgefragt.
+    - `wenn`: optionale Prüfung `(kontext) -> bool`. Liefert sie beim Testen `False`, wird die Funktion
+      nicht angeboten (z. B. weil die Gegenstelle sie in dieser Einrichtung nicht unterstützt).
 
     Parameter und ihre Beschreibung kommen aus den Typ-Hinweisen und dem Docstring.
     """
@@ -59,7 +77,9 @@ def funktion(
         setattr(
             ziel,
             FUNKTION_MERKMAL,
-            FunktionsAngaben(name=name, beschreibung=beschreibung, schreibend=schreibend, vorschau=vorschau),
+            FunktionsAngaben(
+                name=name, beschreibung=beschreibung, schreibend=schreibend, vorschau=vorschau, wenn=wenn
+            ),
         )
         return ziel
 
@@ -73,4 +93,25 @@ def verbindungstest[F: Callable[..., Any]](fn: F) -> F:
     Klappt etwas nicht, löst sie `Fehler("Meldung", "Lösungshinweis")` aus.
     """
     setattr(fn, TEST_MERKMAL, True)
+    return fn
+
+
+def weitere_funktionen[F: Callable[..., Any]](fn: F) -> F:
+    """Markiert die Funktion, die beim Testen weitere Funktionen meldet (optional, höchstens eine).
+
+    Für Funktionen, die erst zur Laufzeit feststehen – etwa die Werkzeuge eines anderen Dienstes.
+    Sie bekommt den Kontext und gibt eine Liste von `FunktionsInfo(name, beschreibung, parameter,
+    schreibend)` zurück. Ausgeführt werden sie von der mit `@aufruf_weiterer_funktionen` markierten Funktion.
+    """
+    setattr(fn, QUELLE_MERKMAL, True)
+    return fn
+
+
+def aufruf_weiterer_funktionen[F: Callable[..., Any]](fn: F) -> F:
+    """Markiert die Funktion, die gemeldete weitere Funktionen ausführt: `(kontext, name, argumente)`.
+
+    Sie gibt einen beliebigen Wert zurück – oder ein `AufrufErgebnis`, um z. B. die Antwort eines
+    MCP-Servers unverändert durchzureichen.
+    """
+    setattr(fn, WEITERLEITUNG_MERKMAL, True)
     return fn

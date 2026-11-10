@@ -1,0 +1,34 @@
+# Eingebaute Integration: Geräte in Home Assistant abfragen und schalten.
+id: home-assistant
+name: Home Assistant
+beschreibung: Missa kann Geräte in Home Assistant abfragen und – nach deiner Freigabe – schalten.
+symbol: "🏠"
+art: python
+version: 1.0.0
+kennung: home_assistant
+hinweis: >-
+  Du brauchst die Adresse von Home Assistant und ein langlebiges Zugriffstoken. So erstellst du es:
+  in Home Assistant unten links auf deinen Namen klicken → Reiter „Sicherheit“ → ganz unten bei
+  „Langlebige Zugriffstoken“ auf „Token erstellen“. Das Token trägst du unten als Zugang ein.
+  Ist in Home Assistant die Integration „Model Context Protocol Server“ eingerichtet, nutzt Missa
+  sie automatisch – dann legst du in Home Assistant fest, welche Geräte Missa sieht (Einstellungen →
+  Sprachassistenten → Freigeben). Sonst verwendet das Panel die REST-API von Home Assistant.
+felder:
+  - name: url
+    titel: Adresse von Home Assistant
+    typ: url
+    pflicht: true
+    platzhalter: http://homeassistant.local:8123
+    hilfe: So, wie sie im Browser steht. ai01 muss diese Adresse erreichen können.
+  - name: zugang
+    titel: Langlebiges Zugriffstoken
+    typ: zugang
+    zugang_typen: [bearer_token]
+    pflicht: true
+    hilfe: Das Token aus Home Assistant (siehe oben). Es wird verschlüsselt gespeichert.
+standardrechte:
+  geraete_anzeigen: erlaubt
+  zustand_lesen: erlaubt
+  einschalten: nachfragen
+  ausschalten: nachfragen
+  dienst_aufrufen: nachfragen

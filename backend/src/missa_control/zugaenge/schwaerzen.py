@@ -37,6 +37,41 @@ class Schwaerzer:
 # Ein Schwärzer für den ganzen Prozess: Geheimnisse sind überall gleich geheim.
 SCHWAERZER = Schwaerzer()
 
+
+def _teil_schwaerzen(wert: Any) -> Any:
+    """Schwärzt einen einzelnen Bestandteil einer Log-Zeile. Zahlen und Ähnliches bleiben, was sie sind."""
+    if isinstance(wert, str):
+        return SCHWAERZER.schwaerzen(wert)
+    try:
+        text = str(wert)
+    except Exception:
+        return wert
+    sauber = SCHWAERZER.schwaerzen(text)
+    return wert if sauber == text else sauber
+
+
+def _eintrag_schwaerzen(record: logging.LogRecord, fertiger_text: str) -> None:
+    """Entfernt ein Geheimnis aus einem Log-Eintrag.
+
+    Text und Bestandteile werden einzeln geschwärzt, damit der Eintrag seine Form behält: Manche
+    Ausgaben – etwa das Zugriffsprotokoll des Webservers – greifen später noch auf die einzelnen
+    Bestandteile zu. Nur wenn das nicht reicht, wird der Eintrag durch den fertigen Text ersetzt.
+    """
+    if isinstance(record.msg, str):
+        record.msg = SCHWAERZER.schwaerzen(record.msg)
+    if isinstance(record.args, tuple):
+        record.args = tuple(_teil_schwaerzen(teil) for teil in record.args)
+    elif isinstance(record.args, dict):
+        record.args = {name: _teil_schwaerzen(teil) for name, teil in record.args.items()}
+    try:
+        danach = record.getMessage()
+    except Exception:
+        danach = None
+    if danach is None or SCHWAERZER.schwaerzen(danach) != danach:
+        record.msg = fertiger_text
+        record.args = None
+
+
 _eingerichtet = False
 
 
@@ -61,8 +96,7 @@ def log_schutz_einrichten() -> None:
             return record
         sauber = SCHWAERZER.schwaerzen(text)
         if sauber != text:
-            record.msg = sauber
-            record.args = None
+            _eintrag_schwaerzen(record, sauber)
         if record.exc_info and record.exc_info[0] is not None:
             # Fehlertext sofort erzeugen und schwärzen; spätere Ausgaben verwenden diesen Text.
             record.exc_text = SCHWAERZER.schwaerzen(formatierer.formatException(record.exc_info))

@@ -67,6 +67,20 @@ def _ursachen(fehler: BaseException) -> list[BaseException]:
     return gefunden
 
 
+def ist_ausfall(fehler: BaseException) -> bool:
+    """Liegt es an der Gegenstelle (nicht erreichbar, Zugang abgelehnt, interner Fehler dort)?
+
+    Dann ist nicht nur dieser eine Aufruf gescheitert – die Integration gilt als ausgefallen.
+    """
+    for ursache in _ursachen(fehler):
+        if isinstance(ursache, httpx2.HTTPStatusError):
+            status = ursache.response.status_code
+            return status in (401, 403) or status >= 500
+        if isinstance(ursache, httpx2.TransportError | ConnectionError | ssl.SSLError):
+            return True
+    return False
+
+
 def fehler_erklaeren(fehler: BaseException) -> tuple[str, str | None]:
     """Gibt (Meldung, Lösungshinweis) zurück. Geheimnisse werden dabei geschwärzt."""
     meldung, hinweis = _erklaeren(fehler)

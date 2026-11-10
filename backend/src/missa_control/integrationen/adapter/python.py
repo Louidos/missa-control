@@ -17,11 +17,20 @@ from typing import Any
 import anyio
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
 
-from missa_control.integrationen.fehlertexte import fehler_erklaeren
+from missa_control.integrationen.fehlertexte import fehler_erklaeren, ist_ausfall
 from missa_control.integrationen.kontext import Kontext
 from missa_control.integrationen.modelle import Funktion
 from missa_control.integrationen.typen import AufrufErgebnis, FunktionsInfo, IntegrationsFehler, TestErgebnis
-from missa_control.sdk import FUNKTION_MERKMAL, TEST_MERKMAL, FunktionsAngaben
+from missa_control.sdk import (
+    FUNKTION_MERKMAL,
+    QUELLE_MERKMAL,
+    TEST_MERKMAL,
+    WEITERLEITUNG_MERKMAL,
+    FunktionsAngaben,
+)
+
+# Kennzeichen an Funktionen, die nicht in main.py stehen, sondern von dort weitergeleitet werden.
+WEITERGELEITET = "weitergeleitet"
 
 _KONTEXT_NAMEN = ("kontext", "ctx", "context")
 _NAME_MUSTER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
@@ -36,6 +45,8 @@ class GeladeneFunktion:
     braucht_kontext: bool
     # Sagt in einem Satz, was der Aufruf bewirken würde (für die Freigabe) – siehe `@funktion(vorschau=...)`.
     vorschau: Callable[..., Any] | None = None
+    # Wird die Funktion in dieser Einrichtung angeboten? – siehe `@funktion(wenn=...)`.
+    wenn: Callable[[Kontext], bool] | None = None
 
 
 @dataclass
@@ -43,6 +54,9 @@ class GeladenesModul:
     funktionen: dict[str, GeladeneFunktion]
     test: Callable[..., Any] | None
     modul: types.ModuleType
+    # Meldet weitere Funktionen, die erst zur Laufzeit feststehen, bzw. führt sie aus.
+    quelle: Callable[..., Any] | None = None
+    weiterleitung: Callable[..., Any] | None = None
 
 
 _geladen: dict[Path, tuple[tuple[tuple[str, int], ...], GeladenesModul]] = {}
@@ -88,11 +102,17 @@ def modul_laden(ordner: Path, manifest_id: str) -> GeladenesModul:
 
     funktionen: dict[str, GeladeneFunktion] = {}
     test: Callable[..., Any] | None = None
+    quelle: Callable[..., Any] | None = None
+    weiterleitung: Callable[..., Any] | None = None
     for objekt in vars(modul).values():
         if not callable(objekt) or getattr(objekt, "__module__", None) != modul.__name__:
             continue
         if getattr(objekt, TEST_MERKMAL, False):
             test = objekt
+        if getattr(objekt, QUELLE_MERKMAL, False):
+            quelle = objekt
+        if getattr(objekt, WEITERLEITUNG_MERKMAL, False):
+            weiterleitung = objekt
         angaben = getattr(objekt, FUNKTION_MERKMAL, None)
         if isinstance(angaben, FunktionsAngaben):
             geladene = _funktion_beschreiben(objekt, angaben)
@@ -102,7 +122,14 @@ def modul_laden(ordner: Path, manifest_id: str) -> GeladenesModul:
                 )
             funktionen[geladene.info.name] = geladene
 
-    ergebnis = GeladenesModul(funktionen=funktionen, test=test, modul=modul)
+    if quelle is not None and weiterleitung is None:
+        raise IntegrationsFehler(
+            "main.py meldet weitere Funktionen, kann sie aber nicht ausführen.",
+            "Zu @weitere_funktionen gehört eine Funktion mit @aufruf_weiterer_funktionen.",
+        )
+    ergebnis = GeladenesModul(
+        funktionen=funktionen, test=test, modul=modul, quelle=quelle, weiterleitung=weiterleitung
+    )
     _geladen[ordner] = (stand, ergebnis)
     return ergebnis
 
@@ -155,7 +182,12 @@ def _funktion_beschreiben(fn: Callable[..., Any], angaben: FunktionsAngaben) -> 
         schreibend=angaben.schreibend,
     )
     return GeladeneFunktion(
-        info=info, fn=fn, modell=modell, braucht_kontext=braucht_kontext, vorschau=angaben.vorschau
+        info=info,
+        fn=fn,
+        modell=modell,
+        braucht_kontext=braucht_kontext,
+        vorschau=angaben.vorschau,
+        wenn=angaben.wenn,
     )
 
 
@@ -223,6 +255,18 @@ def _geladene_funktion(kontext: Kontext, name: str) -> GeladeneFunktion:
     return geladene
 
 
+def _weiterleitung(kontext: Kontext) -> Callable[..., Any]:
+    if kontext.ordner is None:
+        raise IntegrationsFehler("Der Ordner der Integration fehlt.")
+    weiterleitung = modul_laden(kontext.ordner, kontext.manifest.id).weiterleitung
+    if weiterleitung is None:
+        raise IntegrationsFehler(
+            "Diese Funktion lässt sich nicht mehr ausführen.",
+            "Unter „Integrationen“ erneut testen, damit die Funktionsliste aktualisiert wird.",
+        )
+    return weiterleitung
+
+
 def _parameter_pruefen(geladene: GeladeneFunktion, name: str, argumente: dict[str, Any]) -> dict[str, Any]:
     try:
         geprueft = geladene.modell(**argumente)
@@ -263,7 +307,23 @@ class PythonAdapter:
                     ]
                     for feld, optionen in dict(antwort.get("optionen", {})).items()
                 }
-        ergebnis.funktionen = [geladene.info for geladene in modul.funktionen.values()]
+        ergebnis.funktionen = [
+            geladene.info
+            for geladene in modul.funktionen.values()
+            if geladene.wenn is None or geladene.wenn(kontext)
+        ]
+        if modul.quelle is not None:
+            feste = set(modul.funktionen)
+            for angabe in await _ausfuehren(modul.quelle, kontext) or []:
+                info = angabe if isinstance(angabe, FunktionsInfo) else FunktionsInfo(**angabe)
+                if info.name in feste or not _NAME_MUSTER.match(info.name):
+                    raise IntegrationsFehler(
+                        f"Der Funktionsname „{info.name}“ ist ungültig oder kommt doppelt vor.",
+                        "Weitere Funktionen brauchen eigene Namen aus Buchstaben, Ziffern und Unterstrichen.",
+                    )
+                feste.add(info.name)
+                info.extra = {**info.extra, WEITERGELEITET: True}
+                ergebnis.funktionen.append(info)
         ergebnis.zustand = dict(kontext.zustand)
         if not ergebnis.funktionen:
             ergebnis.details.append("Hinweis: main.py enthält noch keine mit @funktion markierte Funktion.")
@@ -272,20 +332,32 @@ class PythonAdapter:
     async def aufrufen(
         self, kontext: Kontext, funktion: Funktion, argumente: dict[str, Any]
     ) -> AufrufErgebnis:
-        geladene = _geladene_funktion(kontext, funktion.name)
-        werte = _parameter_pruefen(geladene, funktion.name, argumente)
-        args = (kontext,) if geladene.braucht_kontext else ()
+        if (funktion.extra or {}).get(WEITERGELEITET):
+            aufruf = _weiterleitung(kontext)
+            args: tuple[Any, ...] = (kontext, funktion.name, argumente)
+            werte: dict[str, Any] = {}
+        else:
+            geladene = _geladene_funktion(kontext, funktion.name)
+            aufruf = geladene.fn
+            werte = _parameter_pruefen(geladene, funktion.name, argumente)
+            args = (kontext,) if geladene.braucht_kontext else ()
         try:
-            wert = await _ausfuehren(geladene.fn, *args, **werte)
+            wert = await _ausfuehren(aufruf, *args, **werte)
         except IntegrationsFehler:
             raise
         except Exception as fehler:
+            if ist_ausfall(fehler):
+                # Die Gegenstelle ist nicht erreichbar oder lehnt den Zugang ab: das betrifft die ganze
+                # Integration – der Dienst vermerkt es im Status und meldet den Ausfall.
+                raise
             kontext.log.exception("Fehler in Funktion %s", funktion.name)
             meldung, hinweis = fehler_erklaeren(fehler)
             if meldung.startswith("Unerwarteter Fehler"):
                 meldung = f"Fehler in „{funktion.name}“: {type(fehler).__name__}: {fehler}"
                 hinweis = "Der Fehler kommt aus dem Code der Integration (main.py). Details stehen im Protokoll des Panels."
             raise IntegrationsFehler(meldung, hinweis) from fehler
+        if isinstance(wert, AufrufErgebnis):
+            return wert  # z. B. die unveränderte Antwort eines MCP-Servers
         return AufrufErgebnis(wert=_ergebnis_vereinfachen(wert))
 
     async def vorschau(self, kontext: Kontext, funktion: Funktion, argumente: dict[str, Any]) -> str | None:
@@ -294,6 +366,8 @@ class PythonAdapter:
         Ungültige Parameter und `Fehler` aus der Vorschau kommen als `IntegrationsFehler` zurück:
         dann wird gar nicht erst nachgefragt.
         """
+        if (funktion.extra or {}).get(WEITERGELEITET):
+            return None
         geladene = _geladene_funktion(kontext, funktion.name)
         if geladene.vorschau is None:
             return None

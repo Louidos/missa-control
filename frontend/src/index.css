@@ -1,16 +1,615 @@
+/* Missa Control – Gestaltung
+   Farben und Abstände stehen als Variablen oben, hell und dunkel folgen dem Gerät. */
+
 :root {
   color-scheme: light dark;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --bg: #f5f5fa;
+  --flaeche: #ffffff;
+  --flaeche-2: #eeeef5;
+  --rand: #dcdce8;
+  --text: #1b1a2b;
+  --text-2: #5c5b73;
+  --akzent: #5b4bdb;
+  --akzent-stark: #4838c4;
+  --akzent-hell: #eceafd;
+  --auf-akzent: #ffffff;
+  --ok: #17794b;
+  --ok-hell: #e2f5eb;
+  --warn: #9a6400;
+  --warn-hell: #fdf1d7;
+  --fehler: #b3261e;
+  --fehler-hell: #fde8e6;
+  --grau: #77768c;
+  --grau-hell: #ebebf2;
+  --radius: 10px;
+  --schatten: 0 1px 2px rgb(20 18 50 / 6%), 0 4px 14px rgb(20 18 50 / 5%);
+  --leiste: 15.5rem;
+
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 15px;
   line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #13121b;
+    --flaeche: #1c1b28;
+    --flaeche-2: #262536;
+    --rand: #34334a;
+    --text: #ececf4;
+    --text-2: #a5a4bb;
+    --akzent: #8f82f5;
+    --akzent-stark: #a79cf8;
+    --akzent-hell: #2a2750;
+    --auf-akzent: #14122b;
+    --ok: #58c990;
+    --ok-hell: #17362a;
+    --warn: #e6b450;
+    --warn-hell: #3a2e12;
+    --fehler: #f28b82;
+    --fehler-hell: #41201d;
+    --grau: #9796ad;
+    --grau-hell: #2a2939;
+    --schatten: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 14px rgb(0 0 0 / 25%);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
 }
 
-.start {
-  max-width: 40rem;
-  margin: 15vh auto 0;
-  padding: 0 1.5rem;
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.45rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--akzent);
+}
+
+code,
+pre,
+.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
+.gedaempft {
+  color: var(--text-2);
+}
+
+.klein {
+  font-size: 0.87rem;
+}
+
+.stapel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stapel.eng {
+  gap: 0.5rem;
+}
+
+.reihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.reihe.zwischen {
+  justify-content: space-between;
+}
+
+.fuellen {
+  flex: 1;
+}
+
+/* ---------- Rahmen mit Navigation ---------- */
+
+.rahmen {
+  display: grid;
+  grid-template-columns: var(--leiste) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.leiste {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+  background: var(--flaeche);
+  border-right: 1px solid var(--rand);
+}
+
+.marke {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.25rem 0.5rem 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.marke img {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.nav-gruppe {
+  margin-top: 0.9rem;
+}
+
+.nav-gruppe-titel {
+  padding: 0 0.6rem 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--grau);
+  text-transform: uppercase;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  color: var(--text-2);
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: var(--flaeche-2);
+}
+
+.nav-link.active {
+  font-weight: 600;
+  color: var(--akzent-stark);
+  background: var(--akzent-hell);
+}
+
+.nav-link svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.nav-zaehler {
+  min-width: 1.35rem;
+  padding: 0 0.35rem;
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  color: #fff;
   text-align: center;
+  background: var(--warn);
+  border-radius: 999px;
+}
+
+.leiste-fuss {
+  padding: 1rem 0.6rem 0;
+  margin-top: auto;
+  font-size: 0.8rem;
+  color: var(--grau);
+}
+
+.inhalt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.kopf {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1.1rem 1.75rem 0.5rem;
+}
+
+.kopf h1 {
+  flex: 1;
+}
+
+.seite {
+  width: 100%;
+  max-width: 76rem;
+  padding: 0.75rem 1.75rem 3rem;
+}
+
+.seiten-einleitung {
+  margin-bottom: 1.25rem;
+  color: var(--text-2);
+}
+
+.knopf.menue-knopf {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .rahmen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .leiste {
+    position: fixed;
+    z-index: 30;
+    width: min(18rem, 85vw);
+    box-shadow: var(--schatten);
+    transform: translateX(-105%);
+    transition: transform 0.18s ease;
+  }
+
+  .leiste.offen {
+    transform: none;
+  }
+
+  .leiste-schleier {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgb(0 0 0 / 35%);
+  }
+
+  .knopf.menue-knopf {
+    display: inline-flex;
+  }
+
+  .kopf {
+    padding: 0.8rem 1rem 0.4rem;
+  }
+
+  .seite {
+    padding: 0.5rem 1rem 3rem;
+  }
+}
+
+/* ---------- Bausteine ---------- */
+
+.karte {
+  padding: 1.1rem 1.25rem;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+}
+
+.knopf {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.95rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+}
+
+.knopf:hover:not(:disabled) {
+  background: var(--flaeche-2);
+}
+
+.knopf:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.knopf svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.knopf.haupt {
+  color: var(--auf-akzent);
+  background: var(--akzent);
+  border-color: var(--akzent);
+}
+
+.knopf.haupt:hover:not(:disabled) {
+  background: var(--akzent-stark);
+  border-color: var(--akzent-stark);
+}
+
+.knopf.gefahr {
+  color: var(--fehler);
+  border-color: color-mix(in srgb, var(--fehler) 45%, var(--rand));
+}
+
+.knopf.gefahr:hover:not(:disabled) {
+  background: var(--fehler-hell);
+}
+
+.knopf.still {
+  padding: 0.35rem 0.5rem;
+  background: transparent;
+  border-color: transparent;
+}
+
+.knopf.still:hover:not(:disabled) {
+  background: var(--flaeche-2);
+}
+
+.knopf.klein {
+  padding: 0.3rem 0.65rem;
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.feld > label,
+.feld-titel {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.feld .pflicht {
+  color: var(--fehler);
+}
+
+.feld-hilfe {
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="url"],
+input[type="number"],
+input[type="search"],
+input[type="time"],
+input[type="tel"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+}
+
+textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--akzent);
+  outline: 2px solid color-mix(in srgb, var(--akzent) 35%, transparent);
+  outline-offset: 0;
+}
+
+.meldung {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.meldung svg {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+}
+
+.meldung.fehler {
+  color: var(--fehler);
+  background: var(--fehler-hell);
+  border-color: color-mix(in srgb, var(--fehler) 30%, transparent);
+}
+
+.meldung.ok {
+  color: var(--ok);
+  background: var(--ok-hell);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+}
+
+.meldung.warn {
+  color: var(--warn);
+  background: var(--warn-hell);
+  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+}
+
+.meldung.info {
+  color: var(--text);
+  background: var(--akzent-hell);
+  border-color: color-mix(in srgb, var(--akzent) 25%, transparent);
+}
+
+.meldung-hinweis {
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  opacity: 0.92;
+}
+
+.marke-status {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+.marke-status::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  content: "";
+  background: currentcolor;
+  border-radius: 50%;
+}
+
+.marke-status.ok {
+  color: var(--ok);
+  background: var(--ok-hell);
+}
+
+.marke-status.warn {
+  color: var(--warn);
+  background: var(--warn-hell);
+}
+
+.marke-status.fehler {
+  color: var(--fehler);
+  background: var(--fehler-hell);
+}
+
+.marke-status.grau {
+  color: var(--grau);
+  background: var(--grau-hell);
+}
+
+.leer {
+  padding: 2.5rem 1.5rem;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.leer svg {
+  width: 2.2rem;
+  height: 2.2rem;
+  margin-bottom: 0.5rem;
+  color: var(--grau);
+}
+
+.lade {
+  padding: 2rem;
+  color: var(--text-2);
+  text-align: center;
+}
+
+/* ---------- Login und Einrichtung ---------- */
+
+.tor {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.tor-karte {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.tor-kopf {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.tor-kopf img {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+.schritte {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--grau);
+  list-style: none;
+}
+
+.schritte li {
+  flex: 1;
+  padding-top: 0.35rem;
+  border-top: 3px solid var(--rand);
+}
+
+.schritte li.aktiv {
+  font-weight: 700;
+  color: var(--akzent-stark);
+  border-color: var(--akzent);
+}
+
+.schritte li.fertig {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.qr {
+  display: block;
+  width: 13rem;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+}
+
+.geheimnis {
+  padding: 0.45rem 0.6rem;
+  overflow-wrap: anywhere;
+  text-align: center;
+  letter-spacing: 0.08em;
+  user-select: all;
+  background: var(--flaeche-2);
+  border-radius: 6px;
+}
+
+.code-eingabe {
+  font-size: 1.3rem;
+  text-align: center;
+  letter-spacing: 0.3em;
 }

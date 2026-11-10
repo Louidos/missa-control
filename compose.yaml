@@ -1,5 +1,7 @@
 # Missa Control – eigenes Compose-Projekt mit eigenen Containern und eigenem Netzwerk.
 # Immer mit Projektnamen aufrufen:  docker compose -p missa-control ...
+# Dieses Projekt fasst keine fremden Container, Volumes oder Netzwerke an und
+# bindet den Docker-Socket nicht ein.
 name: missa-control
 
 services:
@@ -7,10 +9,37 @@ services:
     build: .
     image: missa-control:lokal
     restart: unless-stopped
+    # Läuft nie als root. install.sh trägt die passende Benutzer-ID in .env ein.
+    user: "${MISSA_CONTROL_UID:-10001}:${MISSA_CONTROL_GID:-10001}"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      MISSA_CONTROL_COOKIE_SECURE: ${MISSA_CONTROL_COOKIE_SECURE:-auto}
     ports:
       - "${MISSA_CONTROL_BIND:-0.0.0.0:8090}:8090"
     volumes:
       - ./data:/data
+    networks:
+      - missa-control-net
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  # MQTT-Broker für Geräte (ESP32, Raspberry Pi Pico).
+  # Startet nur mit dem Profil "geraete" und wird mit der Geräte-Anbindung fertig eingerichtet.
+  mqtt:
+    image: eclipse-mosquitto:2
+    profiles:
+      - geraete
+    restart: unless-stopped
+    ports:
+      - "${MQTT_BIND:-0.0.0.0:1883}:1883"
+    volumes:
+      - ./data/mosquitto:/mosquitto/data
     networks:
       - missa-control-net
 

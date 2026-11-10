@@ -2,26 +2,68 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
+_INSTALL_HINWEIS = (
+    "Bitte ./scripts/install.sh ausführen – das Skript erzeugt die Datei .env mit zufälligen Schlüsseln."
+)
+
+
+class EinstellungsFehler(RuntimeError):
+    """Eine Einstellung fehlt oder ist ungültig. Die Meldung sagt, was zu tun ist."""
 
 
 @dataclass(frozen=True)
 class Einstellungen:
     """Alle Einstellungen an einem Ort. Wird beim Start einmal aus der Umgebung gelesen."""
 
-    host: str
-    port: int
+    secret_key: str
+    encryption_key: str
     daten_ordner: Path
-    frontend_ordner: Path | None
+    frontend_ordner: Path | None = None
+    host: str = "127.0.0.1"
+    port: int = 8090
+    # "auto": Cookie nur über HTTPS senden, wenn das Panel über HTTPS aufgerufen wird.
+    cookie_secure: str = "auto"
+    sitzung_stunden: int = 12
+    max_fehlversuche: int = 5
+    sperre_minuten: int = 15
+
+    def __post_init__(self) -> None:
+        if len(self.secret_key) < 32:
+            raise EinstellungsFehler(
+                "SECRET_KEY fehlt oder ist zu kurz (mindestens 32 Zeichen). " + _INSTALL_HINWEIS
+            )
+        try:
+            schluessel = base64.urlsafe_b64decode(self.encryption_key.encode())
+        except (binascii.Error, ValueError):
+            schluessel = b""
+        if len(schluessel) != 32:
+            raise EinstellungsFehler(
+                "ENCRYPTION_KEY fehlt oder ist ungültig (erwartet wird ein Fernet-Schlüssel). "
+                + _INSTALL_HINWEIS
+            )
+        if self.cookie_secure not in ("auto", "ja", "nein"):
+            raise EinstellungsFehler("MISSA_CONTROL_COOKIE_SECURE muss auto, ja oder nein sein.")
+
+    @property
+    def datenbank_pfad(self) -> Path:
+        return self.daten_ordner / "missa-control.db"
 
     @classmethod
     def aus_umgebung(cls) -> Einstellungen:
-        frontend = os.environ.get("MISSA_CONTROL_FRONTEND_DIR", "").strip()
+        umgebung = os.environ
+        frontend = umgebung.get("MISSA_CONTROL_FRONTEND_DIR", "").strip()
         return cls(
-            host=os.environ.get("MISSA_CONTROL_HOST", "127.0.0.1"),
-            port=int(os.environ.get("MISSA_CONTROL_PORT", "8090")),
-            daten_ordner=Path(os.environ.get("MISSA_CONTROL_DATA_DIR", "data")).resolve(),
+            secret_key=umgebung.get("SECRET_KEY", "").strip(),
+            encryption_key=umgebung.get("ENCRYPTION_KEY", "").strip(),
+            daten_ordner=Path(umgebung.get("MISSA_CONTROL_DATA_DIR", "data")).resolve(),
             frontend_ordner=Path(frontend).resolve() if frontend else None,
+            host=umgebung.get("MISSA_CONTROL_HOST", "127.0.0.1"),
+            port=int(umgebung.get("MISSA_CONTROL_PORT", "8090")),
+            cookie_secure=umgebung.get("MISSA_CONTROL_COOKIE_SECURE", "auto").strip().lower() or "auto",
         )

@@ -19,6 +19,11 @@ def _repo_ordner(name: str) -> Path | None:
     return ordner if ordner.is_dir() else None
 
 
+def _vorhandener_ordner(pfad: str) -> Path | None:
+    ordner = Path(pfad) if pfad.strip() else None
+    return ordner if ordner is not None and ordner.is_dir() else None
+
+
 class EinstellungsFehler(RuntimeError):
     """Eine Einstellung fehlt oder ist ungültig. Die Meldung sagt, was zu tun ist."""
 
@@ -50,6 +55,11 @@ class Einstellungen:
     stream_ping_sekunden: float = 15.0
     # Der Test-Chat auf der Seite „Charakter“ wartet höchstens so lange auf das Modell.
     testchat_sekunden: float = 120.0
+    # Serverlast: Abstand der Messungen in Sekunden (0 = nicht automatisch messen).
+    mess_intervall_sekunden: float = 30.0
+    # /proc und /sys des Hosts, im Container nur lesend eingebunden (ausserhalb von Docker: unbenutzt).
+    host_proc: Path | None = None
+    host_sys: Path | None = None
 
     def __post_init__(self) -> None:
         if len(self.secret_key) < 32:
@@ -92,6 +102,8 @@ class Einstellungen:
             if integrationen
             else _repo_ordner("integrations"),
             config_ordner=Path(config).resolve() if config else _repo_ordner("config"),
+            host_proc=_vorhandener_ordner(umgebung.get("MISSA_CONTROL_HOST_PROC", "/host/proc")),
+            host_sys=_vorhandener_ordner(umgebung.get("MISSA_CONTROL_HOST_SYS", "/host/sys")),
             host=umgebung.get("MISSA_CONTROL_HOST", "127.0.0.1"),
             port=int(umgebung.get("MISSA_CONTROL_PORT", "8090")),
             cookie_secure=umgebung.get("MISSA_CONTROL_COOKIE_SECURE", "auto").strip().lower() or "auto",

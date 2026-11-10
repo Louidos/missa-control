@@ -32,6 +32,7 @@ def einstellungen(tmp_path: Path) -> Einstellungen:
         daten_ordner=tmp_path / "data",
         integrations_ordner=Path(__file__).resolve().parents[2] / "integrations",
         config_ordner=Path(__file__).resolve().parents[2] / "config",
+        mess_intervall_sekunden=0,  # in Tests wird nicht von selbst gemessen
     )
 
 

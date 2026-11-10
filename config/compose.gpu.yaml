@@ -1,0 +1,20 @@
+# Zusatz für Server mit NVIDIA-GPU: Damit zeigt die Seite „Serverlast“ auch GPU-Auslastung,
+# GPU-Speicher und GPU-Temperatur an.
+#
+# Voraussetzung auf ai01: NVIDIA-Treiber und das NVIDIA Container Toolkit.
+# Einschalten: in der Datei .env diese Zeile eintragen und ./scripts/install.sh erneut starten:
+#
+#   COMPOSE_FILE=compose.yaml:config/compose.gpu.yaml
+#
+# Das Panel bekommt damit nur das Auslese-Werkzeug nvidia-smi ("utility"), keine Rechenleistung.
+# Ohne diesen Zusatz (oder ohne GPU) blendet das Panel die GPU-Werte einfach aus.
+services:
+  missa-control:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - utility

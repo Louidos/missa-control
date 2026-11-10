@@ -19,6 +19,9 @@ services:
       - "${MISSA_CONTROL_BIND:-0.0.0.0:8090}:8090"
     volumes:
       - ./data:/data
+      # Für die Serverlast: /proc und /sys von ai01, ausschliesslich lesend.
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
     networks:
       - missa-control-net
     read_only: true

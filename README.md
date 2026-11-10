@@ -22,7 +22,8 @@ Version: noch keine Veröffentlichung.
 | Ein Anschluss für Missa: MCP-Gateway mit Client-Tokens, Freigaben, Protokoll und Ereignissen | vorhanden |
 | Modelle verwalten: Rollen „schnell“ und „stark“ mit Ersatzmodell, OpenAI-kompatibler Anschluss | vorhanden |
 | Charakterprofil mit Versionsverlauf, YAML-Export/-Import und Test-Chat | vorhanden |
-| Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Serverlast von ai01 (CPU, Arbeitsspeicher, Speicherplatz, GPU) mit Verlauf | vorhanden |
+| Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 
@@ -91,7 +92,7 @@ missa-core eintragen. Die ganze Anleitung: [docs/anbindung-missa-core.md](docs/a
 | `examples/geraete/` | Beispiel-Firmware für Geräte (Pico 2 W, ESP32) |
 | `scripts/` | `install.sh`, `update.sh`, `backup.sh` |
 | `docs/` | Anleitungen |
-| `config/` | Beispiel-Charakterprofil (`profil.example.yaml`) |
+| `config/` | Beispiel-Charakterprofil (`profil.example.yaml`), Zusatz für GPU-Werte (`compose.gpu.yaml`) |
 
 ## Entwicklung
 

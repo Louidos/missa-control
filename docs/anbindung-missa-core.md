@@ -15,6 +15,7 @@ Diese Anleitung beschreibt, wie **du selbst** missa-core mit Missa Control verbi
 | Ereignisse (Regel ausgelöst, Gerät meldet, …) | `/api/events/stream` und `/api/events` | Server-Sent Events bzw. Abfrage |
 | Was ist eingerichtet? | `/api/config/integrations` | JSON, nur lesend |
 | Charakterprofil | `/api/config/profile` | JSON, nur lesend |
+| Sprachmodelle (schnell / stark) | `/v1/chat/completions`, `/v1/models` | OpenAI-kompatibel |
 
 Alle Anschlüsse verlangen denselben **Client-Token** im Header
 `Authorization: Bearer <Token>`. Ohne gültigen Token antwortet das Panel mit `401`.
@@ -191,6 +192,35 @@ liefert Missas Charakterprofil. Solange im Panel noch keines gespeichert ist, st
 
 Die Konfig-API ist **nur lesend** – es gibt keine Möglichkeit, darüber etwas zu ändern.
 
+## Schritt 6: Modelle über den Modell-Anschluss
+
+Unter **Modelle** legst du im Panel fest, welches Sprachmodell für welche Aufgabe verwendet wird.
+missa-core kennt nur feste Namen – welches Modell gerade dahinter steckt, kann sich im Panel jederzeit
+ändern, ohne dass in missa-core etwas angepasst werden muss.
+
+| Einstellung in missa-core | Wert |
+| --- | --- |
+| Basis-URL (OpenAI-kompatibel) | `http://<adresse>:8090/v1` |
+| API-Key | der Client-Token |
+| Modell für Gespräche | `missa-schnell` |
+| Modell für schwierige Aufgaben | `missa-stark` |
+
+Weitere Rollen, die du im Panel anlegst, heissen entsprechend `missa-<kurzname>`.
+
+```bash
+curl -s http://<adresse>:8090/v1/chat/completions \
+  -H "Authorization: Bearer <Token>" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "missa-schnell", "messages": [{"role": "user", "content": "Hallo Missa"}]}'
+```
+
+- **Streaming** funktioniert wie gewohnt mit `"stream": true`.
+- **Ausfall:** Antwortet das Hauptmodell einer Rolle nicht, übernimmt automatisch das Ersatzmodell.
+  Welches Modell geantwortet hat, steht im Antwort-Header `X-Missa-Modell`.
+- **`GET /v1/models`** listet alle Rollen auf, für die ein Modell ausgewählt ist.
+- Fehler kommen im Format der OpenAI-API (`{"error": {"message": …}}`) mit verständlichem Text.
+- „Stark“ darf länger dauern: Das Zeitlimit in missa-core für diese Rolle grosszügig wählen.
+
 ## Prüfliste
 
 - [ ] `curl …/api/health` antwortet von dort, wo missa-core läuft
@@ -198,6 +228,7 @@ Die Konfig-API ist **nur lesend** – es gibt keine Möglichkeit, darüber etwas
 - [ ] Eine „erlaubte“ Funktion lässt sich aufrufen und erscheint im Panel unter **Protokoll**
 - [ ] Eine „erst nachfragen“-Funktion erscheint unter **Freigaben** und läuft nach „Erlauben“
 - [ ] Ein Test-Ereignis kommt im Stream an
+- [ ] `missa-schnell` antwortet über `/v1/chat/completions`
 - [ ] Im Panel steht beim Client unter „Zuletzt gesehen“ eine aktuelle Zeit
 
 ## Wenn etwas nicht klappt

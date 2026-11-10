@@ -23,3 +23,7 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   nachfragen“-Aufrufe warten unter „Freigaben“ auf Erlauben oder Ablehnen (höchstens 5 Minuten);
   Seite „Protokoll“ mit allen Aufrufen und Ereignissen; Ereignisse per `GET /api/events` und als
   Stream; lesende Konfig-API; Anleitung in `docs/anbindung-missa-core.md` (#9)
+- Modelle verwalten (schnell/stark) mit gemeinsamem Modell-Anschluss: Modell-Endpunkte eintragen und
+  testen (Antwortzeit, Tokens/s), Rollen mit Haupt- und Ersatzmodell, OpenAI-kompatibler Anschluss
+  unter `/v1` mit den festen Namen `missa-schnell` und `missa-stark` (auch mit Streaming),
+  Statistik der letzten 7 Tage (#11)

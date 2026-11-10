@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import json
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -69,24 +69,12 @@ def kaputt(kontext: Kontext) -> str:
 
 
 @pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
-
-
-@pytest.fixture
 def einstellungen(einstellungen: Einstellungen) -> Einstellungen:
     ordner = einstellungen.eigene_integrationen_ordner / "werkstatt"
     ordner.mkdir(parents=True)
     (ordner / "integration.yaml").write_text(MANIFEST, encoding="utf-8")
     (ordner / "main.py").write_text(MAIN, encoding="utf-8")
     return dataclasses.replace(einstellungen, stream_ping_sekunden=0.2)
-
-
-@pytest.fixture
-def panel(app: FastAPI) -> Iterator[LaufenderServer]:
-    """Das Panel als echter Server (für MCP-Client und Ereignis-Stream)."""
-    with LaufenderServer(app) as server:
-        yield server
 
 
 def _integration(

@@ -20,7 +20,8 @@ Version: noch keine Veröffentlichung.
 | Zugänge (API-Keys, Tokens, Passwörter) verschlüsselt verwalten | vorhanden |
 | Integrations-Katalog: MCP-Server, REST-APIs (OpenAPI), eigene Python-Integrationen | vorhanden |
 | Ein Anschluss für Missa: MCP-Gateway mit Client-Tokens, Freigaben, Protokoll und Ereignissen | vorhanden |
-| Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Modelle verwalten: Rollen „schnell“ und „stark“ mit Ersatzmodell, OpenAI-kompatibler Anschluss | vorhanden |
+| Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 

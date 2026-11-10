@@ -31,6 +31,10 @@ def _port_aus(bind: str, standard: int) -> int:
     return int(teil) if teil.isdigit() else standard
 
 
+def _health_url(wert: str) -> str | None:
+    return wert.strip() or None
+
+
 class EinstellungsFehler(RuntimeError):
     """Eine Einstellung fehlt oder ist ungültig. Die Meldung sagt, was zu tun ist."""
 
@@ -71,6 +75,12 @@ class Einstellungen:
     zeitzone: str = "Europe/Zurich"
     # Regeln: so oft wird der Zeitplan geprüft (Sekunden).
     regel_takt_sekunden: float = 10.0
+    # Optional: Health-URL von missa-core. Das Panel fragt sie nur lesend ab (HTTP-GET) – sonst nichts.
+    missa_core_health_url: str | None = None
+    # So oft prüft das Panel missa-core und die Integrationen von sich aus (0 = nie). Im Betrieb alle
+    # 20 Sekunden (siehe `aus_umgebung`): Zusammen mit der Übersicht, die alle 30 Sekunden nachfragt,
+    # ist ein Ausfall so innerhalb einer Minute zu sehen.
+    pruef_intervall_sekunden: float = 0.0
     # MQTT-Broker für Geräte (im Compose-Projekt: der Dienst „mqtt“). Leer = keine Geräte.
     mqtt_host: str = ""
     mqtt_port: int = 1883
@@ -95,6 +105,13 @@ class Einstellungen:
             )
         if self.cookie_secure not in ("auto", "ja", "nein"):
             raise EinstellungsFehler("MISSA_CONTROL_COOKIE_SECURE muss auto, ja oder nein sein.")
+        if self.missa_core_health_url is not None and not self.missa_core_health_url.startswith(
+            ("http://", "https://")
+        ):
+            raise EinstellungsFehler(
+                "MISSA_CORE_HEALTH_URL muss mit http:// oder https:// beginnen – "
+                "z. B. http://192.168.1.10:8000/health. Leer lassen, wenn missa-core nicht abgefragt werden soll."
+            )
         try:
             ZoneInfo(self.zeitzone)
         except (KeyError, ValueError, OSError):
@@ -140,4 +157,6 @@ class Einstellungen:
             mqtt_host=umgebung.get("MISSA_CONTROL_MQTT_HOST", "").strip(),
             mqtt_port=int(umgebung.get("MISSA_CONTROL_MQTT_PORT", "1883")),
             mqtt_port_aussen=_port_aus(umgebung.get("MQTT_BIND", ""), 1883),
+            missa_core_health_url=_health_url(umgebung.get("MISSA_CORE_HEALTH_URL", "")),
+            pruef_intervall_sekunden=20.0,
         )

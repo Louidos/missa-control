@@ -157,3 +157,33 @@ def test_quelltext_spricht_missa_core_nicht_schreibend_an() -> None:
         text = datei.read_text(encoding="utf-8")
         assert "docker.sock" not in text, datei
         assert not re.search(r"subprocess\.\w+\(\s*\[?\s*[\"']docker", text), datei
+
+
+def test_missa_core_wird_nur_mit_einem_lesenden_get_abgefragt() -> None:
+    """Der einzige Kontakt zu missa-core ist ein HTTP-GET auf die Health-URL – und der steht an genau einer Stelle."""
+    quelle = REPO / "backend" / "src" / "missa_control"
+    code = _ohne_kommentare((quelle / "status" / "missa_core.py").read_text(encoding="utf-8"))
+    assert code.count("await client.get(self.health_url)") == 1
+    for verboten in (".post(", ".put(", ".patch(", ".delete(", ".request(", ".stream(", ".send(", ".head("):
+        assert verboten not in code, verboten
+    assert "follow_redirects=False" in code  # auch keine Weiterleitung führt woanders hin
+
+    # Die Health-URL kennt sonst nur, wer sie einliest bzw. weiterreicht – niemand sonst fragt damit etwas ab.
+    kennen = {
+        datei.relative_to(quelle).as_posix()
+        for datei in quelle.rglob("*.py")
+        if "health_url" in datei.read_text(encoding="utf-8")
+    }
+    assert kennen == {"config.py", "main.py", "status/missa_core.py", "status/dienst.py"}
+    for name in ("config.py", "main.py", "status/dienst.py"):
+        text = (quelle / name).read_text(encoding="utf-8")
+        assert "httpx" not in text, name
+
+    # In Compose und Skripten taucht missa-core nur als diese eine Einstellung auf.
+    compose = (REPO / "compose.yaml").read_text(encoding="utf-8")
+    assert [
+        zeile.strip() for zeile in _ohne_kommentare(compose).splitlines() if "MISSA_CORE" in zeile.upper()
+    ] == ["MISSA_CORE_HEALTH_URL: ${MISSA_CORE_HEALTH_URL:-}"]
+    for skript in SKRIPTE:
+        assert "missa-core" not in _ohne_kommentare(skript.read_text(encoding="utf-8")).lower(), skript.name
+        assert "missa_core" not in _ohne_kommentare(skript.read_text(encoding="utf-8")).lower(), skript.name

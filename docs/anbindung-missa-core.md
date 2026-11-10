@@ -314,6 +314,25 @@ curl -s http://<adresse>:8090/v1/chat/completions \
 - Fehler kommen im Format der OpenAI-API (`{"error": {"message": …}}`) mit verständlichem Text.
 - „Stark“ darf länger dauern: Das Zeitlimit in missa-core für diese Rolle grosszügig wählen.
 
+## Optional: Anzeigen, ob missa-core läuft
+
+Das ist der einzige Fall, in dem das Panel von sich aus missa-core anspricht – und es ist freiwillig.
+Hat missa-core eine Health-Adresse, lässt sie sich in `.env` von Missa Control eintragen:
+
+```bash
+MISSA_CORE_HEALTH_URL=http://host.docker.internal:8000/health
+```
+
+Danach `./scripts/install.sh` ausführen. Der Knoten „Missa“ in der Übersicht zeigt dann grün (die
+Adresse antwortet) oder rot (keine Antwort oder ein Fehler); ohne die Einstellung bleibt er grau.
+
+- Das Panel schickt nur ein **HTTP-GET** an genau diese Adresse, alle 20 Sekunden. Es sendet nichts
+  mit und verändert an missa-core nichts.
+- Als Adresse taugt `http://host.docker.internal:<Port>/…`, wenn missa-core seinen Port auf ai01
+  veröffentlicht, oder die Adresse von ai01 im Netz. `127.0.0.1` geht nicht: Das Panel läuft in
+  einem eigenen Container.
+- An missa-core selbst ist dafür nichts einzurichten.
+
 ## Prüfliste
 
 - [ ] `curl …/api/health` antwortet von dort, wo missa-core läuft

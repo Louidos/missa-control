@@ -28,7 +28,7 @@ Version: noch keine Veröffentlichung.
 | Fertige Integrationen: Nextcloud-Kalender (CalDAV), Home Assistant, eingehende Webhooks | vorhanden |
 | Geräte (ESP32, Raspberry Pi Pico) per MQTT: koppeln, Werte mit Verlauf, Knöpfe und Schalter | vorhanden |
 | Telefonie vorbereitet: erlaubte Anrufer, Ruhezeiten, Anrufe aus Regeln, Verlauf (mit Test-Adapter, noch ohne echtes Telefon) | vorhanden |
-| Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Übersicht als Startseite: grafischer Verbindungsbaum mit Live-Status aller Teile | vorhanden |
 
 ## Installation
 
@@ -74,6 +74,28 @@ Repo-Ordner, dann `./scripts/install.sh`. Das Backup enthält die Schlüssel aus
 einen sicheren Ort.
 
 Alle Einstellungen stehen kommentiert in [`.env.example`](.env.example).
+
+## Übersicht
+
+Die Startseite zeigt alles Eingerichtete als Verbindungsbaum: Missa in der Mitte, darum Clients,
+Rollen und Modelle, Integrationen mit ihren Funktionen (aufklappbar), Geräte, Zugänge und Regeln.
+
+| Farbe | Bedeutung |
+| --- | --- |
+| grün | in Ordnung |
+| gelb | Warnung – z. B. eine Freigabe wartet auf deine Entscheidung |
+| rot | Fehler – z. B. die Gegenstelle einer Integration ist nicht erreichbar, ein Gerät ist offline |
+| grau | deaktiviert oder nicht eingerichtet |
+
+Das Panel prüft die Integrationen alle 20 Sekunden von selbst, die Seite aktualisiert sich alle 30
+Sekunden – ein Ausfall ist also innerhalb einer Minute zu sehen, ohne neu zu laden. Ein Klick auf
+einen Knoten zeigt Details und den Link zur Bearbeitung, das „+“ führt in den Katalog. Knoten
+lassen sich verschieben (die Anordnung bleibt gespeichert), nach Art filtern oder als Liste
+anzeigen – auf dem Handy beginnt die Seite mit der Liste.
+
+Ob Missa selbst läuft, zeigt der Knoten in der Mitte, sobald in `.env` die Health-Adresse von
+missa-core eingetragen ist (`MISSA_CORE_HEALTH_URL`, optional). Das Panel ruft sie nur lesend ab
+(HTTP-GET) und verändert an missa-core nichts; ohne die Einstellung bleibt der Knoten grau.
 
 ## Erste Integration in 3 Schritten
 

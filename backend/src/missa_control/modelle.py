@@ -11,6 +11,7 @@ from missa_control.modellverwaltung.modelle import Modell, ModellAnfrage, Rolle
 from missa_control.profil.modelle import ProfilVersion
 from missa_control.regeln.modelle import Ausloesung, Regel
 from missa_control.serverlast.modelle import Messwert
+from missa_control.status.modelle import KnotenPosition
 from missa_control.telefonie.modelle import Anruf, TelefonieEinstellung
 from missa_control.zugaenge.modelle import Zugang
 
@@ -27,6 +28,7 @@ __all__ = [
     "Geraet",
     "GeraeteWert",
     "Integration",
+    "KnotenPosition",
     "Messwert",
     "Modell",
     "ModellAnfrage",

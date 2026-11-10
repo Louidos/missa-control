@@ -45,6 +45,9 @@ from missa_control.regeln import routen as regel_routen
 from missa_control.regeln.dienst import RegelDienst
 from missa_control.serverlast import routen as serverlast_routen
 from missa_control.serverlast.dienst import ServerlastDienst
+from missa_control.status import routen as status_routen
+from missa_control.status.dienst import StatusDienst
+from missa_control.status.missa_core import MissaCore
 from missa_control.telefonie import routen as telefonie_routen
 from missa_control.telefonie.dienst import TelefonieDienst
 from missa_control.zugaenge import routen as zugaenge_routen
@@ -136,6 +139,14 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
         regeln=app.state.regeln,
     )
 
+    app.state.status = StatusDienst(
+        datenbank=datenbank,
+        integrationen=app.state.integrationen,
+        regeln=app.state.regeln,
+        geraete=app.state.geraete,
+        missa_core=MissaCore(einstellungen.missa_core_health_url),
+    )
+
     fehlerbehandlung_einrichten(app)
     app.add_middleware(Zugriffsschutz, auth=auth, clients=clients, datenbank=datenbank)
 
@@ -161,6 +172,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(geraete_routen.router)
     app.include_router(telefonie_routen.adapter_router)
     app.include_router(telefonie_routen.panel_router)
+    app.include_router(status_routen.router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
     app.router.routes.append(Route("/mcp/", endpoint=app.state.gateway))
@@ -181,6 +193,8 @@ async def _lebenszyklus(app: FastAPI) -> AsyncIterator[None]:
         ]
         if app.state.serverlast.intervall > 0:
             aufgaben.append(asyncio.create_task(app.state.serverlast.laufen()))
+        if app.state.einstellungen.pruef_intervall_sekunden > 0:
+            aufgaben.append(asyncio.create_task(_regelmaessig_pruefen(app)))
         try:
             yield
         finally:
@@ -207,6 +221,16 @@ def alte_daten_loeschen(app: FastAPI) -> None:
     )
     if geloescht:
         log.info("Aufgeräumt: %s Einträge älter als %s Tage gelöscht", geloescht, tage)
+
+
+async def _regelmaessig_pruefen(app: FastAPI) -> None:
+    """Prüft missa-core (nur lesend) und die Integrationen – so zeigt die Übersicht Ausfälle von selbst."""
+    while True:
+        try:
+            await app.state.status.pruefen()
+        except Exception:
+            log.exception("Regelmässige Prüfung fehlgeschlagen")
+        await asyncio.sleep(app.state.einstellungen.pruef_intervall_sekunden)
 
 
 async def _regelmaessig_aufraeumen(app: FastAPI) -> None:

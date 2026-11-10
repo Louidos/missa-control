@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
+import { Zugaenge } from "../zugaenge/Zugaenge";
+
 export interface NavEintrag {
   pfad: string;
   titel: string;
@@ -64,6 +66,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Zugänge",
         symbol: KeyRound,
         beschreibung: "API-Keys, Tokens und Passwörter verschlüsselt speichern.",
+        seite: Zugaenge,
       },
       {
         pfad: "/geraete",

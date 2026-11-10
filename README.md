@@ -17,7 +17,8 @@ Version: noch keine Veröffentlichung.
 | Bereich | Stand |
 | --- | --- |
 | Installation per Skript, Login mit Passwort + 2FA | vorhanden |
-| Zugänge, Integrationen, Gateway, Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Zugänge (API-Keys, Tokens, Passwörter) verschlüsselt verwalten | vorhanden |
+| Integrationen, Gateway, Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 

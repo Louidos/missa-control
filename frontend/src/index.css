@@ -928,6 +928,14 @@ textarea:focus-visible {
   border-left: 4px solid var(--warn);
 }
 
+.freigabe .vorschau {
+  padding: 0.6rem 0.75rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  background: var(--warn-hell);
+  border-radius: 8px;
+}
+
 .argumente {
   display: grid;
   gap: 0.35rem;
@@ -1323,4 +1331,36 @@ textarea:focus-visible {
 .tabelle.zahlen th {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* ---------- Gedächtnis ---------- */
+
+.karte.erinnerungen {
+  padding: 0.25rem 0;
+  margin: 0;
+  list-style: none;
+}
+
+.erinnerungen li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--rand);
+}
+
+.erinnerungen li:last-child {
+  border-bottom: none;
+}
+
+.erinnerung-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.erinnerung-fuss {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }

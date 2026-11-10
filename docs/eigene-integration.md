@@ -168,6 +168,24 @@ def meine_funktion(kontext: Kontext, ort: str, tage: int = 3) -> dict:
 Eine Funktion mit `@verbindungstest` läuft bei „Verbindung testen“ (optional, höchstens eine).
 Sie gibt einen kurzen Text zurück, z. B. `"Verbunden als missa"`.
 
+### Vorschau für die Freigabe
+
+Muss eine Funktion „erst nachfragen“, zeigt das Panel unter „Freigaben“ ihren Namen und die
+Parameter. Bei Parametern wie `id=12` weiss man damit noch nicht, worum es geht. Eine Vorschau
+sagt es in einem Satz:
+
+```python
+def _vorschau(kontext: Kontext, id: int) -> str:
+    notiz = notiz_holen(id)  # löst Fehler("Die Notiz gibt es nicht.") aus, wenn sie fehlt
+    return f"Löscht die Notiz „{notiz}“"
+
+@funktion(beschreibung="Löscht eine Notiz.", vorschau=_vorschau)
+def notiz_loeschen(kontext: Kontext, id: int) -> str: ...
+```
+
+Die Vorschau bekommt dieselben Parameter wie die Funktion und darf nichts verändern. Löst sie
+`Fehler` aus, wird gar nicht erst nachgefragt – Missa bekommt die Meldung sofort.
+
 ### Fehler mit Lösungshinweis
 
 ```python

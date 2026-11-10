@@ -34,3 +34,9 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 - Serverlast von ai01 mit Verlauf: Seite „Serverlast“ mit CPU, Arbeitsspeicher, Speicherplatz und –
   falls vorhanden – GPU; Messung alle 30 Sekunden (nur lesend), Diagramme für 1 Stunde, 24 Stunden
   und 7 Tage, Tabellenansicht; Missa kann die Werte über die Funktion `serverlast_aktuell` abfragen (#15)
+- Gedächtnis von Missa ansehen, bearbeiten und löschen: Seite „Gedächtnis“ mit Suche (auch nach
+  Wortteilen), Filter nach Kategorie und Quelle, Einträgen von Hand und Export als JSON; Missa merkt
+  sich Dinge über die Funktionen `merken`, `suchen` und `vergessen` – vergessen nur nach Freigabe (#17)
+- Freigaben sagen jetzt in einem Satz, was genau passieren würde (z. B. welcher Eintrag gelöscht
+  wird), statt nur Funktion und Parameter zu zeigen – eigene Integrationen können das mit
+  `@funktion(vorschau=…)` ebenfalls (#17)

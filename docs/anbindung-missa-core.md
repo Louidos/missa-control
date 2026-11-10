@@ -117,6 +117,21 @@ curl -s http://<adresse>:8090/mcp \
   `isError: true`, verständlicher Meldung und Lösungshinweis.
 - **Zugänge:** API-Keys und Passwörter setzt das Panel ein. missa-core sieht sie nie.
 
+### Gedächtnis
+
+Ist im Panel die Integration „Gedächtnis“ aktiv, stehen am Gateway drei Funktionen bereit:
+
+| Funktion | Zweck | Standardrecht |
+| --- | --- | --- |
+| `gedaechtnis_merken` | merkt sich einen Satz (`text`, optional `kategorie`) | erlaubt |
+| `gedaechtnis_suchen` | sucht nach Stichwörtern (`text`), optional nur in einer `kategorie` | erlaubt |
+| `gedaechtnis_vergessen` | löscht einen Eintrag (`id` aus der Suche) | erst nachfragen |
+
+Kategorien: `vorlieben`, `gewohnheiten`, `projektwissen`, `personen`, `sonstiges`. Damit Missa das
+Gedächtnis von sich aus nutzt, hilft ein Satz im Charakterprofil, z. B.: „Merke dir Dinge, die für
+später wichtig sind, mit `gedaechtnis_merken` und sieh mit `gedaechtnis_suchen` nach, bevor du
+nach etwas fragst, das du schon wissen könntest.“ Alle Einträge stehen im Panel unter „Gedächtnis“.
+
 ## Schritt 4: Ereignisse abholen
 
 Ereignisse sind Dinge, die Missa wissen sollte, ohne gefragt zu haben: eine Regel hat ausgelöst,

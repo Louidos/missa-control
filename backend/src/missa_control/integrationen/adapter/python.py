@@ -34,6 +34,8 @@ class GeladeneFunktion:
     fn: Callable[..., Any]
     modell: type[BaseModel]
     braucht_kontext: bool
+    # Sagt in einem Satz, was der Aufruf bewirken würde (für die Freigabe) – siehe `@funktion(vorschau=...)`.
+    vorschau: Callable[..., Any] | None = None
 
 
 @dataclass
@@ -152,7 +154,9 @@ def _funktion_beschreiben(fn: Callable[..., Any], angaben: FunktionsAngaben) -> 
         parameter=schema,
         schreibend=angaben.schreibend,
     )
-    return GeladeneFunktion(info=info, fn=fn, modell=modell, braucht_kontext=braucht_kontext)
+    return GeladeneFunktion(
+        info=info, fn=fn, modell=modell, braucht_kontext=braucht_kontext, vorschau=angaben.vorschau
+    )
 
 
 def _docstring_lesen(doc: str, parameter_namen: set[str]) -> tuple[str, dict[str, str]]:
@@ -207,6 +211,33 @@ async def _ausfuehren(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return await anyio.to_thread.run_sync(lambda: fn(*args, **kwargs))
 
 
+def _geladene_funktion(kontext: Kontext, name: str) -> GeladeneFunktion:
+    if kontext.ordner is None:
+        raise IntegrationsFehler("Der Ordner der Integration fehlt.")
+    geladene = modul_laden(kontext.ordner, kontext.manifest.id).funktionen.get(name)
+    if geladene is None:
+        raise IntegrationsFehler(
+            f"Die Funktion „{name}“ gibt es in main.py nicht mehr.",
+            "Unter „Integrationen“ erneut testen, damit die Funktionsliste aktualisiert wird.",
+        )
+    return geladene
+
+
+def _parameter_pruefen(geladene: GeladeneFunktion, name: str, argumente: dict[str, Any]) -> dict[str, Any]:
+    try:
+        geprueft = geladene.modell(**argumente)
+    except ValidationError as fehler:
+        stellen = "; ".join(
+            f"{'.'.join(str(teil) for teil in eintrag['loc']) or 'Parameter'}: {eintrag['msg']}"
+            for eintrag in fehler.errors()
+        )
+        raise IntegrationsFehler(
+            f"Ungültige Parameter für „{name}“: {stellen}",
+            "Die erwarteten Parameter stehen in der Beschreibung der Funktion.",
+        ) from fehler
+    return {feld: getattr(geprueft, feld) for feld in type(geprueft).model_fields}
+
+
 class PythonAdapter:
     art = "python"
 
@@ -241,27 +272,8 @@ class PythonAdapter:
     async def aufrufen(
         self, kontext: Kontext, funktion: Funktion, argumente: dict[str, Any]
     ) -> AufrufErgebnis:
-        if kontext.ordner is None:
-            raise IntegrationsFehler("Der Ordner der Integration fehlt.")
-        modul = modul_laden(kontext.ordner, kontext.manifest.id)
-        geladene = modul.funktionen.get(funktion.name)
-        if geladene is None:
-            raise IntegrationsFehler(
-                f"Die Funktion „{funktion.name}“ gibt es in main.py nicht mehr.",
-                "Unter „Integrationen“ erneut testen, damit die Funktionsliste aktualisiert wird.",
-            )
-        try:
-            geprueft = geladene.modell(**argumente)
-        except ValidationError as fehler:
-            stellen = "; ".join(
-                f"{'.'.join(str(teil) for teil in eintrag['loc']) or 'Parameter'}: {eintrag['msg']}"
-                for eintrag in fehler.errors()
-            )
-            raise IntegrationsFehler(
-                f"Ungültige Parameter für „{funktion.name}“: {stellen}",
-                "Die erwarteten Parameter stehen in der Beschreibung der Funktion.",
-            ) from fehler
-        werte = {name: getattr(geprueft, name) for name in type(geprueft).model_fields}
+        geladene = _geladene_funktion(kontext, funktion.name)
+        werte = _parameter_pruefen(geladene, funktion.name, argumente)
         args = (kontext,) if geladene.braucht_kontext else ()
         try:
             wert = await _ausfuehren(geladene.fn, *args, **werte)
@@ -275,3 +287,17 @@ class PythonAdapter:
                 hinweis = "Der Fehler kommt aus dem Code der Integration (main.py). Details stehen im Protokoll des Panels."
             raise IntegrationsFehler(meldung, hinweis) from fehler
         return AufrufErgebnis(wert=_ergebnis_vereinfachen(wert))
+
+    async def vorschau(self, kontext: Kontext, funktion: Funktion, argumente: dict[str, Any]) -> str | None:
+        """Der Satz für die Freigabe – oder `None`, wenn die Funktion keine Vorschau hat.
+
+        Ungültige Parameter und `Fehler` aus der Vorschau kommen als `IntegrationsFehler` zurück:
+        dann wird gar nicht erst nachgefragt.
+        """
+        geladene = _geladene_funktion(kontext, funktion.name)
+        if geladene.vorschau is None:
+            return None
+        werte = _parameter_pruefen(geladene, funktion.name, argumente)
+        args = (kontext,) if geladene.braucht_kontext else ()
+        text = await _ausfuehren(geladene.vorschau, *args, **werte)
+        return (str(text).strip() or None) if text is not None else None

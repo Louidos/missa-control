@@ -33,6 +33,7 @@ function freigabe(teil: Partial<Freigabe>): Freigabe {
     integration: "Kalender",
     funktion: "kalender_termin_eintragen",
     beschreibung: "Trägt einen Termin ein.",
+    vorschau: "",
     argumente: { titel: "Zahnarzt", beginn: "2026-02-03T09:00", teilnehmer: ["Louis"] },
     status: "offen",
     entschieden: null,
@@ -136,6 +137,28 @@ test("offene Freigabe zeigt Funktion und Parameter; Erlauben schickt die Entsche
   await nutzer.click(within(karte).getByRole("button", { name: "Erlauben" }));
   expect(await screen.findByText("Nichts zu entscheiden")).toBeInTheDocument();
   expect(aufrufe.find((a) => a.methode === "POST")?.koerper).toEqual({ erlauben: true });
+});
+
+test("Freigabe zeigt die Vorschau der Integration: was genau passieren würde", async () => {
+  backend({
+    "GET /api/freigaben": {
+      offen: [
+        freigabe({
+          funktion: "gedaechtnis_vergessen",
+          integration: "Gedächtnis",
+          argumente: { id: 12 },
+          vorschau: "Löscht aus dem Gedächtnis (Vorlieben): „Mag keine Oliven“",
+        }),
+      ],
+      verlauf: [],
+      frist_sekunden: 300,
+    },
+  });
+  zeige(<Freigaben />);
+
+  const karte = await screen.findByRole("region", { name: "Freigabe für gedaechtnis_vergessen" });
+  expect(within(karte).getByText("Löscht aus dem Gedächtnis (Vorlieben): „Mag keine Oliven“")).toBeInTheDocument();
+  expect(within(karte).getByText("12")).toBeInTheDocument(); // die Parameter stehen weiterhin da
 });
 
 test("Ablehnen und Verlauf; abgelaufene Anfrage zeigt verständliche Meldung", async () => {

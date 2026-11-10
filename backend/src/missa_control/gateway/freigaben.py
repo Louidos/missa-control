@@ -35,6 +35,8 @@ def ansicht(freigabe: Freigabe) -> dict[str, Any]:
         "integration": freigabe.integration_name,
         "funktion": freigabe.funktion,
         "beschreibung": freigabe.beschreibung,
+        # Ein Satz der Integration, was genau passieren würde (leer, wenn sie keinen liefert).
+        "vorschau": freigabe.vorschau or "",
         "argumente": freigabe.argumente or {},
         "status": freigabe.status,
         "entschieden": freigabe.entschieden.isoformat() if freigabe.entschieden else None,
@@ -64,6 +66,7 @@ class FreigabeDienst:
         funktion: str,
         beschreibung: str,
         argumente: dict[str, Any],
+        vorschau: str = "",
     ) -> str:
         """Hält den Aufruf an, bis im Panel entschieden wurde. Gibt erlaubt, abgelehnt oder abgelaufen zurück."""
         with self.datenbank.sitzung() as db:
@@ -75,6 +78,7 @@ class FreigabeDienst:
                 integration_name=integration_name,
                 funktion=funktion,
                 beschreibung=beschreibung,
+                vorschau=vorschau,
                 argumente=argumente,
                 status=FREIGABE_OFFEN,
             )

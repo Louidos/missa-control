@@ -73,6 +73,7 @@ export function Freigaben() {
             </div>
             <StatusMarke status="warn">wartet noch {restzeit(freigabe, jetzt)}</StatusMarke>
           </div>
+          {freigabe.vorschau && <p className="vorschau">{freigabe.vorschau}</p>}
           {Object.keys(freigabe.argumente).length > 0 ? (
             <dl className="argumente">
               {Object.entries(freigabe.argumente).map(([name, wert]) => (

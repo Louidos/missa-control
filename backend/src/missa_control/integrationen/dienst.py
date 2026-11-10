@@ -42,6 +42,7 @@ from missa_control.zugaenge.modelle import Zugang
 log = logging.getLogger(__name__)
 
 TEST_SEKUNDEN = 45.0
+VORSCHAU_SEKUNDEN = 10.0
 TEST_GUELTIG = timedelta(minutes=15)
 # Ab so vielen Funktionen (grosse REST-APIs) ist zunächst nichts ausgewählt – man wählt gezielt aus.
 VORAUSWAHL_GRENZE = 40
@@ -637,6 +638,42 @@ class IntegrationsDienst:
             self._status_uebernehmen(integration, STATUS_OK, "Letzter Aufruf erfolgreich.")
         db.commit()
         return ergebnis
+
+    async def vorschau(
+        self, db: Session, integration: Integration, funktionsname: str, argumente: dict[str, Any] | None
+    ) -> str:
+        """Ein Satz, was der Aufruf bewirken würde – für die Freigabe. Leer, wenn es keine Vorschau gibt.
+
+        Steht schon fest, dass der Aufruf scheitert (z. B. weil es den Eintrag nicht gibt), kommt ein
+        `IntegrationsFehler`: dann muss niemand über etwas entscheiden, das ohnehin nicht geht.
+        """
+        eintrag = self.katalog.eintraege.get(integration.manifest_id)
+        funktion = next((f for f in integration.funktionen if f.name == funktionsname and f.vorhanden), None)
+        adapter = self.adapter.get(eintrag.manifest.art) if eintrag else None
+        vorschau = getattr(adapter, "vorschau", None)
+        if eintrag is None or funktion is None or vorschau is None:
+            return ""
+        kontext = self._kontext(
+            db,
+            eintrag,
+            name=integration.name,
+            kennung=integration.kennung,
+            konfig=integration.konfig,
+            zustand=integration.zustand,
+            integration_id=integration.id,
+        )
+        try:
+            with anyio.fail_after(VORSCHAU_SEKUNDEN):
+                text = await vorschau(kontext, funktion, dict(argumente or {}))
+        except IntegrationsFehler:
+            raise
+        except PanelFehler as fehler:
+            raise IntegrationsFehler(fehler.meldung, fehler.hinweis) from fehler
+        except Exception:
+            # Die Vorschau ist nur eine Hilfe: klappt sie nicht, wird ohne sie nachgefragt.
+            log.exception("Vorschau für %s.%s fehlgeschlagen", integration.kennung, funktionsname)
+            return ""
+        return (text or "")[:500]
 
     # ------------------------------------------------------------------ Zugänge
 

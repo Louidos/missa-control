@@ -23,7 +23,8 @@ Version: noch keine Veröffentlichung.
 | Modelle verwalten: Rollen „schnell“ und „stark“ mit Ersatzmodell, OpenAI-kompatibler Anschluss | vorhanden |
 | Charakterprofil mit Versionsverlauf, YAML-Export/-Import und Test-Chat | vorhanden |
 | Serverlast von ai01 (CPU, Arbeitsspeicher, Speicherplatz, GPU) mit Verlauf | vorhanden |
-| Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Gedächtnis: Missa merkt sich Dinge; ansehen, suchen, korrigieren, löschen, Export als JSON | vorhanden |
+| Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 

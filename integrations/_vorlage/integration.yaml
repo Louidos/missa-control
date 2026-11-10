@@ -1,0 +1,58 @@
+# Vorlage für eine eigene Integration.
+#
+# So geht's:
+#   1. Diesen Ordner nach data/integrations/<dein-name>/ kopieren.
+#   2. Unten "id" und "name" ändern.
+#   3. Panel neu starten (oder im Katalog „Neu einlesen“) – die Integration erscheint im Katalog.
+#
+# Ordner, deren Name mit "_" beginnt (wie diese Vorlage), zeigt der Katalog nicht an.
+
+# Eindeutiger Kurzname: Kleinbuchstaben, Ziffern und Bindestriche.
+id: meine-integration
+
+# So heisst die Karte im Katalog.
+name: Meine Integration
+
+# Ein Satz, der erklärt, was Missa damit kann.
+beschreibung: Begrüsst jemanden und zeigt, wie eine eigene Integration aufgebaut ist.
+
+# Ein Emoji als Symbol.
+symbol: "👋"
+
+# Art der Integration. Für eigenen Python-Code immer "python".
+art: python
+
+version: 1.0.0
+
+# Felder des Formulars. Das Panel baut daraus automatisch die Eingabemaske.
+# Typen: text, zahl, url, auswahl, zugang, schalter, datei
+felder:
+  - name: gruss              # so heisst der Wert im Code: kontext.konfig["gruss"]
+    titel: Grusswort         # Beschriftung im Formular
+    typ: text
+    pflicht: true
+    standard: Hallo
+    hilfe: Wie Missa grüssen soll, z. B. „Hallo“ oder „Grüezi“.
+
+  # Beispiel für einen Zugang (API-Key, Token oder Passwort) – im Code: kontext.zugang("api_zugang").wert
+  # - name: api_zugang
+  #   titel: API-Key
+  #   typ: zugang
+  #   zugang_typen: [api_key]
+  #   pflicht: true
+
+  # Beispiel für eine Auswahl
+  # - name: sprache
+  #   titel: Sprache
+  #   typ: auswahl
+  #   standard: de
+  #   optionen:
+  #     - wert: de
+  #       titel: Deutsch
+  #     - wert: en
+  #       titel: Englisch
+
+# Rechte, mit denen neue Funktionen starten: erlaubt, nachfragen oder gesperrt.
+# Ohne Angabe gilt: lesende Funktionen = erlaubt, schreibende = nachfragen.
+standardrechte:
+  begruessen: erlaubt

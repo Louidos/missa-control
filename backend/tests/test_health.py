@@ -1,3 +1,4 @@
+import dataclasses
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -24,14 +25,7 @@ def _app_mit_frontend(einstellungen: Einstellungen, tmp_path: Path) -> FastAPI:
     (frontend / "index.html").write_text("<html>Missa Control</html>", encoding="utf-8")
     (frontend / "assets" / "app.js").write_text("console.log('hallo')", encoding="utf-8")
     (tmp_path / "geheim.txt").write_text("geheim", encoding="utf-8")
-    return create_app(
-        Einstellungen(
-            secret_key=einstellungen.secret_key,
-            encryption_key=einstellungen.encryption_key,
-            daten_ordner=einstellungen.daten_ordner,
-            frontend_ordner=frontend,
-        )
-    )
+    return create_app(dataclasses.replace(einstellungen, frontend_ordner=frontend))
 
 
 def test_frontend_wird_ausgeliefert(einstellungen: Einstellungen, tmp_path: Path) -> None:

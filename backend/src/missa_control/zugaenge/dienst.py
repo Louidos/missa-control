@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from sqlalchemy import select
@@ -49,11 +50,17 @@ class ZugangsDienst:
     def __init__(self, krypto: Krypto, schwaerzer: Schwaerzer) -> None:
         self.krypto = krypto
         self.schwaerzer = schwaerzer
+        # Wird beim Start gesetzt: welche Integrationen welchen Zugang verwenden.
+        self.verwendung: Callable[[Session], dict[int, list[str]]] = lambda _db: {}
 
     # ---------- für die Oberfläche (immer maskiert) ----------
 
     def alle(self, db: Session) -> list[dict[str, object]]:
-        return [self.ansicht(zugang) for zugang in db.scalars(select(Zugang).order_by(Zugang.name))]
+        verwendung = self.verwendung(db)
+        return [
+            {**self.ansicht(zugang), "verwendet_von": verwendung.get(zugang.id, [])}
+            for zugang in db.scalars(select(Zugang).order_by(Zugang.name))
+        ]
 
     def ansicht(self, zugang: Zugang) -> dict[str, object]:
         try:
@@ -120,7 +127,15 @@ class ZugangsDienst:
         return zugang
 
     def loeschen(self, db: Session, zugang_id: int) -> None:
-        db.delete(self.holen(db, zugang_id))
+        zugang = self.holen(db, zugang_id)
+        genutzt = self.verwendung(db).get(zugang_id)
+        if genutzt:
+            raise PanelFehler(
+                409,
+                f"Der Zugang wird noch verwendet von: {', '.join(genutzt)}.",
+                "Zuerst in dieser Integration einen anderen Zugang auswählen oder die Integration entfernen.",
+            )
+        db.delete(zugang)
         db.commit()
 
     def holen(self, db: Session, zugang_id: int) -> Zugang:

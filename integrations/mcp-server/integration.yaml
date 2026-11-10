@@ -1,0 +1,33 @@
+# Beliebiger MCP-Server per URL – ganz ohne Code.
+id: mcp-server
+name: MCP-Server
+beschreibung: Einen beliebigen MCP-Server per URL anbinden. Seine Funktionen stehen Missa danach sofort zur Verfügung.
+symbol: "🔌"
+art: mcp
+version: 1.0.0
+hinweis: >-
+  Trage die Adresse des MCP-Servers ein. „Verbindung testen“ zeigt, welche Funktionen er anbietet.
+  Achtung: „localhost“ meint hier den Panel-Container – für Dienste auf ai01 die Adresse von ai01 verwenden.
+felder:
+  - name: url
+    titel: URL des MCP-Servers
+    typ: url
+    pflicht: true
+    platzhalter: http://192.168.1.20:8000/mcp
+    hilfe: Vollständige Adresse inklusive Pfad, meist endet sie auf /mcp (Streamable HTTP) oder /sse.
+  - name: zugang
+    titel: Zugang (optional)
+    typ: zugang
+    zugang_typen: [bearer_token, api_key, benutzer_passwort]
+    hilfe: Nur nötig, wenn der Server ein Token oder Passwort verlangt. Token und API-Key werden als „Authorization Bearer“ gesendet.
+  - name: verbindung
+    titel: Art der Verbindung
+    typ: auswahl
+    standard: auto
+    optionen:
+      - wert: auto
+        titel: Automatisch erkennen (empfohlen)
+      - wert: http
+        titel: Streamable HTTP
+      - wert: sse
+        titel: SSE (ältere Server)

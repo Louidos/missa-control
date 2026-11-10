@@ -29,6 +29,7 @@ def einstellungen(tmp_path: Path) -> Einstellungen:
         secret_key="test-secret-key-" + "x" * 32,
         encryption_key=Fernet.generate_key().decode(),
         daten_ordner=tmp_path / "data",
+        integrations_ordner=Path(__file__).resolve().parents[2] / "integrations",
     )
 
 

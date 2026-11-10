@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useId, useState } from "react";
+import { type KeyboardEvent, useId, useRef, useState } from "react";
 
 import { api } from "../api";
 import { FehlerMeldung, Feld, Knopf } from "../ui/ui";
@@ -15,10 +15,16 @@ interface Props {
   onAbbrechen: () => void;
 }
 
-/** Formular zum Anlegen oder Ändern eines Zugangs. Der gespeicherte Wert wird nie angezeigt. */
+/**
+ * Formular zum Anlegen oder Ändern eines Zugangs. Der gespeicherte Wert wird nie angezeigt.
+ *
+ * Bewusst kein <form>-Element: Der Baustein steckt auch in anderen Formularen (Assistent),
+ * und verschachtelte Formulare sind in HTML nicht erlaubt – der Browser würde die Seite neu laden.
+ */
 export function ZugangFormular({ zugang, erlaubteTypen, vorschlagName, onFertig, onAbbrechen }: Props) {
   const queryClient = useQueryClient();
   const id = useId();
+  const huelle = useRef<HTMLDivElement>(null);
   const typen = TYPEN.filter((typ) => !erlaubteTypen?.length || erlaubteTypen.includes(typ.wert));
   const [name, setName] = useState(zugang?.name ?? vorschlagName ?? "");
   const [typ, setTyp] = useState<ZugangTyp>(zugang?.typ ?? typen[0]?.wert ?? "api_key");
@@ -51,15 +57,22 @@ export function ZugangFormular({ zugang, erlaubteTypen, vorschlagName, onFertig,
 
   const wertTitel = TYPEN.find((eintrag) => eintrag.wert === typ)?.wertTitel ?? "Wert";
 
+  const absenden = () => {
+    const eingaben = huelle.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select") ?? [];
+    for (const eingabe of eingaben) {
+      if (!eingabe.reportValidity()) return; // der Browser zeigt, welches Pflichtfeld fehlt
+    }
+    speichern.mutate();
+  };
+  const beiEingabetaste = (ereignis: KeyboardEvent) => {
+    if (ereignis.key !== "Enter" || !(ereignis.target instanceof HTMLInputElement)) return;
+    ereignis.preventDefault(); // nicht das umgebende Formular absenden
+    ereignis.stopPropagation();
+    absenden();
+  };
+
   return (
-    <form
-      className="stapel"
-      onSubmit={(ereignis: FormEvent) => {
-        ereignis.preventDefault();
-        ereignis.stopPropagation();
-        speichern.mutate();
-      }}
-    >
+    <div className="stapel" ref={huelle} role="group" aria-label={zugang ? "Zugang bearbeiten" : "Neuer Zugang"} onKeyDown={beiEingabetaste}>
       <Feld titel="Name" fuer={`${id}-name`} pflicht hilfe="Frei wählbar, z. B. „Wetter-API“ oder „Nextcloud Missa“.">
         <input id={`${id}-name`} type="text" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} />
       </Feld>
@@ -111,10 +124,10 @@ export function ZugangFormular({ zugang, erlaubteTypen, vorschlagName, onFertig,
       <FehlerMeldung fehler={speichern.error} />
       <div className="dialog-fuss">
         <Knopf onClick={onAbbrechen}>Abbrechen</Knopf>
-        <Knopf art="haupt" type="submit" disabled={speichern.isPending}>
+        <Knopf art="haupt" onClick={absenden} disabled={speichern.isPending}>
           {zugang ? "Speichern" : "Zugang anlegen"}
         </Knopf>
       </div>
-    </form>
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 
 import pytest
@@ -205,13 +206,7 @@ def test_falscher_schluessel_gibt_keine_daten_preis(
 ) -> None:
     _anlegen(angemeldet, name="A", typ="api_key", wert=API_KEY)
     # Dasselbe Panel mit anderem ENCRYPTION_KEY (z. B. .env verloren und neu erzeugt):
-    andere = create_app(
-        Einstellungen(
-            secret_key=einstellungen.secret_key,
-            encryption_key=Fernet.generate_key().decode(),
-            daten_ordner=einstellungen.daten_ordner,
-        )
-    )
+    andere = create_app(dataclasses.replace(einstellungen, encryption_key=Fernet.generate_key().decode()))
     with andere.state.datenbank.sitzung() as db:
         liste = andere.state.zugaenge.alle(db)
         assert liste[0]["maske"] == "••••"

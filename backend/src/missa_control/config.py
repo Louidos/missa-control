@@ -13,6 +13,12 @@ _INSTALL_HINWEIS = (
 )
 
 
+def _repo_ordner(name: str) -> Path | None:
+    """Ordner im Repo (für den Start ohne Docker): backend/src/missa_control/ → drei Ebenen höher."""
+    ordner = Path(__file__).resolve().parents[3] / name
+    return ordner if ordner.is_dir() else None
+
+
 class EinstellungsFehler(RuntimeError):
     """Eine Einstellung fehlt oder ist ungültig. Die Meldung sagt, was zu tun ist."""
 
@@ -25,6 +31,8 @@ class Einstellungen:
     encryption_key: str
     daten_ordner: Path
     frontend_ordner: Path | None = None
+    # Ordner mit den eingebauten Integrationen (im Repo: integrations/).
+    integrations_ordner: Path | None = None
     host: str = "127.0.0.1"
     port: int = 8090
     # "auto": Cookie nur über HTTPS senden, wenn das Panel über HTTPS aufgerufen wird.
@@ -54,15 +62,24 @@ class Einstellungen:
     def datenbank_pfad(self) -> Path:
         return self.daten_ordner / "missa-control.db"
 
+    @property
+    def eigene_integrationen_ordner(self) -> Path:
+        """Hier liegen selbst geschriebene oder hochgeladene Integrationen."""
+        return self.daten_ordner / "integrations"
+
     @classmethod
     def aus_umgebung(cls) -> Einstellungen:
         umgebung = os.environ
         frontend = umgebung.get("MISSA_CONTROL_FRONTEND_DIR", "").strip()
+        integrationen = umgebung.get("MISSA_CONTROL_INTEGRATIONS_DIR", "").strip()
         return cls(
             secret_key=umgebung.get("SECRET_KEY", "").strip(),
             encryption_key=umgebung.get("ENCRYPTION_KEY", "").strip(),
             daten_ordner=Path(umgebung.get("MISSA_CONTROL_DATA_DIR", "data")).resolve(),
             frontend_ordner=Path(frontend).resolve() if frontend else None,
+            integrations_ordner=Path(integrationen).resolve()
+            if integrationen
+            else _repo_ordner("integrations"),
             host=umgebung.get("MISSA_CONTROL_HOST", "127.0.0.1"),
             port=int(umgebung.get("MISSA_CONTROL_PORT", "8090")),
             cookie_secure=umgebung.get("MISSA_CONTROL_COOKIE_SECURE", "auto").strip().lower() or "auto",

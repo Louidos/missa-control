@@ -18,7 +18,8 @@ Version: noch keine Veröffentlichung.
 | --- | --- |
 | Installation per Skript, Login mit Passwort + 2FA | vorhanden |
 | Zugänge (API-Keys, Tokens, Passwörter) verschlüsselt verwalten | vorhanden |
-| Integrationen, Gateway, Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Integrations-Katalog: MCP-Server, REST-APIs (OpenAPI), eigene Python-Integrationen | vorhanden |
+| Gateway, Modelle, Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 
@@ -61,6 +62,15 @@ Repo-Ordner, dann `./scripts/install.sh`. Das Backup enthält die Schlüssel aus
 einen sicheren Ort.
 
 Alle Einstellungen stehen kommentiert in [`.env.example`](.env.example).
+
+## Erste Integration in 3 Schritten
+
+1. Im Panel **Katalog** öffnen und eine Karte wählen, z. B. „MCP-Server“.
+2. Das Formular ausfüllen (beim MCP-Server nur die URL) und **Verbindung testen**.
+3. Rechte prüfen und **Aktivieren**.
+
+Lesende Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“. Eigene Integrationen mit
+wenig Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
 
 ## Aufbau des Repos
 

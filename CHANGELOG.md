@@ -33,7 +33,7 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   YAML; Test-Chat direkt mit dem Modell, auch mit ungespeichertem Profil (#13)
 - Serverlast von ai01 mit Verlauf: Seite „Serverlast“ mit CPU, Arbeitsspeicher, Speicherplatz und –
   falls vorhanden – GPU; Messung alle 30 Sekunden (nur lesend), Diagramme für 1 Stunde, 24 Stunden
-  und 7 Tage, Tabellenansicht; Missa kann die Werte über die Funktion `serverlast_aktuell` abfragen (#15)
+  und 7 Tage, Tabellenansicht; Missa kann die Werte über die Funktion `serverlast_aktuell` abfragen (#15, #20)
 - Gedächtnis von Missa ansehen, bearbeiten und löschen: Seite „Gedächtnis“ mit Suche (auch nach
   Wortteilen), Filter nach Kategorie und Quelle, Einträgen von Hand und Export als JSON; Missa merkt
   sich Dinge über die Funktionen `merken`, `suchen` und `vergessen` – vergessen nur nach Freigabe (#17)

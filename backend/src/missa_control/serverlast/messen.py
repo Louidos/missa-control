@@ -14,6 +14,8 @@ from __future__ import annotations
 import logging
 import shutil
 import subprocess
+import threading
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -94,6 +96,41 @@ def procfs_einstellen(host_proc: Path | None) -> None:
         psutil.PROCFS_PATH = str(host_proc)
 
 
+# Vergleichspunkt für die CPU-Auslastung „seit der letzten Messung“. Bewusst hier gehalten und nicht
+# psutil überlassen: `psutil.cpu_percent()` merkt sich den Vergleichspunkt pro Thread – die Messungen
+# laufen aber nicht immer im selben Thread und lieferten dann 0 % oder Werte über einen falschen Zeitraum.
+_cpu_sperre = threading.Lock()
+_cpu_vorher: Any = None
+
+
+def _cpu_anteil(vorher: Any, jetzt: Any) -> float:
+    """Anteil der Zeit zwischen zwei Zählerständen, in der die CPU gearbeitet hat (in Prozent)."""
+    unterschied = {
+        name: max(getattr(jetzt, name) - getattr(vorher, name, 0.0), 0.0) for name in jetzt._fields
+    }
+    # Unter Linux steckt die Gast-Zeit schon in „user“ bzw. „nice“ – nicht doppelt zählen.
+    gesamt = sum(wert for name, wert in unterschied.items() if name not in ("guest", "guest_nice"))
+    untaetig = unterschied.get("idle", 0.0) + unterschied.get("iowait", 0.0)
+    return round((gesamt - untaetig) / gesamt * 100, 1) if gesamt > 0 else 0.0
+
+
+def cpu_auslastung(intervall: float | None = None) -> float:
+    """CPU-Auslastung in Prozent.
+
+    Ohne `intervall`: seit dem letzten Aufruf dieser Art – egal aus welchem Thread (für den
+    30-Sekunden-Takt). Mit `intervall`: über genau so viele Sekunden (für „jetzt gerade“); der
+    Vergleichspunkt des 30-Sekunden-Takts bleibt davon unberührt.
+    """
+    global _cpu_vorher
+    if intervall:
+        vorher = psutil.cpu_times()
+        time.sleep(intervall)
+        return _cpu_anteil(vorher, psutil.cpu_times())
+    with _cpu_sperre:
+        vorher, _cpu_vorher = _cpu_vorher, psutil.cpu_times()
+        return _cpu_anteil(vorher, _cpu_vorher) if vorher is not None else 0.0
+
+
 def _systemlast() -> float | None:
     try:
         return float(Path(psutil.PROCFS_PATH, "loadavg").read_text().split()[0])
@@ -157,7 +194,7 @@ def messen(daten_ordner: Path, host_sys: Path | None = None, cpu_intervall: floa
     speicher_ram = psutil.virtual_memory()
     platte = psutil.disk_usage(str(daten_ordner if daten_ordner.exists() else Path("/")))
     return Messung(
-        cpu=round(psutil.cpu_percent(interval=cpu_intervall), 1),
+        cpu=cpu_auslastung(cpu_intervall),
         cpu_kerne=psutil.cpu_count() or 0,
         last=_systemlast(),
         ram=round(speicher_ram.percent, 1),

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import json
+import threading
 from pathlib import Path
 
 import httpx2
@@ -93,6 +94,48 @@ def test_werte_kommen_aus_dem_eingebundenen_proc_des_hosts(
     messung.procfs_einstellen(tmp_path / "gibt-es-nicht")
     assert psutil.PROCFS_PATH == "/proc"
     assert messung.cpu_temperatur(tmp_path / "leer") is None or messung.cpu_temperatur(tmp_path / "leer") > 0
+
+
+def test_cpu_auslastung_stimmt_auch_wenn_jede_messung_in_einem_anderen_thread_laeuft(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Die Messungen laufen in wechselnden Threads; psutil allein lieferte dort 0 % (Vergleich pro Thread)."""
+    (tmp_path / "meminfo").write_text(
+        "MemTotal:       16000000 kB\nMemFree:         8000000 kB\nMemAvailable:    8000000 kB\n"
+        "Buffers:          500000 kB\nCached:          1500000 kB\nSReclaimable:          0 kB\nShmem:                 0 kB\n"
+        "Active:          6000000 kB\nInactive:        2000000 kB\n"
+    )
+    (tmp_path / "loadavg").write_text("0.50 0.40 0.30 1/100 1234\n")
+
+    def stat(benutzt: int, leerlauf: int, wartet: int = 0) -> None:
+        (tmp_path / "stat").write_text(
+            f"cpu  {benutzt} 0 0 {leerlauf} {wartet} 0 0 0 0 0\ncpu0 {benutzt} 0 0 {leerlauf} {wartet} 0 0 0 0 0\n"
+        )
+
+    def in_neuem_thread(intervall: float | None = None) -> float:
+        ergebnis: list[float] = []
+        thread = threading.Thread(
+            target=lambda: ergebnis.append(messung.messen(tmp_path, None, intervall).cpu)
+        )
+        thread.start()
+        thread.join()
+        return ergebnis[0]
+
+    monkeypatch.setattr(psutil, "PROCFS_PATH", str(tmp_path))
+    monkeypatch.setattr(messung, "_cpu_vorher", None)
+    stat(1000, 1000)
+    assert in_neuem_thread() == 0.0  # allererste Messung: es gibt noch keinen Vergleichspunkt
+    stat(1750, 1250)
+    assert in_neuem_thread() == 75.0  # 750 Einheiten Arbeit, 250 Leerlauf
+    stat(1850, 1650, wartet=500)
+    assert in_neuem_thread() == 10.0  # Warten auf die Festplatte zählt nicht als Arbeit
+    stat(1850, 1650, wartet=500)
+    assert in_neuem_thread() == 0.0  # nichts passiert
+
+    # „Jetzt gerade“ (mit Intervall) verschiebt den Vergleichspunkt des 30-Sekunden-Takts nicht.
+    stat(2050, 1850, wartet=500)
+    assert in_neuem_thread(0.01) == 0.0
+    assert in_neuem_thread() == 50.0
 
 
 def test_gpu_werte_aus_nvidia_smi() -> None:

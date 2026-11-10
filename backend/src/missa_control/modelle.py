@@ -7,6 +7,7 @@ from missa_control.gateway.modelle import Aufruf, Freigabe
 from missa_control.integrationen.modelle import Funktion, Integration
 from missa_control.modellverwaltung.modelle import Modell, ModellAnfrage, Rolle
 from missa_control.profil.modelle import ProfilVersion
+from missa_control.serverlast.modelle import Messwert
 from missa_control.zugaenge.modelle import Zugang
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "Freigabe",
     "Funktion",
     "Integration",
+    "Messwert",
     "Modell",
     "ModellAnfrage",
     "ProfilVersion",

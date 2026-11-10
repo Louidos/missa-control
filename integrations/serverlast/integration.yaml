@@ -1,0 +1,15 @@
+# Eingebaute Integration: Missa kann die Auslastung von ai01 abfragen.
+id: serverlast
+name: Serverlast
+beschreibung: Missa kann die aktuelle Auslastung von ai01 abfragen – CPU, Arbeitsspeicher, Speicherplatz und, falls vorhanden, GPU.
+symbol: "📊"
+art: python
+version: 1.0.0
+mehrfach: false
+kennung: serverlast
+hinweis: >-
+  Es gibt nichts einzustellen. Die Werte kommen nur lesend vom Server; den Verlauf zeigt die Seite
+  „Serverlast“. Als Auslöser für Regeln (z. B. „CPU über 90 %“) stehen die Messwerte immer zur
+  Verfügung, auch ohne diese Integration.
+standardrechte:
+  serverlast_aktuell: erlaubt

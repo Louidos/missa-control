@@ -31,3 +31,6 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   Name, Aussprache, Wesen, Sprechweise, Regeln, Verhalten gegenüber Fremden und freiem Systemprompt;
   jede Speicherung ist eine Version (Unterschiede ansehen, wiederherstellen); Export und Import als
   YAML; Test-Chat direkt mit dem Modell, auch mit ungespeichertem Profil (#13)
+- Serverlast von ai01 mit Verlauf: Seite „Serverlast“ mit CPU, Arbeitsspeicher, Speicherplatz und –
+  falls vorhanden – GPU; Messung alle 30 Sekunden (nur lesend), Diagramme für 1 Stunde, 24 Stunden
+  und 7 Tage, Tabellenansicht; Missa kann die Werte über die Funktion `serverlast_aktuell` abfragen (#15)

@@ -24,6 +24,7 @@ import { Protokoll } from "../gateway/Protokoll";
 import { Integrationen } from "../integrationen/Integrationen";
 import { Katalog } from "../integrationen/Katalog";
 import { Modelle } from "../modelle/Modelle";
+import { Serverlast } from "../serverlast/Serverlast";
 import { Zugaenge } from "../zugaenge/Zugaenge";
 
 export interface NavEintrag {
@@ -151,6 +152,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Serverlast",
         symbol: Activity,
         beschreibung: "CPU, Arbeitsspeicher, Speicherplatz und GPU von ai01 mit Verlauf.",
+        seite: Serverlast,
       },
     ],
   },

@@ -1102,3 +1102,225 @@ textarea:focus-visible {
   color: var(--ok);
   background: var(--ok-hell);
 }
+
+/* ---------- Serverlast: Kacheln und Diagramme ---------- */
+
+.viz,
+.kachel {
+  --viz-reihe: #2a78d6;
+  --viz-gitter: #e6e6ee;
+  --viz-achse: #c9c9d6;
+  --viz-hoch: #fab219;
+  --viz-kritisch: #d03b3b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .viz,
+  .kachel {
+    --viz-reihe: #3987e5;
+    --viz-gitter: #2a2939;
+    --viz-achse: #3d3c55;
+  }
+}
+
+.auswahl {
+  display: inline-flex;
+  padding: 0.2rem;
+  background: var(--flaeche-2);
+  border-radius: 9px;
+}
+
+.auswahl button {
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 7px;
+}
+
+.auswahl button[aria-checked="true"] {
+  color: var(--text);
+  background: var(--flaeche);
+  box-shadow: var(--schatten);
+}
+
+.kacheln {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+}
+
+.kachel {
+  --meter-farbe: var(--viz-reihe);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.kachel.hoch {
+  --meter-farbe: var(--viz-hoch);
+}
+
+.kachel.kritisch {
+  --meter-farbe: var(--viz-kritisch);
+}
+
+.kachel-titel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.kachel-wert {
+  font-size: 1.9rem;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.kachel-zusatz {
+  min-height: 1.3em;
+}
+
+.kachel-stufe {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.kachel-stufe svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--meter-farbe);
+}
+
+.meter {
+  height: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--meter-farbe) 20%, var(--flaeche));
+  border-radius: 999px;
+}
+
+.meter-fuellung {
+  height: 100%;
+  background: var(--meter-farbe);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.viz.wartet {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.diagramme {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: 1rem;
+}
+
+.diagramm {
+  margin: 0;
+}
+
+.diagramm figcaption {
+  margin-bottom: 0.35rem;
+}
+
+.diagramm-titel {
+  font-weight: 600;
+}
+
+.diagramm-flaeche {
+  position: relative;
+}
+
+.diagramm-flaeche svg {
+  display: block;
+  touch-action: pan-y;
+  outline-offset: 4px;
+}
+
+.diagramm-leer {
+  position: absolute;
+  inset: 0 0 1.5rem 2.4rem;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.viz-gitter {
+  stroke: var(--viz-gitter);
+  stroke-width: 1;
+}
+
+.viz-achse {
+  stroke: var(--viz-achse);
+  stroke-width: 1;
+}
+
+.viz-marke {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--grau);
+}
+
+.viz-linie {
+  fill: none;
+  stroke: var(--viz-reihe);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.viz-flaeche {
+  fill: var(--viz-reihe);
+  fill-opacity: 0.1;
+  stroke: none;
+}
+
+.viz-punkt {
+  fill: var(--viz-reihe);
+  stroke: var(--flaeche);
+  stroke-width: 2;
+}
+
+.viz-faden {
+  stroke: var(--viz-achse);
+  stroke-width: 1;
+}
+
+.viz-tipp {
+  position: absolute;
+  top: 0.2rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  box-shadow: var(--schatten);
+}
+
+.viz-schluessel {
+  width: 0.9rem;
+  height: 2px;
+  background: var(--viz-reihe);
+  border-radius: 1px;
+}
+
+.tabelle.zahlen td,
+.tabelle.zahlen th {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

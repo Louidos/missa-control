@@ -18,3 +18,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   einrichten (Karte wählen, Formular ausfüllen, testen und aktivieren); Rechte pro Funktion
   („erlaubt“, „erst nachfragen“, „gesperrt“), Seite „Integrationen“ zum Verwalten und Ausprobieren,
   eigene Integrationen als Ordner oder ZIP, Anleitung in `docs/eigene-integration.md` (#7)
+- Ein Anschluss für Missa mit Freigaben, Clients, Protokoll und Ereignissen: MCP-Gateway unter `/mcp`
+  bündelt alle aktiven Funktionen; Zugriff nur mit Client-Token (Seite „Clients“); „erst
+  nachfragen“-Aufrufe warten unter „Freigaben“ auf Erlauben oder Ablehnen (höchstens 5 Minuten);
+  Seite „Protokoll“ mit allen Aufrufen und Ereignissen; Ereignisse per `GET /api/events` und als
+  Stream; lesende Konfig-API; Anleitung in `docs/anbindung-missa-core.md` (#9)

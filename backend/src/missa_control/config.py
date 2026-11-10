@@ -40,6 +40,12 @@ class Einstellungen:
     sitzung_stunden: int = 12
     max_fehlversuche: int = 5
     sperre_minuten: int = 15
+    # So lange wartet ein „erst nachfragen“-Aufruf auf eine Entscheidung im Panel.
+    freigabe_sekunden: float = 300.0
+    # Protokoll, Ereignisse und entschiedene Freigaben werden nach so vielen Tagen gelöscht.
+    aufbewahrung_tage: int = 30
+    # Ereignis-Stream: so oft kommt ein Lebenszeichen; dabei wird auch geprüft, ob der Token noch gilt.
+    stream_ping_sekunden: float = 15.0
 
     def __post_init__(self) -> None:
         if len(self.secret_key) < 32:

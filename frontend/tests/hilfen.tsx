@@ -35,6 +35,9 @@ export function backend(routen: Record<string, Antwort>) {
     const koerper = typeof init?.body === "string" ? JSON.parse(init.body) : init?.body;
     aufrufe.push({ methode, pfad, koerper });
     const schluessel = `${methode} ${pfad}`;
+    if (!(schluessel in routen) && schluessel === "GET /api/freigaben/anzahl") {
+      return json({ offen: 0 }, 200); // der Zähler in der Navigation fragt das überall ab
+    }
     if (!(schluessel in routen)) {
       return json({ meldung: `Im Test nicht vorgesehen: ${schluessel}` }, 500);
     }

@@ -8,6 +8,7 @@ import json
 import logging
 import re
 import secrets
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -83,6 +84,8 @@ class IntegrationsDienst:
         self.panel = panel
         self.adapter: dict[str, Adapter] = standard_adapter()
         self._tests: dict[str, _GemerkterTest] = {}
+        # Wird beim Start gesetzt: meldet Ausfälle als Ereignis (für Missa und für Regeln).
+        self.ereignis_melden: Callable[..., Any] | None = None
 
     # ------------------------------------------------------------------ Katalog
 
@@ -441,12 +444,40 @@ class IntegrationsDienst:
         for funktion in vorhandene.values():
             funktion.vorhanden = False
 
-    @staticmethod
-    def _status_setzen(integration: Integration, ergebnis: TestErgebnis) -> None:
-        integration.status = STATUS_OK if ergebnis.ok else STATUS_FEHLER
-        integration.status_meldung = ergebnis.meldung
-        integration.status_hinweis = ergebnis.hinweis or ""
+    def _status_setzen(self, integration: Integration, ergebnis: TestErgebnis) -> None:
+        self._status_uebernehmen(
+            integration, STATUS_OK if ergebnis.ok else STATUS_FEHLER, ergebnis.meldung, ergebnis.hinweis or ""
+        )
+
+    def _status_uebernehmen(
+        self, integration: Integration, status: str, meldung: str, hinweis: str = ""
+    ) -> None:
+        """Setzt den Status und meldet einen Ausfall bzw. die Rückkehr als Ereignis."""
+        vorher = integration.status
+        integration.status = status
+        integration.status_meldung = meldung
+        integration.status_hinweis = hinweis
         integration.geprueft = zeit.jetzt()
+        if self.ereignis_melden is None or integration.id is None or not integration.aktiv:
+            return
+        daten = {"integration_id": integration.id, "kennung": integration.kennung}
+        if status == STATUS_FEHLER and vorher != STATUS_FEHLER:
+            self.ereignis_melden(
+                "integration_ausgefallen",
+                f"Integration „{integration.name}“ ist ausgefallen",
+                meldung,
+                dringlichkeit="hoch",
+                quelle=integration.name,
+                daten=daten,
+            )
+        elif status == STATUS_OK and vorher == STATUS_FEHLER:
+            self.ereignis_melden(
+                "integration_wieder_da",
+                f"Integration „{integration.name}“ funktioniert wieder",
+                meldung,
+                quelle=integration.name,
+                daten=daten,
+            )
 
     async def anlegen(
         self,
@@ -597,19 +628,13 @@ class IntegrationsDienst:
             # das zeigt auch der Status der Integration.
             meldung, hinweis = fehler_erklaeren(fehler)
             log.warning("Aufruf %s.%s fehlgeschlagen: %s", integration.kennung, funktionsname, meldung)
-            integration.status = STATUS_FEHLER
-            integration.status_meldung = meldung
-            integration.status_hinweis = hinweis or ""
-            integration.geprueft = zeit.jetzt()
+            self._status_uebernehmen(integration, STATUS_FEHLER, meldung, hinweis or "")
             db.commit()
             raise IntegrationsFehler(meldung, hinweis) from fehler
         if kontext.zustand != zustand_vorher:
             integration.zustand = kontext.zustand
         if integration.status != STATUS_OK:
-            integration.status = STATUS_OK
-            integration.status_meldung = "Letzter Aufruf erfolgreich."
-            integration.status_hinweis = ""
-            integration.geprueft = zeit.jetzt()
+            self._status_uebernehmen(integration, STATUS_OK, "Letzter Aufruf erfolgreich.")
         db.commit()
         return ergebnis
 

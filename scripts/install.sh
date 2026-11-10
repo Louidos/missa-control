@@ -12,6 +12,19 @@ in_repo_ordner
 
 zufall() { head -c "$1" /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_'; }
 
+# Gibt die Zeitzone von ai01 aus (nur gelesen, nichts wird verändert). Steht der Server auf UTC
+# oder ist nichts eingestellt, gibt es keine Ausgabe – dann bleibt der Standard aus .env.example.
+zeitzone_des_servers() {
+  local zone=""
+  if [ -r /etc/timezone ]; then zone="$(head -n 1 /etc/timezone | tr -d '[:space:]')"; fi
+  if [ -z "$zone" ] && [ -L /etc/localtime ]; then
+    zone="$(readlink /etc/localtime | sed -n 's|^.*/zoneinfo/||p')"
+  fi
+  case "$zone" in "" | UTC | Etc/UTC | Etc/GMT | GMT | Universal | Zulu) return 0 ;; esac
+  [[ "$zone" =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ ]] || return 0
+  printf '%s' "$zone"
+}
+
 # Prüft, ob auf Adresse $1 und Port $2 schon etwas lauscht.
 port_belegt() {
   local ip="$1" port="$2" zeilen ziel
@@ -71,17 +84,20 @@ else
   else
     ziel_uid=10001; ziel_gid=10001
   fi
+  zeitzone="$(zeitzone_des_servers)"
   (
     umask 077
     sed -e "s|^SECRET_KEY=.*|SECRET_KEY=$(zufall 48)|" \
       -e "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$(zufall 32)|" \
       -e "s|^MISSA_CONTROL_UID=.*|MISSA_CONTROL_UID=$ziel_uid|" \
       -e "s|^MISSA_CONTROL_GID=.*|MISSA_CONTROL_GID=$ziel_gid|" \
+      ${zeitzone:+-e "s|^MISSA_CONTROL_ZEITZONE=.*|MISSA_CONTROL_ZEITZONE=$zeitzone|"} \
       .env.example > .env
   )
   chmod 600 .env
   if [ "$(id -u)" -eq 0 ]; then chown "$ziel_uid:$ziel_gid" .env; fi
   meldung ".env wurde mit zufälligen Schlüsseln erzeugt."
+  meldung "Zeitzone für Regeln: $(wert_aus_env MISSA_CONTROL_ZEITZONE Europe/Zurich) (änderbar in .env)."
 fi
 
 schritt "Prüfe Ports"

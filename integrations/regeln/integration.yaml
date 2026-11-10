@@ -1,0 +1,18 @@
+# Eingebaute Integration: Missa kann Regeln und Alarme selbst anlegen, ansehen, ändern und löschen.
+id: regeln
+name: Regeln
+beschreibung: Missa kann Regeln und Alarme per Sprache verwalten, z. B. „Sag mir Bescheid, wenn die CPU länger als 5 Minuten über 90 % liegt“.
+symbol: "🔔"
+art: python
+version: 1.0.0
+mehrfach: false
+kennung: regeln
+hinweis: >-
+  Es gibt nichts einzustellen. Missa darf Regeln jederzeit auflisten; anlegen, ändern und löschen
+  läuft erst nach deiner Freigabe – dort steht die Regel als ganzer Satz. Alle Regeln stehen auf der
+  Seite „Regeln“ und lassen sich dort bearbeiten, pausieren und testen.
+standardrechte:
+  regeln_auflisten: erlaubt
+  regel_anlegen: nachfragen
+  regel_aendern: nachfragen
+  regel_loeschen: nachfragen

@@ -7,6 +7,7 @@ import binascii
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 _INSTALL_HINWEIS = (
     "Bitte ./scripts/install.sh ausführen – das Skript erzeugt die Datei .env mit zufälligen Schlüsseln."
@@ -60,6 +61,10 @@ class Einstellungen:
     # /proc und /sys des Hosts, im Container nur lesend eingebunden (ausserhalb von Docker: unbenutzt).
     host_proc: Path | None = None
     host_sys: Path | None = None
+    # Zeitzone für Uhrzeiten in Regeln und Ruhezeiten (das Panel selbst speichert alles in UTC).
+    zeitzone: str = "Europe/Zurich"
+    # Regeln: so oft wird der Zeitplan geprüft (Sekunden).
+    regel_takt_sekunden: float = 10.0
 
     def __post_init__(self) -> None:
         if len(self.secret_key) < 32:
@@ -77,6 +82,13 @@ class Einstellungen:
             )
         if self.cookie_secure not in ("auto", "ja", "nein"):
             raise EinstellungsFehler("MISSA_CONTROL_COOKIE_SECURE muss auto, ja oder nein sein.")
+        try:
+            ZoneInfo(self.zeitzone)
+        except (KeyError, ValueError, OSError):
+            raise EinstellungsFehler(
+                f"MISSA_CONTROL_ZEITZONE: Die Zeitzone „{self.zeitzone}“ gibt es nicht. "
+                "Erwartet wird ein Name wie Europe/Zurich oder Europe/Berlin."
+            ) from None
 
     @property
     def datenbank_pfad(self) -> Path:
@@ -107,4 +119,5 @@ class Einstellungen:
             host=umgebung.get("MISSA_CONTROL_HOST", "127.0.0.1"),
             port=int(umgebung.get("MISSA_CONTROL_PORT", "8090")),
             cookie_secure=umgebung.get("MISSA_CONTROL_COOKIE_SECURE", "auto").strip().lower() or "auto",
+            zeitzone=umgebung.get("MISSA_CONTROL_ZEITZONE", "").strip() or "Europe/Zurich",
         )

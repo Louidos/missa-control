@@ -132,6 +132,27 @@ Gedächtnis von sich aus nutzt, hilft ein Satz im Charakterprofil, z. B.: „Mer
 später wichtig sind, mit `gedaechtnis_merken` und sieh mit `gedaechtnis_suchen` nach, bevor du
 nach etwas fragst, das du schon wissen könntest.“ Alle Einträge stehen im Panel unter „Gedächtnis“.
 
+### Regeln
+
+Mit der Integration „Regeln“ kann Missa Regeln und Alarme per Sprache verwalten („Sag mir Bescheid,
+wenn die CPU länger als 5 Minuten über 90 % liegt“):
+
+| Funktion | Zweck | Standardrecht |
+| --- | --- | --- |
+| `regeln_auflisten` | alle Regeln mit Nummer, Name und einem Satz, was sie tun | erlaubt |
+| `regeln_regel_anlegen` | neue Regel aus Auslöser, Bedingung und Aktion | erst nachfragen |
+| `regeln_regel_aendern` | einzelne Angaben ändern, pausieren (`aktiv: false`) | erst nachfragen |
+| `regeln_regel_loeschen` | Regel löschen | erst nachfragen |
+
+Die Parameter sind einzeln benannt und beschrieben (z. B. `ausloeser: "messwert"`, `messwert: "cpu"`,
+`schwelle: 90`, `dauer_minuten: 5`, `nachricht: "…"`), damit auch kleinere Modelle sie zuverlässig
+füllen. In der Freigabe steht die Regel als ganzer Satz – du siehst also, was Missa anlegen möchte,
+bevor du zustimmst. Eine Regel, deren Aktion eine Funktion aufruft, führt diese später ohne weitere
+Nachfrage aus: die Freigabe der Regel gilt dafür.
+
+Löst eine Regel mit der Aktion „Ereignis an Missa“ aus, kommt das als Ereignis der Art `regel`
+(siehe Schritt 4).
+
 ## Schritt 4: Ereignisse abholen
 
 Ereignisse sind Dinge, die Missa wissen sollte, ohne gefragt zu haben: eine Regel hat ausgelöst,
@@ -149,7 +170,7 @@ Der Stream liefert Server-Sent Events. Jedes Ereignis sieht so aus:
 ```text
 id: 42
 event: ereignis
-data: {"id": 42, "zeit": "2026-01-15T12:00:00+00:00", "art": "regel", "quelle": "Serverlast", "titel": "CPU über 90 %", "nachricht": "Die CPU von ai01 liegt seit 5 Minuten über 90 %.", "dringlichkeit": "hoch", "daten": {}}
+data: {"id": 42, "zeit": "2026-01-15T12:00:00+00:00", "art": "regel", "quelle": "Regeln", "titel": "Regel „CPU-Alarm“ ausgelöst", "nachricht": "Die CPU von ai01 liegt seit 5 Minuten über 90 %.", "dringlichkeit": "hoch", "daten": {"regel_id": 1, "regel": "CPU-Alarm", "anlass": "CPU-Auslastung: 97,4 % (über 90 % seit 5 Minuten)", "wert": 97.4, "test": false}}
 ```
 
 - Zeilen, die mit `:` beginnen, sind Lebenszeichen (etwa alle 15 Sekunden) und können ignoriert werden.
@@ -177,7 +198,7 @@ Antwort: `{"ereignisse": [...], "letzte_id": 42}` – älteste zuerst.
 | `id` | fortlaufende Nummer, wird nie wiederverwendet |
 | `zeit` | Zeitpunkt in UTC (ISO 8601) |
 | `art` | `regel`, `geraet`, `webhook`, `integration_ausgefallen`, `integration_wieder_da`, `freigabe`, `anruf`, `test` |
-| `quelle` | woher es kommt (Name der Regel, des Geräts, der Integration) |
+| `quelle` | woher es kommt (z. B. `Regeln`, Name des Geräts oder der Integration) |
 | `titel` | kurze Überschrift |
 | `nachricht` | ausformulierter Text, den Missa vorlesen kann |
 | `dringlichkeit` | `niedrig`, `normal`, `hoch` oder `dringend` |

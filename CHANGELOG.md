@@ -40,3 +40,11 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 - Freigaben sagen jetzt in einem Satz, was genau passieren würde (z. B. welcher Eintrag gelöscht
   wird), statt nur Funktion und Parameter zu zeigen – eigene Integrationen können das mit
   `@funktion(vorschau=…)` ebenfalls (#17)
+- Regeln und Alarme, auch von Missa selbst anlegbar: Seite „Regeln“ mit Regeln als lesbaren Sätzen
+  („Wenn die CPU-Auslastung 5 Minuten lang über 90 % liegt, dann …“), Editor mit Auswahlfeldern,
+  „Jetzt testen“ und Verlauf der Auslösungen; Auslöser: Zeitplan (Uhrzeit oder Abstand), Messwert
+  über/unter einer Schwelle mit Mindestdauer, Webhook, Gerät, Integration ausgefallen; Bedingung
+  nach Wochentagen und Uhrzeit; Aktionen: Ereignis an Missa oder Funktion einer Integration
+  aufrufen; Ruhezeit gegen Dauer-Alarme (Standard 30 Minuten), Regeln lassen sich pausieren (#19)
+- Neue Einstellung `MISSA_CONTROL_ZEITZONE` für Uhrzeiten in Regeln; `install.sh` übernimmt die
+  Zeitzone von ai01, sonst gilt Europe/Zurich (#19)

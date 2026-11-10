@@ -7,7 +7,8 @@ import { Bestaetigung, Dialog } from "../ui/Dialog";
 import { datum } from "../ui/format";
 import { IntegrationsHinweis } from "../ui/IntegrationsHinweis";
 import { FehlerMeldung, Feld, Knopf, Lade, Meldung } from "../ui/ui";
-import { type Eintrag, type Filter, GEDAECHTNIS, SEITE, type Uebersicht, useGedaechtnis, useVerzoegert } from "./gedaechtnis";
+import { useVerzoegert } from "../ui/verzoegert";
+import { type Eintrag, type Filter, GEDAECHTNIS, SEITE, type Uebersicht, useGedaechtnis } from "./gedaechtnis";
 
 type Offen = { art: "neu" } | { art: "bearbeiten"; eintrag: Eintrag } | { art: "loeschen"; eintrag: Eintrag } | null;
 

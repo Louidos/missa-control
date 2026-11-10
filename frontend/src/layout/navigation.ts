@@ -25,6 +25,7 @@ import { Gedaechtnis } from "../gedaechtnis/Gedaechtnis";
 import { Integrationen } from "../integrationen/Integrationen";
 import { Katalog } from "../integrationen/Katalog";
 import { Modelle } from "../modelle/Modelle";
+import { Regeln } from "../regeln/Regeln";
 import { Serverlast } from "../serverlast/Serverlast";
 import { Zugaenge } from "../zugaenge/Zugaenge";
 
@@ -116,6 +117,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Regeln",
         symbol: BellRing,
         beschreibung: "Regeln und Alarme wie „Serverlast über 90 % → Missa meldet sich“.",
+        seite: Regeln,
       },
       {
         pfad: "/anrufe",

@@ -37,6 +37,8 @@ from missa_control.modellverwaltung import routen as modell_routen
 from missa_control.modellverwaltung.dienst import ModellDienst
 from missa_control.profil import routen as profil_routen
 from missa_control.profil.dienst import ProfilDienst
+from missa_control.regeln import routen as regel_routen
+from missa_control.regeln.dienst import RegelDienst
 from missa_control.serverlast import routen as serverlast_routen
 from missa_control.serverlast.dienst import ServerlastDienst
 from missa_control.zugaenge import routen as zugaenge_routen
@@ -99,6 +101,14 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.state.gateway = Gateway(
         datenbank=datenbank, integrationen=app.state.integrationen, freigaben=freigaben, protokoll=protokoll
     )
+    app.state.regeln = RegelDienst(
+        einstellungen=einstellungen,
+        datenbank=datenbank,
+        ereignisse=ereignisse,
+        integrationen=app.state.integrationen,
+        protokoll=protokoll,
+        serverlast=app.state.serverlast,
+    )
 
     fehlerbehandlung_einrichten(app)
     app.add_middleware(Zugriffsschutz, auth=auth, clients=clients, datenbank=datenbank)
@@ -120,6 +130,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(profil_routen.router)
     app.include_router(serverlast_routen.router)
     app.include_router(gedaechtnis_routen.router)
+    app.include_router(regel_routen.router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
     app.router.routes.append(Route("/mcp/", endpoint=app.state.gateway))
@@ -133,7 +144,10 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
 async def _lebenszyklus(app: FastAPI) -> AsyncIterator[None]:
     """Läuft, solange das Panel läuft: hält das Gateway offen und räumt regelmässig alte Daten weg."""
     async with app.state.gateway.laufen():
-        aufgaben = [asyncio.create_task(_regelmaessig_aufraeumen(app))]
+        aufgaben = [
+            asyncio.create_task(_regelmaessig_aufraeumen(app)),
+            asyncio.create_task(app.state.regeln.laufen()),
+        ]
         if app.state.serverlast.intervall > 0:
             aufgaben.append(asyncio.create_task(app.state.serverlast.laufen()))
         try:
@@ -155,6 +169,7 @@ def alte_daten_loeschen(app: FastAPI) -> None:
         + app.state.freigaben.aufraeumen(tage)
         + app.state.modelle.aufraeumen()  # Modell-Statistik: 7 Tage
         + app.state.serverlast.aufraeumen()  # Messwerte: 7 Tage
+        + app.state.regeln.aufraeumen(tage)
     )
     if geloescht:
         log.info("Aufgeräumt: %s Einträge älter als %s Tage gelöscht", geloescht, tage)

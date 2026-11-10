@@ -45,6 +45,19 @@ def einrichten(client: TestClient, uhr: Uhr, passwort: str = PASSWORT) -> str:
     return geheimnis
 
 
+def anmelden(client: TestClient, uhr: Uhr, geheimnis: str, passwort: str = PASSWORT) -> None:
+    """Meldet den Client neu an, falls seine Sitzung abgelaufen ist.
+
+    Nötig, wenn ein Test die Uhr um mehr als 12 Stunden vorstellt.
+    """
+    if client.get("/api/auth/status").json()["angemeldet"]:
+        return
+    antwort = client.post(
+        "/api/auth/anmelden", json={"passwort": passwort, "code": code_fuer(geheimnis, uhr)}
+    )
+    assert antwort.status_code == 200, antwort.text
+
+
 # ---------------------------------------------------------------------- Integrationen und Gateway
 
 

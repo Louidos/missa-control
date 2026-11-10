@@ -8,12 +8,14 @@ from missa_control.gedaechtnis.modelle import GedaechtnisEintrag
 from missa_control.integrationen.modelle import Funktion, Integration
 from missa_control.modellverwaltung.modelle import Modell, ModellAnfrage, Rolle
 from missa_control.profil.modelle import ProfilVersion
+from missa_control.regeln.modelle import Ausloesung, Regel
 from missa_control.serverlast.modelle import Messwert
 from missa_control.zugaenge.modelle import Zugang
 
 __all__ = [
     "Admin",
     "Aufruf",
+    "Ausloesung",
     "Client",
     "Ereignis",
     "Freigabe",
@@ -24,6 +26,7 @@ __all__ = [
     "Modell",
     "ModellAnfrage",
     "ProfilVersion",
+    "Regel",
     "Rolle",
     "Sitzung",
     "Zugang",

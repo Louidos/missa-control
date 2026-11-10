@@ -87,7 +87,7 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   sich verschieben (wird gespeichert), nach Art filtern und als Liste anzeigen (#29)
 - Das Panel prüft alle Integrationen mit Gegenstelle alle 20 Sekunden von selbst: Ein Ausfall ist
   innerhalb einer Minute in der Übersicht zu sehen und wird als Ereignis gemeldet – auch wenn Missa
-  gerade nichts aufruft (#29, #34)
+  gerade nichts aufruft – auch dann, wenn mehrere gleichzeitig ausfallen (#29, #34, #36)
 - Neue optionale Einstellung `MISSA_CORE_HEALTH_URL`: zeigt in der Übersicht, ob missa-core läuft.
   Das Panel fragt die Adresse nur lesend ab (HTTP-GET); ohne die Einstellung bleibt der Knoten grau (#29)
 

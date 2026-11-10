@@ -619,7 +619,8 @@ class IntegrationsDienst:
         die Rechte bleiben, wie sie sind: Neue Funktionen einer Gegenstelle kommen erst mit „Testen“ dazu.
         Gibt zurück, wie viele Integrationen geprüft wurden.
         """
-        geprueft = 0
+        # 1) Vorbereiten: Was wird geprüft? (liest aus der Datenbank)
+        auftraege: list[tuple[int, str, Adapter, Kontext]] = []
         for integration in list(db.scalars(select(Integration).where(Integration.aktiv))):
             eintrag = self.katalog.eintraege.get(integration.manifest_id)
             if eintrag is None or eintrag.manifest.art not in REGELMAESSIG_GEPRUEFT:
@@ -634,16 +635,33 @@ class IntegrationsDienst:
                     zustand=integration.zustand,
                     integration_id=integration.id,
                 )
-                ergebnis = await self._test_ausfuehren(
-                    self._adapter(eintrag.manifest), kontext, PRUEF_SEKUNDEN
-                )
+                auftraege.append((integration.id, integration.name, self._adapter(eintrag.manifest), kontext))
             except Exception:
-                log.exception("Prüfung der Integration „%s“ fehlgeschlagen", integration.name)
+                log.exception("Prüfung der Integration „%s“ lässt sich nicht vorbereiten", integration.name)
+
+        # 2) Prüfen – alle gleichzeitig: Hängen mehrere Gegenstellen auf einmal (etwa weil das Netz weg
+        #    ist), dauert die Runde trotzdem nur so lange wie die langsamste Prüfung, nicht die Summe.
+        ergebnisse: dict[int, TestErgebnis] = {}
+
+        async def pruefen(nummer: int, name: str, adapter: Adapter, kontext: Kontext) -> None:
+            try:
+                ergebnisse[nummer] = await self._test_ausfuehren(adapter, kontext, PRUEF_SEKUNDEN)
+            except Exception:
+                log.exception("Prüfung der Integration „%s“ fehlgeschlagen", name)
+
+        async with anyio.create_task_group() as gruppe:
+            for auftrag in auftraege:
+                gruppe.start_soon(pruefen, *auftrag)
+
+        # 3) Eintragen: Die Prüfungen haben einige Sekunden gedauert. In der Zwischenzeit kann eine
+        #    Integration im Panel entfernt oder ausgeschaltet worden sein – deshalb frisch lesen.
+        geprueft = 0
+        db.expire_all()
+        for nummer, _name, _adapter, _kontext in auftraege:
+            integration = db.get(Integration, nummer)
+            if nummer not in ergebnisse or integration is None or not integration.aktiv:
                 continue
-            db.refresh(integration)
-            if not integration.aktiv:
-                continue  # inzwischen ausgeschaltet
-            self._status_setzen(integration, ergebnis)
+            self._status_setzen(integration, ergebnisse[nummer])
             db.commit()
             geprueft += 1
         return geprueft

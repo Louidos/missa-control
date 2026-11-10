@@ -94,6 +94,55 @@ jobs:
           # Alle Daten liegen in ./data – es gibt keine Docker-Volumes.
           test -f data/mosquitto/dynamic-security.json
           test -z "$(docker volume ls -q --filter label=com.docker.compose.project=missa-control)"
+      - name: Notfall-Reset der Zwei-Faktor-Anmeldung (reset-2fa.sh)
+        run: |
+          # Solange das Panel nicht eingerichtet ist, gibt es nichts zurückzusetzen.
+          ./scripts/reset-2fa.sh --ja | tee /tmp/reset.txt
+          grep -q "noch nicht eingerichtet" /tmp/reset.txt
+          # Panel einrichten (Passwort und Code), zurücksetzen und prüfen: Einen neuen QR-Code gibt es
+          # nur mit dem bisherigen Passwort.
+          python3 - <<'PY'
+          import base64, hashlib, hmac, http.cookiejar, json, struct, subprocess, time
+          import urllib.error, urllib.request
+
+          basis = "http://127.0.0.1:8090"
+          oeffner = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
+          def anfrage(pfad, daten=None):
+              inhalt = json.dumps(daten).encode() if daten is not None else None
+              kopf = {"Content-Type": "application/json", "Origin": basis}
+              with oeffner.open(urllib.request.Request(basis + pfad, data=inhalt, headers=kopf)) as antwort:
+                  return json.load(antwort)
+
+          def code(geheimnis):
+              pruefsumme = hmac.new(
+                  base64.b32decode(geheimnis), struct.pack(">Q", int(time.time()) // 30), hashlib.sha1
+              ).digest()
+              stelle = pruefsumme[-1] & 15
+              zahl = struct.unpack(">I", pruefsumme[stelle:stelle + 4])[0] & 0x7FFFFFFF
+              return f"{zahl % 1_000_000:06d}"
+
+          passwort = "ein-langes-test-passwort"
+          geheimnis = anfrage("/api/auth/einrichten", {"passwort": passwort})["geheimnis"]
+          anfrage("/api/auth/einrichten/bestaetigen", {"code": code(geheimnis)})
+          assert anfrage("/api/auth/status")["angemeldet"] is True
+
+          ausgabe = subprocess.run(
+              ["./scripts/reset-2fa.sh", "--ja"], capture_output=True, text=True, check=True
+          ).stdout
+          assert "Die Zwei-Faktor-Anmeldung ist zurückgesetzt" in ausgabe, ausgabe
+          status = anfrage("/api/auth/status")
+          assert (status["eingerichtet"], status["zwei_faktor_neu"], status["angemeldet"]) == (False, True, False), status
+          try:
+              anfrage("/api/auth/einrichten", {"passwort": "ein-ganz-anderes-passwort"})
+          except urllib.error.HTTPError as fehler:
+              assert fehler.code == 401, fehler.code
+          else:
+              raise SystemExit("Ohne das bisherige Passwort darf es keinen neuen QR-Code geben")
+          neues = anfrage("/api/auth/einrichten", {"passwort": passwort})["geheimnis"]
+          assert neues != geheimnis
+          print("Geprüft: Nach dem Reset gibt es einen neuen QR-Code nur mit dem bisherigen Passwort.")
+          PY
       - name: Zweiter Lauf überschreibt weder .env noch Daten
         run: |
           sha256sum .env > /tmp/env.sum

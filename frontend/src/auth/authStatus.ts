@@ -5,6 +5,8 @@ import { ABGEMELDET_EREIGNIS, api } from "../api";
 
 export interface AuthStatus {
   eingerichtet: boolean;
+  /** Nach dem Notfall-Reset: Die Zwei-Faktor-Anmeldung wird mit dem bisherigen Passwort neu eingerichtet. */
+  zwei_faktor_neu?: boolean;
   angemeldet: boolean;
   version: string;
 }

@@ -91,6 +91,13 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 - Neue optionale Einstellung `MISSA_CORE_HEALTH_URL`: zeigt in der Übersicht, ob missa-core läuft.
   Das Panel fragt die Adresse nur lesend ab (HTTP-GET); ohne die Einstellung bleibt der Knoten grau (#29)
 
+- Installations- und Sicherheitsanleitung, Notfall-Reset für 2FA: `docs/installation.md` (Ablauf von
+  `install.sh`, alle Einstellungen in `.env`, Update, Backup, Fehlerbehebung) und `docs/sicherheit.md`
+  (kein Veröffentlichen über einen Reverse Proxy, Panel-Port nur für die Admin-Workstation, VPN,
+  MQTT-Port nur fürs Geräte-Netz, Umgang mit `.env` und Backups). Ist die Authenticator-App
+  verloren, setzt `./scripts/reset-2fa.sh` die Zwei-Faktor-Anmeldung zurück: Danach fragt das Panel
+  nach dem bisherigen Passwort und zeigt einen neuen QR-Code; alle Daten bleiben erhalten (#31)
+
 ### Geändert
 
 - `update.sh` übergibt nach dem Holen der neuen Version an `install.sh`: So werden auch die Ports

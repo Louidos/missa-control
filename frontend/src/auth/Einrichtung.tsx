@@ -14,8 +14,11 @@ interface Einrichtungsdaten {
 
 const MIN_LAENGE = 10;
 
-/** Erster Aufruf: Passwort setzen, QR-Code scannen, Code bestätigen. */
-export function Einrichtung() {
+/**
+ * Erster Aufruf: Passwort setzen, QR-Code scannen, Code bestätigen.
+ * Nach dem Notfall-Reset (`zweiFaktorNeu`): bisheriges Passwort eingeben, neuen QR-Code scannen.
+ */
+export function Einrichtung({ zweiFaktorNeu = false }: { zweiFaktorNeu?: boolean }) {
   const queryClient = useQueryClient();
   const [passwort, setPasswort] = useState("");
   const [wiederholung, setWiederholung] = useState("");
@@ -38,12 +41,19 @@ export function Einrichtung() {
       : wiederholung.length > 0 && passwort !== wiederholung
         ? "Die beiden Passwörter stimmen nicht überein."
         : null;
-  const passwortOk = passwort.length >= MIN_LAENGE && passwort === wiederholung;
+  const passwortOk = zweiFaktorNeu ? passwort.length > 0 : passwort.length >= MIN_LAENGE && passwort === wiederholung;
 
   const schritt = daten ? 2 : 1;
 
   return (
-    <TorRahmen titel="Einrichtung" untertitel="Einmalig: Passwort wählen und Zwei-Faktor-Anmeldung aktivieren.">
+    <TorRahmen
+      titel={zweiFaktorNeu ? "Zwei-Faktor-Anmeldung neu einrichten" : "Einrichtung"}
+      untertitel={
+        zweiFaktorNeu
+          ? "Die Zwei-Faktor-Anmeldung wurde zurückgesetzt. Mit deinem bisherigen Passwort bekommst du einen neuen QR-Code."
+          : "Einmalig: Passwort wählen und Zwei-Faktor-Anmeldung aktivieren."
+      }
+    >
       <ol className="schritte" aria-label="Fortschritt">
         <li className={schritt === 1 ? "aktiv" : "fertig"}>1 · Passwort</li>
         <li className={schritt === 2 ? "aktiv" : ""}>2 · Code scannen</li>
@@ -58,28 +68,34 @@ export function Einrichtung() {
             if (passwortOk) beginnen.mutate();
           }}
         >
-          <Feld titel="Neues Passwort" fuer="passwort" hilfe={`Mindestens ${MIN_LAENGE} Zeichen.`}>
+          <Feld
+            titel={zweiFaktorNeu ? "Bisheriges Passwort" : "Neues Passwort"}
+            fuer="passwort"
+            hilfe={zweiFaktorNeu ? "Das Passwort bleibt, wie es ist – neu wird nur der zweite Faktor." : `Mindestens ${MIN_LAENGE} Zeichen.`}
+          >
             <input
               id="passwort"
               type="password"
-              autoComplete="new-password"
+              autoComplete={zweiFaktorNeu ? "current-password" : "new-password"}
               autoFocus
               required
               value={passwort}
               onChange={(e) => setPasswort(e.target.value)}
             />
           </Feld>
-          <Feld titel="Passwort wiederholen" fuer="wiederholung">
-            <input
-              id="wiederholung"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={wiederholung}
-              onChange={(e) => setWiederholung(e.target.value)}
-            />
-          </Feld>
-          {passwortFehler && <Meldung art="warn">{passwortFehler}</Meldung>}
+          {!zweiFaktorNeu && (
+            <Feld titel="Passwort wiederholen" fuer="wiederholung">
+              <input
+                id="wiederholung"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={wiederholung}
+                onChange={(e) => setWiederholung(e.target.value)}
+              />
+            </Feld>
+          )}
+          {!zweiFaktorNeu && passwortFehler && <Meldung art="warn">{passwortFehler}</Meldung>}
           <FehlerMeldung fehler={beginnen.error} />
           <Knopf art="haupt" type="submit" disabled={!passwortOk || beginnen.isPending}>
             Weiter

@@ -20,7 +20,7 @@ export function AuthTor({ children }: { children: ReactNode }) {
       </main>
     );
   }
-  if (!status.data.eingerichtet) return <Einrichtung />;
+  if (!status.data.eingerichtet) return <Einrichtung zweiFaktorNeu={status.data.zwei_faktor_neu ?? false} />;
   if (!status.data.angemeldet) return <Anmeldung />;
   return <>{children}</>;
 }

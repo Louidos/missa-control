@@ -61,6 +61,8 @@ def status(request: Request, db: Session = Depends(get_db)) -> dict[str, object]
     dienst = _dienst(request)
     return {
         "eingerichtet": dienst.ist_eingerichtet(db),
+        # Nach dem Notfall-Reset: die Zwei-Faktor-Anmeldung mit dem bisherigen Passwort neu einrichten.
+        "zwei_faktor_neu": dienst.zwei_faktor_neu(db),
         "angemeldet": dienst.sitzung_gueltig(db, request.cookies.get(SITZUNGS_COOKIE)),
         "version": __version__,
     }

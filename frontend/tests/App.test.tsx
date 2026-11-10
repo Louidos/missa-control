@@ -54,6 +54,44 @@ test("Einrichtung lässt zu kurze oder ungleiche Passwörter nicht zu", async ()
   expect(screen.getByRole("button", { name: "Weiter" })).toBeDisabled();
 });
 
+test("nach dem Notfall-Reset: Zwei-Faktor-Anmeldung mit dem bisherigen Passwort neu einrichten", async () => {
+  let eingerichtet = false;
+  let versuche = 0;
+  const aufrufe = backend({
+    "GET /api/auth/status": () => ({ eingerichtet, zwei_faktor_neu: !eingerichtet, angemeldet: eingerichtet, version: "1.2.3" }),
+    "POST /api/auth/einrichten": () =>
+      versuche++ === 0
+        ? new TestFehler(401, "Das Passwort stimmt nicht.", "Die Zwei-Faktor-Anmeldung lässt sich nur mit dem bisherigen Passwort neu einrichten (noch 4 Versuch(e)).")
+        : { geheimnis: "NEUESGEHEIMNIS", otpauth_url: "otpauth://totp/x", qr_svg: QR },
+    "POST /api/auth/einrichten/bestaetigen": () => {
+      eingerichtet = true;
+      return { ok: true };
+    },
+  });
+  const nutzer = userEvent.setup();
+  render(<App />);
+
+  expect(await screen.findByRole("heading", { name: "Zwei-Faktor-Anmeldung neu einrichten" })).toBeInTheDocument();
+  expect(screen.getByText(/Mit deinem bisherigen Passwort bekommst du einen neuen QR-Code/)).toBeInTheDocument();
+  // Es wird kein neues Passwort gewählt: ein Feld, keine Wiederholung, keine Mindestlänge.
+  expect(screen.queryByLabelText("Passwort wiederholen")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Neues Passwort")).not.toBeInTheDocument();
+  await nutzer.type(screen.getByLabelText("Bisheriges Passwort"), "falsch");
+  await nutzer.click(screen.getByRole("button", { name: "Weiter" }));
+  expect(await screen.findByText("Das Passwort stimmt nicht.")).toBeInTheDocument();
+  expect(screen.getByText(/nur mit dem bisherigen Passwort neu einrichten/)).toBeInTheDocument();
+
+  await nutzer.clear(screen.getByLabelText("Bisheriges Passwort"));
+  await nutzer.type(screen.getByLabelText("Bisheriges Passwort"), "mein-altes-passwort");
+  await nutzer.click(screen.getByRole("button", { name: "Weiter" }));
+  expect(await screen.findByText("NEUESGEHEIMNIS")).toBeInTheDocument();
+  await nutzer.type(screen.getByLabelText(/Code aus der App/), "654321");
+  await nutzer.click(screen.getByRole("button", { name: /Bestätigen/ }));
+
+  expect(await screen.findByRole("navigation", { name: "Hauptnavigation" })).toBeInTheDocument();
+  expect(aufrufe.filter((a) => a.pfad === "/api/auth/einrichten").at(-1)?.koerper).toEqual({ passwort: "mein-altes-passwort" });
+});
+
 test("Login zeigt Fehlermeldung mit Hinweis und lässt danach ins Panel", async () => {
   let angemeldet = false;
   let versuche = 0;

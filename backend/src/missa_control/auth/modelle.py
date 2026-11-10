@@ -17,6 +17,9 @@ class Admin(Base):
     passwort_hash: Mapped[str] = mapped_column(String)
     totp_geheimnis: Mapped[str] = mapped_column(String)  # verschlüsselt
     eingerichtet: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Nach dem Notfall-Reset (scripts/reset-2fa.sh): Die Zwei-Faktor-Anmeldung wird neu eingerichtet –
+    # dafür braucht es das bisherige Passwort.
+    zwei_faktor_neu: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     # Nur der Browser, der die Einrichtung begonnen hat, darf sie abschliessen.
     einrichtung_pruefsumme: Mapped[str | None] = mapped_column(String, nullable=True)
     # Letzter verwendeter 30-Sekunden-Schritt: derselbe Code gilt nicht zweimal.

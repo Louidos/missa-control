@@ -14,6 +14,7 @@ from hilfen import Uhr, einrichten
 from missa_control import zeit
 from missa_control.config import Einstellungen
 from missa_control.main import create_app
+from server import LaufenderServer
 
 
 @pytest.fixture
@@ -55,3 +56,15 @@ def geheimnis(client: TestClient, uhr: Uhr) -> str:
 @pytest.fixture
 def angemeldet(client: TestClient, geheimnis: str) -> TestClient:
     return client
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture
+def panel(app: FastAPI) -> Iterator[LaufenderServer]:
+    """Das Panel als echter Server (für MCP-Client, Ereignis-Stream und Modell-Anschluss)."""
+    with LaufenderServer(app) as server:
+        yield server

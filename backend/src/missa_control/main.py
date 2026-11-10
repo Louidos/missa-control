@@ -31,6 +31,8 @@ from missa_control.integrationen import routen as integrationen_routen
 from missa_control.integrationen.dienst import IntegrationsDienst
 from missa_control.integrationen.katalog import Katalog
 from missa_control.krypto import Krypto
+from missa_control.modellverwaltung import routen as modell_routen
+from missa_control.modellverwaltung.dienst import ModellDienst
 from missa_control.zugaenge import routen as zugaenge_routen
 from missa_control.zugaenge.dienst import ZugangsDienst
 from missa_control.zugaenge.schwaerzen import SCHWAERZER, log_schutz_einrichten
@@ -78,7 +80,11 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
         panel=app.state,
     )
     app.state.integrationen.ereignis_melden = ereignisse.melden
-    zugaenge.verwendung = app.state.integrationen.zugang_verwendung
+    app.state.modelle = ModellDienst(datenbank, zugaenge)
+    zugaenge.verwendung_quellen = [
+        app.state.integrationen.zugang_verwendung,
+        app.state.modelle.zugang_verwendung,
+    ]
     app.state.gateway = Gateway(
         datenbank=datenbank, integrationen=app.state.integrationen, freigaben=freigaben, protokoll=protokoll
     )
@@ -98,6 +104,8 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(gateway_routen.konfig_router)
     app.include_router(ereignisse_routen.client_router)
     app.include_router(ereignisse_routen.panel_router)
+    app.include_router(modell_routen.panel_router)
+    app.include_router(modell_routen.proxy_router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
     app.router.routes.append(Route("/mcp/", endpoint=app.state.gateway))
@@ -121,12 +129,13 @@ async def _lebenszyklus(app: FastAPI) -> AsyncIterator[None]:
 
 
 def alte_daten_loeschen(app: FastAPI) -> None:
-    """Protokoll, Ereignisse und entschiedene Freigaben werden nach 30 Tagen gelöscht."""
+    """Protokoll, Ereignisse und entschiedene Freigaben werden nach 30 Tagen gelöscht, die Modell-Statistik nach 7."""
     tage = app.state.einstellungen.aufbewahrung_tage
     geloescht = (
         app.state.protokoll.aufraeumen(tage)
         + app.state.ereignisse.aufraeumen(tage)
         + app.state.freigaben.aufraeumen(tage)
+        + app.state.modelle.aufraeumen()  # Modell-Statistik: 7 Tage
     )
     if geloescht:
         log.info("Aufgeräumt: %s Einträge älter als %s Tage gelöscht", geloescht, tage)

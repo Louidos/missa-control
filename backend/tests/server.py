@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import socket
 import threading
 import time
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel
@@ -150,4 +153,68 @@ def artikel_rest_api(api_key: str | None = None) -> FastAPI:
             return schema
 
         app.openapi = mit_sicherheit  # type: ignore[method-assign]
+    return app
+
+
+def modell_server(modellname: str = "test-modell", api_key: str | None = None, pause: float = 0.0) -> FastAPI:
+    """Ein kleiner OpenAI-kompatibler Server. `app.state.kaputt = True` lässt ihn mit 500 antworten."""
+    app = FastAPI()
+    app.state.anfragen = []
+    app.state.kaputt = False
+    app.state.pause = pause
+
+    @app.post("/v1/chat/completions")
+    async def chat(request: Request) -> Any:
+        koerper = await request.json()
+        app.state.anfragen.append(
+            {
+                "model": koerper.get("model"),
+                "auth": request.headers.get("authorization"),
+                "stream": bool(koerper.get("stream")),
+                "messages": koerper.get("messages"),
+            }
+        )
+        if api_key is not None and request.headers.get("authorization") != f"Bearer {api_key}":
+            return JSONResponse({"error": {"message": "invalid api key"}}, status_code=401)
+        if app.state.kaputt:
+            return JSONResponse({"error": {"message": "model crashed"}}, status_code=500)
+        if koerper.get("model") != modellname:
+            return JSONResponse(
+                {"error": {"message": f"model {koerper.get('model')} not found"}}, status_code=404
+            )
+        if not koerper.get("messages"):
+            return JSONResponse({"error": {"message": "messages must not be empty"}}, status_code=400)
+        text = f"Antwort von {modellname} auf: {koerper['messages'][-1]['content']}"
+        if koerper.get("stream"):
+
+            async def strom() -> Any:
+                for wort in text.split():
+                    stueck = {
+                        "object": "chat.completion.chunk",
+                        "choices": [{"index": 0, "delta": {"content": wort + " "}}],
+                    }
+                    yield f"data: {json.dumps(stueck)}\n\n"
+                    await asyncio.sleep(app.state.pause)
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(strom(), media_type="text/event-stream")
+        await asyncio.sleep(app.state.pause)
+        return {
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "model": modellname,
+            "choices": [
+                {"index": 0, "message": {"role": "assistant", "content": text}, "finish_reason": "stop"}
+            ],
+            "usage": {"prompt_tokens": 12, "completion_tokens": 40, "total_tokens": 52},
+        }
+
+    @app.get("/kein-openai/v1/chat/completions")
+    def unsinn() -> dict[str, str]:
+        return {"hallo": "welt"}
+
+    @app.post("/kein-openai/v1/chat/completions")
+    def unsinn_post() -> dict[str, str]:
+        return {"hallo": "welt"}
+
     return app

@@ -50,8 +50,16 @@ class ZugangsDienst:
     def __init__(self, krypto: Krypto, schwaerzer: Schwaerzer) -> None:
         self.krypto = krypto
         self.schwaerzer = schwaerzer
-        # Wird beim Start gesetzt: welche Integrationen welchen Zugang verwenden.
-        self.verwendung: Callable[[Session], dict[int, list[str]]] = lambda _db: {}
+        # Wird beim Start gefüllt: Stellen, die Zugänge verwenden (Integrationen, Modelle, …).
+        self.verwendung_quellen: list[Callable[[Session], dict[int, list[str]]]] = []
+
+    def verwendung(self, db: Session) -> dict[int, list[str]]:
+        """Wer verwendet welchen Zugang? Nummer des Zugangs → Namen."""
+        gesamt: dict[int, list[str]] = {}
+        for quelle in self.verwendung_quellen:
+            for zugang_id, namen in quelle(db).items():
+                gesamt.setdefault(zugang_id, []).extend(namen)
+        return gesamt
 
     # ---------- für die Oberfläche (immer maskiert) ----------
 
@@ -133,7 +141,7 @@ class ZugangsDienst:
             raise PanelFehler(
                 409,
                 f"Der Zugang wird noch verwendet von: {', '.join(genutzt)}.",
-                "Zuerst in dieser Integration einen anderen Zugang auswählen oder die Integration entfernen.",
+                "Zuerst dort einen anderen Zugang auswählen – oder den Eintrag entfernen, der ihn verwendet.",
             )
         db.delete(zugang)
         db.commit()

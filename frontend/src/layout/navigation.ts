@@ -22,6 +22,7 @@ import { Freigaben } from "../gateway/Freigaben";
 import { Protokoll } from "../gateway/Protokoll";
 import { Integrationen } from "../integrationen/Integrationen";
 import { Katalog } from "../integrationen/Katalog";
+import { Modelle } from "../modelle/Modelle";
 import { Zugaenge } from "../zugaenge/Zugaenge";
 
 export interface NavEintrag {
@@ -97,6 +98,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Modelle",
         symbol: Brain,
         beschreibung: "Schnelles und starkes Modell verwalten, mit Ersatzmodell bei Ausfall.",
+        seite: Modelle,
       },
       {
         pfad: "/gedaechtnis",

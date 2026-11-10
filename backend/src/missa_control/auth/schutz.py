@@ -16,6 +16,7 @@ from http.cookies import SimpleCookie
 from urllib.parse import urlsplit
 
 from starlette.datastructures import Headers, MutableHeaders
+from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from missa_control.auth.dienst import AuthDienst
@@ -108,6 +109,8 @@ class Zugriffsschutz:
                     "Kein gültiger Client-Token.",
                     "Im Panel unter „Clients“ einen Token erzeugen und als „Authorization: Bearer <Token>“ mitsenden.",
                 )
+                if pfad.startswith("/v1"):
+                    antwort = _openai_fehler(401, "Kein gültiger Client-Token (als API-Key mitsenden).")
                 antwort.headers["WWW-Authenticate"] = "Bearer"
                 return antwort
             scope[CLIENT_SCHLUESSEL] = client
@@ -138,6 +141,14 @@ class Zugriffsschutz:
             return False
         with self.datenbank.sitzung() as db:
             return self.auth.sitzung_gueltig(db, eintrag.value)
+
+
+def _openai_fehler(status: int, meldung: str) -> JSONResponse:
+    """Fehler im Format der OpenAI-API – so zeigen OpenAI-Clients die Meldung an."""
+    return JSONResponse(
+        {"error": {"message": meldung, "type": "authentication_error", "code": "invalid_api_key"}},
+        status_code=status,
+    )
 
 
 def _gleiche_herkunft(headers: Headers) -> bool:

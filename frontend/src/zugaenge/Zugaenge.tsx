@@ -89,7 +89,12 @@ export function Zugaenge() {
                     {zugang.benutzer && <span>{zugang.benutzer} · </span>}
                     {zugang.maske}
                   </td>
-                  <td className="gedaempft">{zugang.notiz}</td>
+                  <td className="gedaempft">
+                    {zugang.notiz}
+                    {!!zugang.verwendet_von?.length && (
+                      <div className="klein">Verwendet von: {zugang.verwendet_von.join(", ")}</div>
+                    )}
+                  </td>
                   <td className="gedaempft klein">{datum(zugang.geaendert)}</td>
                   <td className="aktionen">
                     <Knopf

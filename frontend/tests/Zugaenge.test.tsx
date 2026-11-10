@@ -203,3 +203,28 @@ test("Baustein für Formulare: neuen Zugang direkt im Formular anlegen", async (
   expect(await screen.findByText("gewählt: 7")).toBeInTheDocument();
   expect(await screen.findByLabelText("Zugang")).toHaveValue("7");
 });
+
+test("Baustein enthält kein eigenes Formular-Element (verschachtelte Formulare laden die Seite neu)", async () => {
+  backend({ "GET /api/zugaenge": [] });
+  const nutzer = userEvent.setup();
+  let abgesendet = 0;
+  zeige(
+    <form
+      onSubmit={(ereignis) => {
+        ereignis.preventDefault();
+        abgesendet += 1;
+      }}
+    >
+      <FeldMitZustand />
+      <button type="submit">Aussen absenden</button>
+    </form>,
+  );
+
+  await nutzer.click(await screen.findByRole("button", { name: /Neuer Zugang/ }));
+  expect(document.querySelectorAll("form form")).toHaveLength(0);
+  expect(document.querySelectorAll("form")).toHaveLength(1);
+
+  // Eingabetaste im inneren Feld sendet nicht das äussere Formular ab.
+  await nutzer.type(screen.getByLabelText(/API-Key/), "wert{Enter}");
+  expect(abgesendet).toBe(0);
+});

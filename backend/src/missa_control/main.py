@@ -14,6 +14,9 @@ from missa_control.auth.schutz import Zugriffsschutz, ist_geschuetzt
 from missa_control.config import Einstellungen
 from missa_control.db import Datenbank
 from missa_control.fehler import fehlerbehandlung_einrichten
+from missa_control.integrationen import routen as integrationen_routen
+from missa_control.integrationen.dienst import IntegrationsDienst
+from missa_control.integrationen.katalog import Katalog
 from missa_control.krypto import Krypto
 from missa_control.zugaenge import routen as zugaenge_routen
 from missa_control.zugaenge.dienst import ZugangsDienst
@@ -35,6 +38,12 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.state.krypto = krypto
     app.state.auth = auth
     app.state.zugaenge = ZugangsDienst(krypto, SCHWAERZER)
+    app.state.integrationen = IntegrationsDienst(
+        katalog=Katalog(einstellungen.integrations_ordner, einstellungen.eigene_integrationen_ordner),
+        zugaenge=app.state.zugaenge,
+        panel=app.state,
+    )
+    app.state.zugaenge.verwendung = app.state.integrationen.zugang_verwendung
 
     fehlerbehandlung_einrichten(app)
     app.add_middleware(Zugriffsschutz, auth=auth, datenbank=datenbank)
@@ -45,6 +54,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
 
     app.include_router(auth_routen.router)
     app.include_router(zugaenge_routen.router)
+    app.include_router(integrationen_routen.router)
 
     if einstellungen.frontend_ordner is not None:
         _frontend_einbinden(app, einstellungen.frontend_ordner)

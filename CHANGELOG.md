@@ -14,3 +14,7 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   `scripts/install.sh`, `scripts/update.sh` und `scripts/backup.sh` (#3)
 - Zugänge (API-Keys, Passwörter) verschlüsselt speichern: neue Seite „Zugänge“, Werte sind nach dem
   Speichern nur noch maskiert sichtbar (`••••abcd`) und erscheinen in keinem Log (#5)
+- Integrations-Katalog: MCP-Server, REST-APIs und eigene Python-Integrationen in 3 Schritten
+  einrichten (Karte wählen, Formular ausfüllen, testen und aktivieren); Rechte pro Funktion
+  („erlaubt“, „erst nachfragen“, „gesperrt“), Seite „Integrationen“ zum Verwalten und Ausprobieren,
+  eigene Integrationen als Ordner oder ZIP, Anleitung in `docs/eigene-integration.md` (#7)

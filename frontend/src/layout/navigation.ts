@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
+import { Integrationen } from "../integrationen/Integrationen";
+import { Katalog } from "../integrationen/Katalog";
 import { Zugaenge } from "../zugaenge/Zugaenge";
 
 export interface NavEintrag {
@@ -54,12 +56,14 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Katalog",
         symbol: LayoutGrid,
         beschreibung: "Neue Fähigkeiten für Missa in 3 Schritten hinzufügen: MCP-Server, REST-APIs, Vorlagen.",
+        seite: Katalog,
       },
       {
         pfad: "/integrationen",
         titel: "Integrationen",
         symbol: Plug,
         beschreibung: "Eingerichtete Integrationen verwalten, testen, Rechte pro Funktion festlegen.",
+        seite: Integrationen,
       },
       {
         pfad: "/zugaenge",

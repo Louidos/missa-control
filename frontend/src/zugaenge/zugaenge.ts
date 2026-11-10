@@ -14,6 +14,8 @@ export interface Zugang {
   maske: string;
   lesbar: boolean;
   notiz: string;
+  /** Namen der Integrationen, die diesen Zugang verwenden. */
+  verwendet_von?: string[];
   erstellt: string;
   geaendert: string;
 }

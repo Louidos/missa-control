@@ -1,11 +1,6 @@
 # Dokumentation
 
-Hier entstehen die Anleitungen zu Missa Control:
+- [Eigene Integration schreiben](eigene-integration.md)
 
-- Installation
-- Sicherheit
-- Anbindung an missa-core
-- Eigene Integration schreiben
-- Geräte anbinden
-
-Die Dateien kommen jeweils zusammen mit der passenden Funktion dazu (siehe [CHANGELOG](../CHANGELOG.md)).
+Weitere Anleitungen (Installation, Sicherheit, Anbindung an missa-core, Geräte) kommen jeweils
+zusammen mit der passenden Funktion dazu – siehe [CHANGELOG](../CHANGELOG.md).

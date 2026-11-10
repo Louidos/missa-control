@@ -10,7 +10,11 @@ dependencies = [
     "argon2-cffi>=23.1",
     "cryptography>=44",
     "fastapi>=0.115",
+    "httpx2>=2.10",
+    "mcp>=2.3,<3",
     "pyotp>=2.9",
+    "python-multipart>=0.0.20",
+    "pyyaml>=6.0",
     "segno>=1.6",
     "sqlalchemy>=2.0",
     "uvicorn[standard]>=0.34",
@@ -18,7 +22,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "httpx2>=2.10",
     "pytest>=8.3",
     "ruff>=0.9",
 ]
@@ -41,6 +44,7 @@ known-first-party = ["missa_control", "hilfen"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
 ignore = [
+    "E501",   # Zeilenlänge regelt der Formatierer; lange Meldungstexte bleiben in einer Zeile
     "RUF001", # deutsche Texte enthalten typografische Zeichen
     "RUF002",
     "RUF003",

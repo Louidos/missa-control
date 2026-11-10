@@ -1,0 +1,31 @@
+# Beliebige REST-API per OpenAPI-Beschreibung – ganz ohne Code.
+id: rest-api
+name: REST-API (OpenAPI)
+beschreibung: Eine beliebige REST-API anbinden. Aus der OpenAPI-Beschreibung entstehen die Funktionen automatisch.
+symbol: "🌐"
+art: openapi
+version: 1.0.0
+hinweis: >-
+  Gib die Adresse der OpenAPI-Beschreibung an (meist …/openapi.json oder …/swagger.json) oder lade die
+  Datei hoch. Danach wählst du aus, welche Endpunkte Missa sehen darf: lesende (GET) sind erlaubt,
+  alle anderen fragen erst nach.
+felder:
+  - name: spec_url
+    titel: URL der OpenAPI-Beschreibung
+    typ: url
+    platzhalter: https://api.example.ch/openapi.json
+    hilfe: Entweder diese URL angeben oder unten die Datei hochladen.
+  - name: spec_datei
+    titel: … oder OpenAPI-Datei hochladen
+    typ: datei
+    endungen: [".json", ".yaml", ".yml"]
+    hilfe: JSON oder YAML, OpenAPI 3 oder Swagger 2.
+  - name: basis_url
+    titel: Basis-URL der API
+    typ: url
+    platzhalter: https://api.example.ch/v1
+    hilfe: Nur nötig, wenn die Beschreibung keine Server-Adresse nennt oder eine andere verwendet werden soll.
+  - name: zugang
+    titel: Zugang (optional)
+    typ: zugang
+    hilfe: API-Key, Bearer-Token oder Benutzer + Passwort. Wie der Zugang gesendet wird, steht in der OpenAPI-Beschreibung.

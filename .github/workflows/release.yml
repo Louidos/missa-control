@@ -23,18 +23,60 @@ jobs:
           grep -q "^  \"version\": \"$version\",$" frontend/package.json
       - name: Abschnitt aus dem CHANGELOG lesen
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v kopf="## [$version]" '
-            index($0, kopf) == 1 { drin = 1; next }
-            drin && /^## / { exit }
-            drin && /^\[[^]]+\]: / { next }
-            drin { print }
-          ' CHANGELOG.md > notizen.md
-          if ! grep -q '[^[:space:]]' notizen.md; then
-            echo "Im CHANGELOG fehlt der Abschnitt für $version"
-            exit 1
-          fi
-          cat notizen.md
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+
+          version = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+
+          # Der Abschnitt "## [X.Y.Z]" bis zur nächsten Version, ohne die Link-Zeilen am Ende.
+          abschnitt, drin = [], False
+          with open("CHANGELOG.md", encoding="utf-8") as datei:
+              for zeile in datei.read().splitlines():
+                  if zeile.startswith(f"## [{version}]"):
+                      drin = True
+                  elif drin and zeile.startswith("## "):
+                      break
+                  elif drin and not re.match(r"\[[^\]]+\]: ", zeile):
+                      abschnitt.append(zeile)
+
+
+          def steht_allein(zeile):
+              """Leerzeile, Überschrift, Tabellenzeile oder Code-Zaun."""
+              return not zeile.strip() or re.match(r"\s*(#{1,6}(\s|$)|\||```)", zeile)
+
+
+          def neuer_punkt(zeile):
+              return re.match(r"\s*([-*+]|\d+[.)])\s", zeile)
+
+
+          # Im CHANGELOG sind lange Zeilen von Hand umbrochen. Ein Release-Text zeigt jeden
+          # Zeilenumbruch an – deshalb hängt jede Fortsetzungszeile wieder an ihrem Absatz.
+          text, im_code = [], False
+          for zeile in abschnitt:
+              zaun = zeile.lstrip().startswith("```")
+              fortsetzung = (
+                  bool(text)
+                  and not im_code
+                  and not steht_allein(zeile)
+                  and not neuer_punkt(zeile)
+                  and not steht_allein(text[-1])
+              )
+              if fortsetzung:
+                  text[-1] = f"{text[-1].rstrip()} {zeile.strip()}"
+              else:
+                  text.append(zeile)
+              if zaun:
+                  im_code = not im_code
+
+          notizen = "\n".join(text).strip()
+          if not notizen:
+              sys.exit(f"Im CHANGELOG fehlt der Abschnitt für {version}")
+          with open("notizen.md", "w", encoding="utf-8") as datei:
+              datei.write(notizen + "\n")
+          print(notizen)
+          PY
       - name: Release anlegen
         env:
           GH_TOKEN: ${{ github.token }}

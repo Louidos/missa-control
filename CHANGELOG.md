@@ -69,7 +69,6 @@ Wer das Panel schon vor dieser Version installiert hatte, führt nach dem Update
 - Freigaben für Kalender und Home Assistant sagen, welcher Termin bzw. welches Gerät gemeint ist (#23)
 - Eigene Integrationen können Funktionen abhängig von der Einrichtung anbieten (`wenn=`) und
   Funktionen durchreichen, die erst zur Laufzeit feststehen (`@weitere_funktionen`) (#23)
-
 - Geräte (ESP32, Pico) per Kopplungscode anbinden: neue Seite „Geräte“ – Gerät hinzufügen, fertige
   Konfigurationsdatei herunterladen, aufs Gerät kopieren. Das Gerät erscheint als online und sagt
   selbst, was es kann: Sensoren werden zu Funktionen für Missa und zu Messwerten für Regeln, Knöpfe
@@ -81,7 +80,6 @@ Wer das Panel schon vor dieser Version installiert hatte, führt nach dem Update
   Knöpfe, „geht offline“, „kommt online“) (#25)
 - Neue Einstellungen `MQTT_BIND` (Adresse und Port des MQTT-Brokers) und `COMPOSE_PROFILES` (leer =
   ohne Broker); `install.sh` prüft auch den MQTT-Port und bricht ab, wenn er belegt ist (#25)
-
 - Telefonie vorbereitet: Anrufverlauf, erlaubte Anrufer, Anrufe aus Regeln – neue Seite „Anrufe“ mit
   eigenen Nummern, erlaubten Anrufern (alle anderen werden abgewiesen und protokolliert), Ruhezeiten
   (nur dringende Anrufe gehen durch) und Verlauf mit Zeit, Richtung, Nummer, Dauer und Grund. Regeln
@@ -89,7 +87,6 @@ Wer das Panel schon vor dieser Version installiert hatte, führt nach dem Update
   Freigabe. Noch ohne echtes Telefon: Der mitgelieferte Test-Adapter protokolliert Anrufe nur und
   meldet sie als Ereignis. Echte Adapter (SIP, App) lassen sich als Integration ergänzen, siehe
   `docs/telefonie.md` (#27)
-
 - Grafischer Verbindungsbaum mit Live-Status als Startseite: Die „Übersicht“ zeigt Missa in der
   Mitte und darum Clients, Rollen und Modelle, Integrationen mit ihren Funktionen (aufklappbar),
   Geräte, Zugänge und Regeln – verbunden, wie sie zusammenhängen. Grün, gelb, rot und grau zeigen
@@ -97,10 +94,9 @@ Wer das Panel schon vor dieser Version installiert hatte, führt nach dem Update
   sich verschieben (wird gespeichert), nach Art filtern und als Liste anzeigen (#29)
 - Das Panel prüft alle Integrationen mit Gegenstelle alle 20 Sekunden von selbst: Ein Ausfall ist
   innerhalb einer Minute in der Übersicht zu sehen und wird als Ereignis gemeldet – auch wenn Missa
-  gerade nichts aufruft – auch dann, wenn mehrere gleichzeitig ausfallen (#29, #34, #36)
+  gerade nichts aufruft und auch wenn mehrere gleichzeitig ausfallen (#29, #34, #36)
 - Neue optionale Einstellung `MISSA_CORE_HEALTH_URL`: zeigt in der Übersicht, ob missa-core läuft.
   Das Panel fragt die Adresse nur lesend ab (HTTP-GET); ohne die Einstellung bleibt der Knoten grau (#29)
-
 - Installations- und Sicherheitsanleitung, Notfall-Reset für 2FA: `docs/installation.md` (Ablauf von
   `install.sh`, alle Einstellungen in `.env`, Update, Backup, Fehlerbehebung) und `docs/sicherheit.md`
   (kein Veröffentlichen über einen Reverse Proxy, Panel-Port nur für die Admin-Workstation, VPN,

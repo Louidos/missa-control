@@ -158,7 +158,7 @@ missa-core eintragen.
 
 ## Projektstand
 
-Version: noch keine Veröffentlichung.
+Version: **0.1.0** – erste Veröffentlichung.
 
 Alle Bereiche des Panels sind vorhanden und durch automatische Tests abgedeckt. Was noch **nicht**
 gegen die echte Gegenstelle erprobt ist:

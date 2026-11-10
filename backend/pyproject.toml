@@ -1,6 +1,6 @@
 [project]
 name = "missa-control"
-version = "0.0.0"
+version = "0.1.0"
 description = "Lokales Admin- und Integrations-Panel für die KI-Assistentin Missa"
 readme = "README.md"
 requires-python = ">=3.12"

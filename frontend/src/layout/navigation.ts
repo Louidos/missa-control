@@ -21,6 +21,7 @@ import { Charakter } from "../charakter/Charakter";
 import { Clients } from "../gateway/Clients";
 import { Freigaben } from "../gateway/Freigaben";
 import { Protokoll } from "../gateway/Protokoll";
+import { Gedaechtnis } from "../gedaechtnis/Gedaechtnis";
 import { Integrationen } from "../integrationen/Integrationen";
 import { Katalog } from "../integrationen/Katalog";
 import { Modelle } from "../modelle/Modelle";
@@ -108,6 +109,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Gedächtnis",
         symbol: NotebookPen,
         beschreibung: "Was Missa sich gemerkt hat: ansehen, korrigieren, löschen.",
+        seite: Gedaechtnis,
       },
       {
         pfad: "/regeln",

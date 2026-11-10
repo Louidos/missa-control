@@ -10,6 +10,8 @@ export interface Freigabe {
   integration: string;
   funktion: string;
   beschreibung: string;
+  /** Ein Satz der Integration, was genau passieren würde (leer, wenn sie keinen liefert). */
+  vorschau: string;
   argumente: Record<string, unknown>;
   status: "offen" | "erlaubt" | "abgelehnt" | "abgelaufen";
   entschieden: string | null;

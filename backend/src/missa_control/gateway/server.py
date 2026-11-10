@@ -187,6 +187,15 @@ class Gateway:
             argumente = dict(params.arguments or {})
             braucht_freigabe = funktion.recht == "nachfragen"
             beschreibung = funktion.beschreibung
+            vorschau = ""
+            if braucht_freigabe:
+                try:
+                    vorschau = await self.integrationen.vorschau(db, integration, funktion.name, argumente)
+                except IntegrationsFehler as fehler:
+                    # Der Aufruf kann so nicht klappen – dann muss auch niemand darüber entscheiden.
+                    meldung = fehler.meldung + (f" Hinweis: {fehler.hinweis}" if fehler.hinweis else "")
+                    protokollieren(False, meldung)
+                    return _text(meldung, fehler=True)
 
         if braucht_freigabe:
             freigabe = await self.freigaben.anfragen(
@@ -195,6 +204,7 @@ class Gateway:
                 funktion=params.name,
                 beschreibung=beschreibung,
                 argumente=argumente,
+                vorschau=vorschau,
             )
             if freigabe != FREIGABE_ERLAUBT:
                 meldung = _ablehnung(params.name, freigabe, self.freigaben.frist_sekunden)

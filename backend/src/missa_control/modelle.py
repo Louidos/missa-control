@@ -4,6 +4,7 @@ from missa_control.auth.modelle import Admin, Sitzung
 from missa_control.clients.modelle import Client
 from missa_control.ereignisse.modelle import Ereignis
 from missa_control.gateway.modelle import Aufruf, Freigabe
+from missa_control.gedaechtnis.modelle import GedaechtnisEintrag
 from missa_control.integrationen.modelle import Funktion, Integration
 from missa_control.modellverwaltung.modelle import Modell, ModellAnfrage, Rolle
 from missa_control.profil.modelle import ProfilVersion
@@ -17,6 +18,7 @@ __all__ = [
     "Ereignis",
     "Freigabe",
     "Funktion",
+    "GedaechtnisEintrag",
     "Integration",
     "Messwert",
     "Modell",

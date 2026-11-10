@@ -26,6 +26,8 @@ class Freigabe(Base):
     integration_name: Mapped[str] = mapped_column(String)
     funktion: Mapped[str] = mapped_column(String)  # Name am Gateway
     beschreibung: Mapped[str] = mapped_column(Text, default="")
+    # Was genau passieren würde – ein Satz der Integration (z. B. welcher Eintrag gelöscht wird).
+    vorschau: Mapped[str] = mapped_column(Text, default="", server_default="")
     argumente: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String, default=FREIGABE_OFFEN, index=True)
     entschieden: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

@@ -68,12 +68,39 @@ def kaputt(kontext: Kontext) -> str:
 """
 
 
+# Eine zweite Integration, deren Funktion in der Freigabe sagt, was genau passieren würde.
+HEIZUNG_MANIFEST = """
+id: heizung
+name: Heizung
+beschreibung: Test-Integration mit Vorschau für die Freigabe
+art: python
+"""
+
+HEIZUNG_MAIN = """
+from missa_control.sdk import Fehler, Kontext, funktion
+
+
+def _vorschau(kontext: Kontext, grad: int) -> str:
+    if grad > 30:
+        raise Fehler("Mehr als 30 Grad sind nicht möglich.", "Einen Wert bis 30 angeben.")
+    if grad < 0:
+        raise RuntimeError("Vorschau kaputt")
+    return f"Stellt die Heizung im {kontext.name}-Raum auf {grad} Grad"
+
+
+@funktion(beschreibung="Stellt die Heizung ein.", vorschau=_vorschau)
+def stellen(kontext: Kontext, grad: int) -> str:
+    return f"Heizung steht auf {grad} Grad"
+"""
+
+
 @pytest.fixture
 def einstellungen(einstellungen: Einstellungen) -> Einstellungen:
-    ordner = einstellungen.eigene_integrationen_ordner / "werkstatt"
-    ordner.mkdir(parents=True)
-    (ordner / "integration.yaml").write_text(MANIFEST, encoding="utf-8")
-    (ordner / "main.py").write_text(MAIN, encoding="utf-8")
+    for name, manifest, main in (("werkstatt", MANIFEST, MAIN), ("heizung", HEIZUNG_MANIFEST, HEIZUNG_MAIN)):
+        ordner = einstellungen.eigene_integrationen_ordner / name
+        ordner.mkdir(parents=True)
+        (ordner / "integration.yaml").write_text(manifest, encoding="utf-8")
+        (ordner / "main.py").write_text(main, encoding="utf-8")
     return dataclasses.replace(einstellungen, stream_ping_sekunden=0.2)
 
 
@@ -296,6 +323,50 @@ async def test_nachfragen_funktion_laeuft_erst_nach_dem_erlauben(
     )
     # Zweimal entscheiden geht nicht:
     assert angemeldet.post(f"/api/freigaben/{offen[0]['id']}", json={"erlauben": False}).status_code == 409
+
+
+async def test_freigabe_zeigt_die_vorschau_der_funktion(
+    angemeldet: TestClient, panel: LaufenderServer
+) -> None:
+    """Mit `@funktion(vorschau=...)` steht in der Freigabe ein Satz, was genau passieren würde."""
+    _integration(angemeldet, "heizung")
+    _integration(angemeldet)
+    _, token = _client_anlegen(angemeldet)
+
+    async def anfragen(client: Client, name: str, argumente: dict) -> tuple[asyncio.Task, dict]:
+        aufruf = asyncio.create_task(client.call_tool(name, argumente))
+        offen = await _warte_auf(lambda: angemeldet.get("/api/freigaben").json()["offen"])
+        return aufruf, offen[0]
+
+    async with mcp(panel, token) as client:
+        aufruf, offen = await anfragen(client, "heizung_stellen", {"grad": 21})
+        assert offen["vorschau"] == "Stellt die Heizung im Heizung-Raum auf 21 Grad"
+        assert offen["argumente"] == {"grad": 21}
+        angemeldet.post(f"/api/freigaben/{offen['id']}", json={"erlauben": True})
+        assert _text(await asyncio.wait_for(aufruf, timeout=5)) == "Heizung steht auf 21 Grad"
+
+        # Sagt die Vorschau schon, dass es nicht geht, wird niemand gefragt.
+        zu_warm = await asyncio.wait_for(client.call_tool("heizung_stellen", {"grad": 35}), timeout=5)
+        assert zu_warm.is_error is True
+        assert _text(zu_warm) == "Mehr als 30 Grad sind nicht möglich. Hinweis: Einen Wert bis 30 angeben."
+        falsch = await asyncio.wait_for(client.call_tool("heizung_stellen", {"grad": "warm"}), timeout=5)
+        assert falsch.is_error is True
+        assert "Ungültige Parameter" in _text(falsch)
+        assert angemeldet.get("/api/freigaben").json()["offen"] == []
+        eintrag = angemeldet.get("/api/protokoll").json()["eintraege"][0]
+        assert (eintrag["funktion"], eintrag["ok"], eintrag["freigabe"]) == ("heizung_stellen", False, "ohne")
+
+        # Eine kaputte Vorschau hält nichts auf: es wird ohne sie nachgefragt.
+        aufruf, offen = await anfragen(client, "heizung_stellen", {"grad": -5})
+        assert offen["vorschau"] == ""
+        angemeldet.post(f"/api/freigaben/{offen['id']}", json={"erlauben": True})
+        assert _text(await asyncio.wait_for(aufruf, timeout=5)) == "Heizung steht auf -5 Grad"
+
+        # Funktionen ohne Vorschau: wie bisher nur Funktion und Parameter.
+        aufruf, offen = await anfragen(client, "werkstatt_lampe_schalten", {"an": False})
+        assert offen["vorschau"] == ""
+        angemeldet.post(f"/api/freigaben/{offen['id']}", json={"erlauben": False})
+        assert (await asyncio.wait_for(aufruf, timeout=5)).is_error is True
 
 
 async def test_ablehnen_fuehrt_nichts_aus_und_antwortet_verstaendlich(

@@ -1,0 +1,17 @@
+# Eingebaute Integration: Missa kann sich Dinge merken, danach suchen und etwas vergessen.
+id: gedaechtnis
+name: Gedächtnis
+beschreibung: Missa kann sich Dinge merken, in ihrem Gedächtnis suchen und – nach deiner Freigabe – etwas vergessen.
+symbol: "🧠"
+art: python
+version: 1.0.0
+mehrfach: false
+kennung: gedaechtnis
+hinweis: >-
+  Es gibt nichts einzustellen. Alles, was Missa sich merkt, steht auf der Seite „Gedächtnis“ und lässt
+  sich dort ansehen, korrigieren und löschen. Merken und Suchen sind sofort erlaubt; soll Missa vor
+  jedem Merken erst nachfragen, lässt sich das hier bei den Rechten umstellen.
+standardrechte:
+  merken: erlaubt
+  suchen: erlaubt
+  vergessen: nachfragen

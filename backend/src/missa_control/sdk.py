@@ -30,6 +30,7 @@ class FunktionsAngaben:
     name: str | None
     beschreibung: str | None
     schreibend: bool
+    vorschau: Callable[..., Any] | None = None
 
 
 def funktion(
@@ -39,6 +40,7 @@ def funktion(
     beschreibung: str | None = None,
     schreibend: bool = True,
     name: str | None = None,
+    vorschau: Callable[..., Any] | None = None,
 ) -> Any:
     """Macht aus einer Python-Funktion eine Funktion für Missa.
 
@@ -46,6 +48,9 @@ def funktion(
     - `schreibend`: `False` für Funktionen, die nur lesen – sie sind dann sofort „erlaubt“.
       Ohne Angabe gilt eine Funktion vorsichtshalber als schreibend („erst nachfragen“).
     - `name`: Name für Missa (sonst der Name der Python-Funktion)
+    - `vorschau`: optionale Funktion mit denselben Parametern, die in einem Satz sagt, was der Aufruf
+      bewirken würde (z. B. „Löscht den Termin ‚Zahnarzt‘ am 3. Mai“). Der Satz steht in der Freigabe,
+      wenn die Funktion „erst nachfragen“ muss. Löst sie `Fehler` aus, wird gar nicht erst nachgefragt.
 
     Parameter und ihre Beschreibung kommen aus den Typ-Hinweisen und dem Docstring.
     """
@@ -54,7 +59,7 @@ def funktion(
         setattr(
             ziel,
             FUNKTION_MERKMAL,
-            FunktionsAngaben(name=name, beschreibung=beschreibung, schreibend=schreibend),
+            FunktionsAngaben(name=name, beschreibung=beschreibung, schreibend=schreibend, vorschau=vorschau),
         )
         return ziel
 

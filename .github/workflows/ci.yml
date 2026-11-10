@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (ruff, pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: uv installieren
+        run: pip install uv
+      - name: Abhängigkeiten installieren
+        run: uv sync --frozen
+      - name: Linter
+        run: uv run ruff check .
+      - name: Tests
+        run: uv run pytest
+
+  frontend:
+    name: Frontend (eslint, vitest, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Abhängigkeiten installieren
+        run: npm ci
+      - name: Linter
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Docker (compose build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: .env aus Beispiel erzeugen
+        run: cp .env.example .env
+      - name: Image bauen
+        run: docker compose -p missa-control build

@@ -1,0 +1,19 @@
+# Missa Control – eigenes Compose-Projekt mit eigenen Containern und eigenem Netzwerk.
+# Immer mit Projektnamen aufrufen:  docker compose -p missa-control ...
+name: missa-control
+
+services:
+  missa-control:
+    build: .
+    image: missa-control:lokal
+    restart: unless-stopped
+    ports:
+      - "${MISSA_CONTROL_BIND:-0.0.0.0:8090}:8090"
+    volumes:
+      - ./data:/data
+    networks:
+      - missa-control-net
+
+networks:
+  missa-control-net:
+    name: missa-control-net

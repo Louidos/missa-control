@@ -280,29 +280,72 @@ def test_wird_waehrend_der_pruefung_eine_integration_entfernt_laeuft_die_runde_w
     dienst = app.state.integrationen
     echt = dienst._test_ausfuehren
     geprueft: list[str] = []
+    betroffen: dict[str, int] = {}
 
     async def mit_zwischenfall(adapter: Any, kontext: Any, sekunden: float = 0) -> Any:
         geprueft.append(kontext.name)
         if len(geprueft) == 1:
-            # Während die erste Integration geprüft wird, entfernt der Besitzer sie in einer anderen
-            # Anfrage (eigene Datenbank-Sitzung) – und schaltet eine weitere aus.
+            # Während die Prüfungen laufen, entfernt der Besitzer in einer anderen Anfrage (eigene
+            # Datenbank-Sitzung) eine Integration – und schaltet eine weitere aus.
             andere = next(i for i in (erste, zweite, dritte) if i["id"] != kontext.integration_id)
+            betroffen.update(entfernt=kontext.integration_id, aus=andere["id"])
             with app.state.datenbank.sitzung() as zweite_sitzung:
                 zweite_sitzung.delete(zweite_sitzung.get(Integration, kontext.integration_id))
                 zweite_sitzung.get(Integration, andere["id"]).aktiv = False
                 zweite_sitzung.commit()
-        return await echt(adapter, kontext, sekunden)
+        ergebnis = await echt(adapter, kontext, sekunden)
+        if kontext.integration_id == betroffen.get("aus"):
+            # Diese Prüfung „scheitert“ – ihr Ergebnis darf nicht mehr zählen: Die Integration ist ja aus.
+            return dataclasses.replace(ergebnis, ok=False, meldung="zu spät")
+        return ergebnis
 
     monkeypatch.setattr(dienst, "_test_ausfuehren", mit_zwischenfall)
     uebersicht = _pruefen(angemeldet)  # ohne Fehler – die Runde läuft für die übrigen weiter
 
-    integrationen = [k for k in uebersicht["knoten"] if k["art"] == "integration"]
-    assert len(integrationen) == 2  # die entfernte ist weg
-    assert sorted(k["status"] for k in integrationen) == ["grau", "ok"]  # ausgeschaltet bzw. geprüft
-    assert len(geprueft) == 2  # die ausgeschaltete wurde gar nicht mehr geprüft
+    integrationen = {k["id"]: k for k in uebersicht["knoten"] if k["art"] == "integration"}
+    assert f"integration:{betroffen['entfernt']}" not in integrationen  # die entfernte ist weg
+    assert len(integrationen) == 2
+    assert integrationen[f"integration:{betroffen['aus']}"]["status"] == "grau"  # ausgeschaltet: kein Fehler
+    assert sorted(k["status"] for k in integrationen.values()) == ["grau", "ok"]
+    assert angemeldet.get("/api/ereignisse", params={"art": "integration_ausgefallen"}).json() == []
     # Die nächste Runde läuft ganz normal.
     monkeypatch.setattr(dienst, "_test_ausfuehren", echt)
     assert _pruefen(angemeldet)["zusammenfassung"]["fehler"] == 0
+
+
+def test_haengen_mehrere_gegenstellen_gleichzeitig_dauert_die_runde_nicht_laenger(
+    angemeldet: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fällt das Netz aus, hängen alle Gegenstellen auf einmal. Die Prüfung wartet auf alle gleichzeitig –
+    sonst würde die letzte erst nach Minuten rot."""
+    stumme: list[socket.socket] = []
+    kennungen = []
+    for nummer in range(4):
+        with LaufenderServer(notizen_mcp_server().streamable_http_app()) as server:
+            integration = integration_anlegen(
+                angemeldet, "mcp-server", {"url": server.url + "/mcp"}, name=f"Notizen {nummer + 1}"
+            )
+            port = server.port
+        kennungen.append(f"integration:{integration['id']}")
+        # An derselben Adresse lauscht jetzt etwas, das Verbindungen annimmt, aber nie antwortet.
+        stumm = socket.socket()
+        stumm.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        stumm.bind(("127.0.0.1", port))
+        stumm.listen(5)
+        stumme.append(stumm)
+    try:
+        monkeypatch.setattr(integrations_dienst, "PRUEF_SEKUNDEN", 1.0)
+        start = time.monotonic()
+        uebersicht = _pruefen(angemeldet)
+        dauer = time.monotonic() - start
+    finally:
+        for stumm in stumme:
+            stumm.close()
+    assert [_knoten(uebersicht, kennung)["status"] for kennung in kennungen] == ["fehler"] * 4
+    # Vier hängende Gegenstellen, je 1 Sekunde Geduld: nacheinander wären das 4 Sekunden.
+    assert dauer < 2.5, f"die Runde hat {dauer:.1f} s gedauert"
+    ausgefallen = angemeldet.get("/api/ereignisse", params={"art": "integration_ausgefallen"}).json()
+    assert len(ausgefallen) == 4
 
 
 @pytest.mark.anyio

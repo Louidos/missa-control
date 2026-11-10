@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from hilfen import PASSWORT, Uhr, code_fuer, einrichten
-from missa_control.auth.schutz import OEFFENTLICHE_PFADE
+from missa_control.auth.schutz import OEFFENTLICHE_PFADE, ist_webhook_pfad
 from missa_control.config import Einstellungen, EinstellungsFehler
 
 
@@ -35,6 +35,12 @@ def test_ohne_login_ist_nichts_erreichbar(app: FastAPI, client: TestClient) -> N
             continue
         for methode in methoden:
             antwort = client.request(methode.upper(), pfad.replace("{", "").replace("}", ""))
+            if ist_webhook_pfad(pfad):
+                # Bewusste Ausnahme: Bei Webhooks ist der Schlüssel in der Adresse der Zugang.
+                # Ein falscher Schlüssel verrät nichts.
+                assert antwort.status_code == 404, f"{methode} {pfad}"
+                assert antwort.json() == {"meldung": "Diesen Webhook gibt es nicht."}
+                continue
             assert antwort.status_code == 401, f"{methode} {pfad} ist ohne Login erreichbar"
             geprueft += 1
     assert geprueft > 0

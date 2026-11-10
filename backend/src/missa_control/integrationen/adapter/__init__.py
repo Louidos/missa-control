@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from missa_control.integrationen.adapter.mcp import McpAdapter
 from missa_control.integrationen.adapter.openapi import OpenApiAdapter
 from missa_control.integrationen.adapter.python import PythonAdapter
+from missa_control.integrationen.adapter.webhook import WebhookAdapter
 from missa_control.integrationen.kontext import Kontext
 from missa_control.integrationen.modelle import Funktion
 from missa_control.integrationen.typen import AufrufErgebnis, TestErgebnis
@@ -23,4 +24,5 @@ class Adapter(Protocol):
 
 
 def standard_adapter() -> dict[str, Adapter]:
-    return {adapter.art: adapter for adapter in (McpAdapter(), OpenApiAdapter(), PythonAdapter())}
+    adapter: tuple[Adapter, ...] = (McpAdapter(), OpenApiAdapter(), PythonAdapter(), WebhookAdapter())
+    return {einer.art: einer for einer in adapter}

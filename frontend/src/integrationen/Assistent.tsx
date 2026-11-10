@@ -8,6 +8,7 @@ import { Dialog } from "../ui/Dialog";
 import { FehlerMeldung, Feld, Knopf, Meldung } from "../ui/ui";
 import { Formular } from "./Formular";
 import { RechteListe } from "./RechteListe";
+import { WebhookAdresse } from "./WebhookAdresse";
 import {
   type Integration,
   INTEGRATIONEN,
@@ -42,6 +43,13 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
       if (!ergebnis.ok) return;
       setTest(ergebnis);
       setRechte(Object.fromEntries(ergebnis.funktionen.map((funktion) => [funktion.name, funktion.recht])));
+      // Auswahlfelder, die erst der Test füllt (z. B. die gefundenen Kalender): die erste Möglichkeit vorschlagen.
+      const vorschlaege = Object.fromEntries(
+        nachTest
+          .filter((feld) => feld.typ === "auswahl" && !werte[feld.name] && ergebnis.optionen[feld.name]?.length)
+          .map((feld) => [feld.name, ergebnis.optionen[feld.name][0].wert]),
+      );
+      if (Object.keys(vorschlaege).length > 0) setWerte({ ...werte, ...vorschlaege });
     },
   });
   const aktivieren = useMutation({
@@ -116,15 +124,23 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
           {nachTest.length > 0 && (
             <Formular felder={nachTest} werte={werte} onAendern={setWerte} optionen={test.optionen} />
           )}
-          <div className="stapel eng">
-            <h3>Was darf Missa?</h3>
-            <p className="gedaempft klein">
-              {test.viele_funktionen
-                ? "Diese API hat sehr viele Funktionen. Zunächst ist alles gesperrt – wähle aus, was Missa sehen darf."
-                : "Vorschlag: Lesende Funktionen sind erlaubt, schreibende fragen erst nach. Gesperrte sieht Missa gar nicht."}
-            </p>
-            <RechteListe funktionen={test.funktionen} rechte={rechte} onAendern={setRechte} />
-          </div>
+          {test.funktionen.length > 0 ? (
+            <div className="stapel eng">
+              <h3>Was darf Missa?</h3>
+              <p className="gedaempft klein">
+                {test.viele_funktionen
+                  ? "Diese API hat sehr viele Funktionen. Zunächst ist alles gesperrt – wähle aus, was Missa sehen darf."
+                  : "Vorschlag: Lesende Funktionen sind erlaubt, schreibende fragen erst nach. Gesperrte sieht Missa gar nicht."}
+              </p>
+              <RechteListe funktionen={test.funktionen} rechte={rechte} onAendern={setRechte} />
+            </div>
+          ) : (
+            eintrag.art === "webhook" && (
+              <p className="gedaempft">
+                Ein Webhook hat keine Funktionen für Missa: Was er empfängt, wird zum Ereignis und kann Regeln auslösen.
+              </p>
+            )
+          )}
           <FehlerMeldung fehler={aktivieren.error} />
           <div className="dialog-fuss">
             <Knopf
@@ -148,10 +164,15 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
           <div className="leer">
             <CircleCheck aria-hidden style={{ color: "var(--ok)" }} />
             <h2>„{fertig.name}“ ist aktiv</h2>
-            <p>
-              Missa kann jetzt {sichtbar} Funktion{sichtbar === 1 ? "" : "en"} nutzen.
-            </p>
+            {fertig.webhook ? (
+              <p>Meldungen an die geheime Adresse werden ab jetzt zu Ereignissen für Missa.</p>
+            ) : (
+              <p>
+                Missa kann jetzt {sichtbar} Funktion{sichtbar === 1 ? "" : "en"} nutzen.
+              </p>
+            )}
           </div>
+          {fertig.webhook?.pfad && <WebhookAdresse pfad={fertig.webhook.pfad} />}
           <div className="dialog-fuss">
             <Link className="knopf" to="/integrationen" onClick={onSchliessen}>
               Zu den Integrationen

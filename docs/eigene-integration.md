@@ -168,6 +168,19 @@ def meine_funktion(kontext: Kontext, ort: str, tage: int = 3) -> dict:
 Eine Funktion mit `@verbindungstest` läuft bei „Verbindung testen“ (optional, höchstens eine).
 Sie gibt einen kurzen Text zurück, z. B. `"Verbunden als missa"`.
 
+Statt des Textes darf sie auch ein Wörterbuch zurückgeben:
+
+```python
+return {
+    "meldung": "Verbunden als missa – 2 Kalender gefunden.",
+    "details": ["Arbeit", "Persönlich"],                      # erscheint klein unter der Meldung
+    "optionen": {"kalender": [{"wert": "/privat/", "titel": "Persönlich"}]},
+}
+```
+
+`optionen` füllt Auswahlfelder, die im Manifest `nach_test: true` tragen: Sie erscheinen erst nach
+dem Test – mit dem, was der Test gefunden hat (so zeigt der Nextcloud-Kalender die Kalender an).
+
 ### Vorschau für die Freigabe
 
 Muss eine Funktion „erst nachfragen“, zeigt das Panel unter „Freigaben“ ihren Namen und die
@@ -186,6 +199,34 @@ def notiz_loeschen(kontext: Kontext, id: int) -> str: ...
 Die Vorschau bekommt dieselben Parameter wie die Funktion und darf nichts verändern. Löst sie
 `Fehler` aus, wird gar nicht erst nachgefragt – Missa bekommt die Meldung sofort.
 
+### Funktionen nur manchmal anbieten
+
+```python
+@funktion(beschreibung="Schaltet ein Gerät ein.", wenn=lambda kontext: kontext.zustand.get("weg") == "rest")
+def einschalten(kontext: Kontext, id: str) -> str: ...
+```
+
+`wenn` wird beim Testen gefragt. Liefert es `False`, bietet die Integration die Funktion in dieser
+Einrichtung nicht an. Was der Test herausfindet, merkt er sich in `kontext.zustand`.
+
+### Funktionen, die erst zur Laufzeit feststehen
+
+Manche Funktionen kennt man beim Schreiben noch nicht – etwa die Werkzeuge eines anderen Dienstes.
+Dafür gibt es zwei Markierungen (so reicht „Home Assistant“ die Werkzeuge von dessen MCP-Server durch):
+
+```python
+from missa_control.sdk import FunktionsInfo, aufruf_weiterer_funktionen, weitere_funktionen
+
+@weitere_funktionen
+async def funktionen(kontext: Kontext) -> list[FunktionsInfo]:
+    return [FunktionsInfo(name="lampe_an", beschreibung="Schaltet die Lampe an.", schreibend=True,
+                          parameter={"type": "object", "properties": {"raum": {"type": "string"}}})]
+
+@aufruf_weiterer_funktionen
+async def aufrufen(kontext: Kontext, name: str, argumente: dict) -> str:
+    return f"{name} ausgeführt"
+```
+
 ### Fehler mit Lösungshinweis
 
 ```python
@@ -195,6 +236,15 @@ raise Fehler("Der Dienst lehnt das Token ab.", "Unter „Zugänge“ ein neues T
 Der erste Text sagt, was passiert ist, der zweite, was man tun kann. Beides erscheint im Panel und
 geht als Antwort an Missa. Häufige Netzwerkfehler (nicht erreichbar, 401, 404, Zeitüberschreitung)
 übersetzt das Panel von selbst.
+
+Ist die Gegenstelle gar nicht erreichbar oder lehnt sie den Zugang ab (401, 403, Fehler ab 500),
+gilt die ganze Integration als ausgefallen: Ihr Status wird „Fehler“, und das Panel meldet das
+Ereignis `integration_ausgefallen` – darauf können Regeln reagieren. Der nächste erfolgreiche
+Aufruf oder Test stellt den Status wieder her.
+
+### Mehrere Dateien
+
+`main.py` darf weitere Dateien aus demselben Ordner einbinden: `from .hilfen import rechne`.
 
 ## Ausprobieren und Fehler finden
 

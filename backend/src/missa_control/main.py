@@ -32,6 +32,8 @@ from missa_control.gedaechtnis.dienst import GedaechtnisDienst
 from missa_control.integrationen import routen as integrationen_routen
 from missa_control.integrationen.dienst import IntegrationsDienst
 from missa_control.integrationen.katalog import Katalog
+from missa_control.integrationen.webhook import WebhookDienst
+from missa_control.integrationen.webhook import router as webhook_router
 from missa_control.krypto import Krypto
 from missa_control.modellverwaltung import routen as modell_routen
 from missa_control.modellverwaltung.dienst import ModellDienst
@@ -90,6 +92,11 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
         panel=app.state,
     )
     app.state.integrationen.ereignis_melden = ereignisse.melden
+    app.state.webhooks = WebhookDienst(
+        integrationen=app.state.integrationen, ereignisse=ereignisse, krypto=krypto
+    )
+    with datenbank.sitzung() as db:
+        app.state.webhooks.schluessel_merken(db)
     app.state.modelle = ModellDienst(datenbank, zugaenge)
     app.state.profil = ProfilDienst(
         app.state.modelle, einstellungen.config_ordner, einstellungen.testchat_sekunden
@@ -131,6 +138,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(serverlast_routen.router)
     app.include_router(gedaechtnis_routen.router)
     app.include_router(regel_routen.router)
+    app.include_router(webhook_router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
     app.router.routes.append(Route("/mcp/", endpoint=app.state.gateway))

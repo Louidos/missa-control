@@ -1,0 +1,19 @@
+# Eingehender Webhook: eine geheime Adresse, an die andere Dienste und Geräte Meldungen schicken.
+id: webhook
+name: Webhook
+beschreibung: Eine geheime Adresse, an die andere Dienste und Geräte Meldungen schicken können. Jede Meldung wird zum Ereignis für Missa und kann Regeln auslösen.
+symbol: "📨"
+art: webhook
+version: 1.0.0
+hinweis: >-
+  Gib dem Webhook einen Namen, der sagt, woher die Meldungen kommen (z. B. „Waschmaschine“ oder
+  „Uptime Kuma“). Nach dem Aktivieren zeigt das Panel die geheime Adresse und ein Beispiel zum
+  Ausprobieren. Wer die Adresse kennt, kann Meldungen schicken – gib sie nur an Dienste weiter,
+  denen du vertraust.
+felder:
+  - name: dringlichkeit
+    titel: Dringlichkeit der Meldungen
+    typ: auswahl
+    standard: normal
+    optionen: [niedrig, normal, hoch, dringend]
+    hilfe: Gilt, wenn eine Meldung selbst keine Dringlichkeit mitbringt.

@@ -1,0 +1,43 @@
+# Eingebaute Integration: Termine im Nextcloud-Kalender lesen, eintragen, ändern und löschen (CalDAV).
+id: nextcloud-kalender
+name: Nextcloud-Kalender
+beschreibung: Missa kann Termine aus deinem Nextcloud-Kalender vorlesen und – nach deiner Freigabe – eintragen, ändern und löschen.
+symbol: "📅"
+art: python
+version: 1.0.0
+kennung: kalender
+hinweis: >-
+  Du brauchst die Adresse deiner Nextcloud und ein App-Passwort. So erstellst du es: in der Nextcloud
+  oben rechts auf dein Bild → „Persönliche Einstellungen“ → „Sicherheit“ → ganz unten „Neues
+  App-Passwort erstellen“. Benutzername und App-Passwort trägst du unten als Zugang ein. ai01 muss
+  die Nextcloud erreichen können (CalDAV über HTTPS).
+felder:
+  - name: url
+    titel: Adresse der Nextcloud
+    typ: url
+    pflicht: true
+    platzhalter: https://cloud.example.ch
+    hilfe: So, wie sie im Browser steht – ohne /apps/… am Ende.
+  - name: zugang
+    titel: Benutzer und App-Passwort
+    typ: zugang
+    zugang_typen: [benutzer_passwort]
+    pflicht: true
+    hilfe: Dein Benutzername in der Nextcloud und ein App-Passwort (nicht dein normales Passwort).
+  - name: kalender
+    titel: Kalender für neue Termine
+    typ: auswahl
+    nach_test: true
+    pflicht: true
+    hilfe: In diesen Kalender trägt Missa neue Termine ein.
+  - name: alle_kalender
+    titel: Beim Anzeigen alle Kalender berücksichtigen
+    typ: schalter
+    nach_test: true
+    standard: true
+    hilfe: Ausgeschaltet sieht Missa nur die Termine aus dem oben gewählten Kalender.
+standardrechte:
+  termine_anzeigen: erlaubt
+  termin_eintragen: nachfragen
+  termin_aendern: nachfragen
+  termin_loeschen: nachfragen

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Pencil, Play, Plug, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router";
@@ -10,10 +10,12 @@ import { FehlerMeldung, Feld, Knopf, Lade, Meldung, type Status, StatusMarke } f
 import { Formular } from "./Formular";
 import { RechteListe } from "./RechteListe";
 import { type Funktion, type Integration, INTEGRATIONEN, KATALOG, type Konfig, type Recht, type TestErgebnis, useIntegrationen } from "./typen";
+import { WebhookAdresse } from "./WebhookAdresse";
 
 type Offen =
   | { art: "bearbeiten"; integration: Integration }
   | { art: "entfernen"; integration: Integration }
+  | { art: "adresse"; integration: Integration }
   | { art: "ausprobieren"; integration: Integration; funktion: Funktion }
   | null;
 
@@ -42,6 +44,13 @@ export function Integrationen() {
   const testen = useMutation({
     mutationFn: (id: number) => api.post<Integration>(`/api/integrationen/${id}/testen`),
     onSuccess: uebernehmen,
+  });
+  const erneuern = useMutation({
+    mutationFn: (integration: Integration) => api.post<Integration>(`/api/integrationen/${integration.id}/webhook/erneuern`),
+    onSuccess: (neu) => {
+      uebernehmen(neu);
+      setOffen(null);
+    },
   });
   const entfernen = useMutation({
     mutationFn: (integration: Integration) => api.del(`/api/integrationen/${integration.id}`),
@@ -101,7 +110,8 @@ export function Integrationen() {
                   <StatusMarke status={status}>{text}</StatusMarke>
                 </div>
                 <div className="gedaempft klein">
-                  {integration.art_name} · {sichtbar} von {integration.funktionen.length} Funktionen für Missa sichtbar
+                  {integration.art_name} ·{" "}
+                  {integration.webhook ? "empfängt Meldungen" : `${sichtbar} von ${integration.funktionen.length} Funktionen für Missa sichtbar`}
                   {integration.geprueft && ` · geprüft ${datum(integration.geprueft)}`}
                 </div>
               </div>
@@ -134,9 +144,26 @@ export function Integrationen() {
 
             <button type="button" className="aufklapper" aria-expanded={istOffen} onClick={() => umklappen(integration.id)}>
               {istOffen ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
-              Funktionen und Rechte ({integration.funktionen.length})
+              {integration.webhook ? "Adresse und Beispiel" : `Funktionen und Rechte (${integration.funktionen.length})`}
             </button>
-            {istOffen && (
+            {istOffen && integration.webhook && (
+              <div className="stapel eng">
+                {integration.webhook.pfad ? (
+                  <WebhookAdresse pfad={integration.webhook.pfad} />
+                ) : (
+                  <Meldung art="warn" hinweis="Wurde ENCRYPTION_KEY in der .env geändert? Eine neue Adresse erzeugen hilft.">
+                    Die Adresse lässt sich nicht mehr lesen.
+                  </Meldung>
+                )}
+                <div>
+                  <Knopf klein onClick={() => setOffen({ art: "adresse", integration })}>
+                    <RefreshCw aria-hidden />
+                    Neue Adresse erzeugen
+                  </Knopf>
+                </div>
+              </div>
+            )}
+            {istOffen && !integration.webhook && (
               <RechteListe
                 funktionen={integration.funktionen.map((f) => ({ ...f, anzeigeName: f.gateway_name }))}
                 rechte={Object.fromEntries(integration.funktionen.map((f) => [f.name, f.recht]))}
@@ -171,13 +198,35 @@ export function Integrationen() {
       {offen?.art === "ausprobieren" && (
         <Ausprobieren integration={offen.integration} funktion={offen.funktion} onSchliessen={() => setOffen(null)} />
       )}
+      {offen?.art === "adresse" && (
+        <Bestaetigung
+          titel="Neue Adresse erzeugen?"
+          text={
+            <p>
+              „{offen.integration.name}“ bekommt eine neue geheime Adresse. Die alte gilt sofort nicht mehr – alles, was
+              bisher dorthin sendet, muss umgestellt werden.
+            </p>
+          }
+          knopf="Neue Adresse erzeugen"
+          laeuft={erneuern.isPending}
+          fehler={<FehlerMeldung fehler={erneuern.error} />}
+          onBestaetigen={() => erneuern.mutate(offen.integration)}
+          onAbbrechen={() => {
+            erneuern.reset();
+            setOffen(null);
+          }}
+        />
+      )}
       {offen?.art === "entfernen" && (
         <Bestaetigung
           titel="Integration entfernen?"
           text={
             <p>
-              „{offen.integration.name}“ wird entfernt. Missa verliert damit {offen.integration.funktionen.length}{" "}
-              Funktion(en). Zugänge bleiben erhalten.
+              „{offen.integration.name}“ wird entfernt.{" "}
+              {offen.integration.webhook
+                ? "Die geheime Adresse gilt danach nicht mehr."
+                : `Missa verliert damit ${offen.integration.funktionen.length} Funktion(en).`}{" "}
+              Zugänge bleiben erhalten.
             </p>
           }
           knopf="Entfernen"
@@ -206,23 +255,27 @@ function Bearbeiten({
   const felder = integration.manifest?.felder ?? [];
   const [name, setName] = useState(integration.name);
   const [werte, setWerte] = useState<Konfig>(integration.konfig);
-  // Auswahlmöglichkeiten für Felder, die aus dem Verbindungstest kommen (z. B. Kalender).
-  const [optionen, setOptionen] = useState<Record<string, { wert: string; titel: string }[]>>({});
-
-  const optionenLaden = useMutation({
-    mutationFn: () =>
+  const brauchtOptionen = felder.some((feld) => feld.nach_test && feld.typ === "auswahl");
+  // Auswahlmöglichkeiten für Felder, die aus dem Verbindungstest kommen (z. B. die Kalender):
+  // werden beim Öffnen gleich geholt, damit eine Auswahlliste erscheint statt eines Textfelds.
+  const optionenLaden = useQuery({
+    queryKey: ["integration-optionen", integration.id],
+    queryFn: () =>
       api.post<TestErgebnis>("/api/integrationen/testen", {
         manifest_id: integration.manifest_id,
-        konfig: werte,
+        konfig: integration.konfig,
         integration_id: integration.id,
       }),
-    onSuccess: (ergebnis) => ergebnis.ok && setOptionen(ergebnis.optionen),
+    enabled: brauchtOptionen,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
   });
+  const optionen = optionenLaden.data?.ok ? optionenLaden.data.optionen : {};
   const speichern = useMutation({
     mutationFn: () => api.put<Integration>(`/api/integrationen/${integration.id}`, { name, konfig: werte }),
     onSuccess: onFertig,
   });
-  const brauchtOptionen = felder.some((feld) => feld.nach_test && feld.typ === "auswahl");
 
   return (
     <Dialog titel={`${integration.symbol} ${integration.name} bearbeiten`} onSchliessen={onSchliessen} breit>
@@ -238,13 +291,13 @@ function Bearbeiten({
         </Feld>
         <Formular felder={felder} werte={werte} onAendern={setWerte} optionen={optionen} zugangName={name} />
         {brauchtOptionen && Object.keys(optionen).length === 0 && (
-          <Knopf klein onClick={() => optionenLaden.mutate()} disabled={optionenLaden.isPending}>
+          <Knopf klein onClick={() => void optionenLaden.refetch()} disabled={optionenLaden.isFetching}>
             <RefreshCw aria-hidden />
-            Auswahlmöglichkeiten laden
+            {optionenLaden.isFetching ? "Lade Auswahlmöglichkeiten …" : "Auswahlmöglichkeiten laden"}
           </Knopf>
         )}
         <p className="gedaempft klein">Beim Speichern wird die Verbindung neu getestet; eingestellte Rechte bleiben erhalten.</p>
-        <FehlerMeldung fehler={speichern.error ?? optionenLaden.error} />
+        <FehlerMeldung fehler={speichern.error} />
         <div className="dialog-fuss">
           <Knopf onClick={onSchliessen}>Abbrechen</Knopf>
           <Knopf art="haupt" type="submit" disabled={speichern.isPending}>

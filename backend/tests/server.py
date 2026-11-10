@@ -7,8 +7,11 @@ import json
 import socket
 import threading
 import time
+from pathlib import Path
 from typing import Any
+from wsgiref.simple_server import WSGIRequestHandler, make_server
 
+import httpx2
 import uvicorn
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -22,9 +25,11 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 class LaufenderServer:
     """Startet eine ASGI-App auf einem freien Port (in einem eigenen Thread)."""
 
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, port: int = 0) -> None:
+        """`port=0` nimmt einen freien Port; ein fester Port erlaubt, einen Server „neu zu starten“."""
         self._socket = socket.socket()
-        self._socket.bind(("127.0.0.1", 0))
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._socket.bind(("127.0.0.1", port))
         self.port: int = self._socket.getsockname()[1]
         self._server = uvicorn.Server(uvicorn.Config(app, log_level="warning", lifespan="on"))
         self._thread = threading.Thread(
@@ -218,3 +223,243 @@ def modell_server(modellname: str = "test-modell", api_key: str | None = None, p
         return {"hallo": "welt"}
 
     return app
+
+
+# ---------------------------------------------------------------------- CalDAV (echter Server: Radicale)
+
+
+class _OhneZugriffsprotokoll(WSGIRequestHandler):
+    def log_message(self, format: str, *args: Any) -> None:  # kein Protokoll auf der Konsole
+        return
+
+
+class KalenderServer:
+    """Ein echter CalDAV-Server (Radicale) mit einem Benutzer – als Gegenstelle für den Nextcloud-Kalender.
+
+    Radicale spricht denselben Standard wie Nextcloud (CalDAV, RFC 4791); nur die Pfade sehen anders aus.
+    """
+
+    def __init__(
+        self, ordner: Path, benutzer: str = "louis", passwort: str = "app-passwort-geheim-123"
+    ) -> None:
+        from radicale import Application, config
+
+        self.benutzer, self.passwort = benutzer, passwort
+        ordner.mkdir(parents=True, exist_ok=True)
+        (ordner / "benutzer").write_text(f"{benutzer}:{passwort}\n", encoding="utf-8")
+        (ordner / "daten" / "collection-root").mkdir(parents=True, exist_ok=True)
+        einstellungen = config.load()
+        einstellungen.update(
+            {
+                "storage": {"filesystem_folder": str(ordner / "daten")},
+                "auth": {
+                    "type": "htpasswd",
+                    "htpasswd_filename": str(ordner / "benutzer"),
+                    "htpasswd_encryption": "plain",
+                },
+                "logging": {"level": "critical"},
+            },
+            "test",
+            privileged=True,
+        )
+        self._server = make_server(
+            "127.0.0.1", 0, Application(einstellungen), handler_class=_OhneZugriffsprotokoll
+        )
+        self.url = f"http://127.0.0.1:{self._server.server_port}"
+        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+
+    def __enter__(self) -> KalenderServer:
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._server.shutdown()
+        self._thread.join(timeout=5)
+        self._server.server_close()
+
+    def _client(self) -> httpx2.Client:
+        return httpx2.Client(auth=(self.benutzer, self.passwort), timeout=10)
+
+    def kalender_anlegen(self, pfad: str, name: str, art: str = "VEVENT") -> str:
+        """Legt einen Kalender an (das macht sonst die Oberfläche der Nextcloud). Gibt seine Adresse zurück."""
+        koerper = (
+            '<c:mkcalendar xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:set><d:prop>'
+            f"<d:displayname>{name}</d:displayname><c:supported-calendar-component-set>"
+            f'<c:comp name="{art}"/></c:supported-calendar-component-set></d:prop></d:set></c:mkcalendar>'
+        )
+        adresse = f"{self.url}/{self.benutzer}/{pfad}/"
+        with self._client() as client:
+            antwort = client.request(
+                "MKCALENDAR", adresse, content=koerper.encode(), headers={"Content-Type": "application/xml"}
+            )
+        assert antwort.status_code == 201, antwort.text
+        return adresse
+
+    def ablegen(self, kalender: str, name: str, ical: str) -> None:
+        """Legt einen Termin direkt auf dem Server ab – so, als käme er aus der Nextcloud-Oberfläche."""
+        with self._client() as client:
+            antwort = client.put(
+                f"{self.url}/{self.benutzer}/{kalender}/{name}.ics",
+                content=ical.replace("\n", "\r\n").encode(),
+                headers={"Content-Type": "text/calendar; charset=utf-8"},
+            )
+        assert antwort.status_code in (201, 204), antwort.text
+
+    def dateien(self, kalender: str) -> dict[str, str]:
+        """Alle Termine eines Kalenders, so wie sie auf dem Server liegen (Name → Kalenderdaten)."""
+        ordner = Path(self._server.get_app().configuration.get("storage", "filesystem_folder"))
+        sammlung = ordner / "collection-root" / self.benutzer / kalender
+        return {datei.name: datei.read_text(encoding="utf-8") for datei in sorted(sammlung.glob("*.ics"))}
+
+
+# ---------------------------------------------------------------------- Home Assistant (nachgestellt)
+
+
+class HomeAssistant:
+    """Ein nachgestelltes Home Assistant: die REST-API und – auf Wunsch – sein MCP-Server.
+
+    `mcp="http"` bietet den MCP-Server unter /api/mcp an (neuere Versionen), `mcp="sse"` unter
+    /mcp_server/sse (ältere). Ohne Angabe gibt es nur die REST-API.
+    """
+
+    def __init__(self, token: str, mcp: str | None = None) -> None:
+        self.token = token
+        self.aufrufe: list[tuple[str, dict[str, Any]]] = []
+        self.zustaende: dict[str, dict[str, Any]] = {
+            kennung: {
+                "entity_id": kennung,
+                "state": zustand,
+                "attributes": {"friendly_name": name, **eigenschaften},
+                "last_changed": "2026-01-15T11:00:00+00:00",
+            }
+            for kennung, name, zustand, eigenschaften in (
+                ("light.wohnzimmer", "Wohnzimmer Licht", "off", {"brightness": None}),
+                ("light.kueche", "Küche Licht", "on", {"brightness": 180}),
+                ("light.flur", "Flur Licht", "off", {}),
+                ("switch.kaffeemaschine", "Kaffeemaschine", "off", {}),
+                ("sensor.balkon_temperatur", "Balkon Temperatur", "4.5", {"unit_of_measurement": "°C"}),
+                (
+                    "sensor.wohnzimmer_luftfeuchtigkeit",
+                    "Wohnzimmer Luftfeuchtigkeit",
+                    "48",
+                    {"unit_of_measurement": "%"},
+                ),
+                (
+                    "climate.wohnzimmer",
+                    "Heizung Wohnzimmer",
+                    "heat",
+                    {"temperature": 21, "current_temperature": 20.4},
+                ),
+                ("person.louis", "Louis", "home", {}),
+                ("sun.sun", "Sonne", "above_horizon", {}),
+            )
+        }
+        self.rest = self._rest_api(mcp)
+        self.mcp_app: ASGIApp | None = None
+        if mcp is not None:
+            server = self._mcp_server()
+            app = (
+                server.streamable_http_app(streamable_http_path="/api/mcp")
+                if mcp == "http"
+                else server.sse_app(sse_path="/mcp_server/sse", message_path="/mcp_server/messages/")
+            )
+            self.mcp_app = app
+            self._mcp_geschuetzt = NurMitToken(app, token)
+
+    def _schalten(self, kennung: str, an: bool | None) -> dict[str, Any]:
+        zustand = self.zustaende[kennung]
+        neu = (zustand["state"] != "on") if an is None else an
+        zustand["state"] = "on" if neu else "off"
+        return zustand
+
+    def _rest_api(self, mcp: str | None) -> FastAPI:
+        app = FastAPI()
+
+        def pruefen(authorization: str | None) -> None:
+            if authorization != f"Bearer {self.token}":
+                raise HTTPException(status_code=401, detail="Unauthorized")
+
+        @app.get("/api/")
+        def laeuft(authorization: str | None = Header(default=None)) -> dict[str, str]:
+            pruefen(authorization)
+            return {"message": "API running."}
+
+        @app.get("/api/config")
+        def konfig(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+            pruefen(authorization)
+            komponenten = ["api", "light", "switch", "sensor", "climate"] + (["mcp_server"] if mcp else [])
+            return {"location_name": "Zuhause", "version": "2026.11.0", "components": komponenten}
+
+        @app.get("/api/states")
+        def zustaende(authorization: str | None = Header(default=None)) -> list[dict[str, Any]]:
+            pruefen(authorization)
+            return list(self.zustaende.values())
+
+        @app.get("/api/states/{kennung}")
+        def zustand(kennung: str, authorization: str | None = Header(default=None)) -> Any:
+            pruefen(authorization)
+            if kennung not in self.zustaende:
+                return JSONResponse({"message": "Entity not found."}, status_code=404)
+            return self.zustaende[kennung]
+
+        @app.post("/api/services/{art}/{dienst}")
+        async def dienst_aufrufen(
+            art: str, dienst: str, request: Request, authorization: str | None = Header(default=None)
+        ) -> Any:
+            pruefen(authorization)
+            daten = await request.json()
+            self.aufrufe.append((f"{art}.{dienst}", daten))
+            if dienst not in ("turn_on", "turn_off", "toggle", "set_temperature"):
+                return JSONResponse({"message": "Service not found."}, status_code=400)
+            kennung = daten.get("entity_id")
+            if kennung not in self.zustaende:
+                return []
+            if dienst == "set_temperature":
+                self.zustaende[kennung]["attributes"]["temperature"] = daten.get("temperature")
+                return [self.zustaende[kennung]]
+            if "brightness_pct" in daten:
+                self.zustaende[kennung]["attributes"]["brightness"] = round(daten["brightness_pct"] * 2.55)
+            return [self._schalten(kennung, {"turn_on": True, "turn_off": False, "toggle": None}[dienst])]
+
+        return app
+
+    def _mcp_server(self) -> MCPServer:
+        """Die Werkzeuge, wie sie der MCP-Server von Home Assistant anbietet (Auswahl)."""
+        server = MCPServer("Home Assistant")
+
+        def finden(name: str) -> str:
+            for kennung, zustand in self.zustaende.items():
+                if zustand["attributes"]["friendly_name"].lower() == name.lower():
+                    return kennung
+            raise ValueError(f"Kein Gerät mit dem Namen {name}")
+
+        @server.tool(name="HassTurnOn", description="Turns on/opens a device or entity")
+        def einschalten(name: str) -> str:
+            self._schalten(finden(name), True)
+            return f"Turned on {name}"
+
+        @server.tool(name="HassTurnOff", description="Turns off/closes a device or entity")
+        def ausschalten(name: str) -> str:
+            self._schalten(finden(name), False)
+            return f"Turned off {name}"
+
+        @server.tool(
+            name="GetLiveContext",
+            description="Provides real-time information about the current state of devices",
+        )
+        def lage() -> str:
+            return "\n".join(
+                f"- {z['attributes']['friendly_name']}: {z['state']}" for z in self.zustaende.values()
+            )
+
+        return server
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "lifespan":
+            await (self.mcp_app or self.rest)(scope, receive, send)
+            return
+        pfad = scope.get("path", "")
+        if self.mcp_app is not None and pfad.startswith(("/api/mcp", "/mcp_server")):
+            await self._mcp_geschuetzt(scope, receive, send)
+            return
+        await self.rest(scope, receive, send)

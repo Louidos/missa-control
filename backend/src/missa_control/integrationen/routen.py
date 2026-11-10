@@ -159,6 +159,13 @@ async def aufrufen(
     return {"ok": not ergebnis.ist_fehler, "ergebnis": text}
 
 
+@router.post("/integrationen/{integration_id}/webhook/erneuern")
+def webhook_erneuern(integration_id: int, request: Request, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Gibt einem Webhook eine neue geheime Adresse. Die alte gilt sofort nicht mehr."""
+    integration = request.app.state.webhooks.erneuern(db, integration_id)
+    return _dienst(request).ansicht(integration)
+
+
 @router.delete("/integrationen/{integration_id}")
 def entfernen(integration_id: int, request: Request, db: Session = Depends(get_db)) -> dict[str, bool]:
     _dienst(request).entfernen(db, integration_id)

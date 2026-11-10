@@ -25,6 +25,7 @@ Version: noch keine Veröffentlichung.
 | Serverlast von ai01 (CPU, Arbeitsspeicher, Speicherplatz, GPU) mit Verlauf | vorhanden |
 | Gedächtnis: Missa merkt sich Dinge; ansehen, suchen, korrigieren, löschen, Export als JSON | vorhanden |
 | Regeln und Alarme mit Zeitplan, Schwellwerten, Ruhezeit und Verlauf – auch von Missa selbst anlegbar | vorhanden |
+| Fertige Integrationen: Nextcloud-Kalender (CalDAV), Home Assistant, eingehende Webhooks | vorhanden |
 | Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
@@ -75,8 +76,11 @@ Alle Einstellungen stehen kommentiert in [`.env.example`](.env.example).
 2. Das Formular ausfüllen (beim MCP-Server nur die URL) und **Verbindung testen**.
 3. Rechte prüfen und **Aktivieren**.
 
-Lesende Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“. Eigene Integrationen mit
-wenig Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
+Lesende Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“.
+
+Fertige Karten gibt es für MCP-Server, REST-APIs (OpenAPI), Nextcloud-Kalender, Home Assistant,
+eingehende Webhooks sowie Serverlast, Gedächtnis und Regeln. Eigene Integrationen mit wenig Code:
+siehe [docs/eigene-integration.md](docs/eigene-integration.md).
 
 ## Missa anbinden
 

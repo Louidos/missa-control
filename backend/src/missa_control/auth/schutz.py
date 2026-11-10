@@ -4,6 +4,9 @@ Grundsatz: Alles unter `/api/`, `/mcp` und `/v1/` ist gesperrt, solange es nicht
 freigegeben ist. Neue Routen sind dadurch automatisch geschützt. Die Oberfläche selbst (HTML, JS,
 CSS) enthält keine Daten und wird ohne Anmeldung ausgeliefert, damit der Login angezeigt werden kann.
 
+Einzige weitere Ausnahme sind eingehende Webhooks (`/api/webhook/<Schlüssel>`): Dort ist der zufällige
+Schlüssel in der Adresse der Zugang. Sie nehmen nur Meldungen entgegen und geben nichts heraus.
+
 Es gibt zwei getrennte Wege hinein:
 - das Panel selbst: nur mit der Sitzung des Admins (Cookie nach Login mit Passwort + 2FA)
 - die Anschlüsse für Clients wie missa-core (`/mcp`, `/v1/`, `/api/events`, `/api/config/`):
@@ -60,6 +63,11 @@ def ist_client_pfad(pfad: str) -> bool:
     )
 
 
+def ist_webhook_pfad(pfad: str) -> bool:
+    """Eingehende Webhooks: Der zufällige Schlüssel in der Adresse ist der Zugang."""
+    return pfad.startswith("/api/webhook/")
+
+
 def ist_geschuetzt(pfad: str) -> bool:
     return pfad.startswith(("/api/", "/v1/", "/mcp/")) or pfad in ("/api", "/v1", "/mcp")
 
@@ -100,6 +108,8 @@ class Zugriffsschutz:
         pfad: str = scope["path"]
         if not ist_geschuetzt(pfad):
             return None
+        if ist_webhook_pfad(pfad):
+            return None  # ohne Anmeldung und ohne Herkunftsprüfung – es zählt allein der Schlüssel
         headers = Headers(scope=scope)
         if ist_client_pfad(pfad):
             client = self._client(headers)

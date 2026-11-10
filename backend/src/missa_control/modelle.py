@@ -11,10 +11,12 @@ from missa_control.modellverwaltung.modelle import Modell, ModellAnfrage, Rolle
 from missa_control.profil.modelle import ProfilVersion
 from missa_control.regeln.modelle import Ausloesung, Regel
 from missa_control.serverlast.modelle import Messwert
+from missa_control.telefonie.modelle import Anruf, TelefonieEinstellung
 from missa_control.zugaenge.modelle import Zugang
 
 __all__ = [
     "Admin",
+    "Anruf",
     "Aufruf",
     "Ausloesung",
     "Client",
@@ -32,5 +34,6 @@ __all__ = [
     "Regel",
     "Rolle",
     "Sitzung",
+    "TelefonieEinstellung",
     "Zugang",
 ]

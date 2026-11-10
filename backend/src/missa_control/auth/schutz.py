@@ -59,7 +59,7 @@ CLIENT_SCHLUESSEL = "missa_control.client"
 def ist_client_pfad(pfad: str) -> bool:
     """Anschlüsse für Clients (missa-core, Apps): Zugriff nur mit Client-Token."""
     return pfad in ("/mcp", "/v1", "/api/events") or pfad.startswith(
-        ("/mcp/", "/v1/", "/api/events/", "/api/config/")
+        ("/mcp/", "/v1/", "/api/events/", "/api/config/", "/api/telefonie/adapter/")
     )
 
 

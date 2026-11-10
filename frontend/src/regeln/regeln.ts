@@ -29,6 +29,8 @@ export interface Aktion {
   dringlichkeit?: string;
   funktion?: string;
   argumente?: Record<string, unknown>;
+  /** Aktion „anruf“: die Nummer – leer bedeutet die eigene Nummer des Besitzers. */
+  nummer?: string;
   [feld: string]: unknown;
 }
 
@@ -133,5 +135,6 @@ export function ausloeserStart(art: string): Ausloeser {
 export function aktionStart(art: string): Aktion {
   if (art === "funktion") return { art, funktion: "", argumente: {} };
   if (art === "ereignis") return { art, nachricht: "", dringlichkeit: "normal" };
+  if (art === "anruf") return { art, nachricht: "", dringlichkeit: "normal", nummer: "" };
   return { art };
 }

@@ -45,6 +45,8 @@ from missa_control.regeln import routen as regel_routen
 from missa_control.regeln.dienst import RegelDienst
 from missa_control.serverlast import routen as serverlast_routen
 from missa_control.serverlast.dienst import ServerlastDienst
+from missa_control.telefonie import routen as telefonie_routen
+from missa_control.telefonie.dienst import TelefonieDienst
 from missa_control.zugaenge import routen as zugaenge_routen
 from missa_control.zugaenge.dienst import ZugangsDienst
 from missa_control.zugaenge.schwaerzen import SCHWAERZER, log_schutz_einrichten
@@ -126,6 +128,13 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
         integrationen=app.state.integrationen,
         regeln=app.state.regeln,
     )
+    app.state.telefonie = TelefonieDienst(
+        einstellungen=einstellungen,
+        datenbank=datenbank,
+        ereignisse=ereignisse,
+        integrationen=app.state.integrationen,
+        regeln=app.state.regeln,
+    )
 
     fehlerbehandlung_einrichten(app)
     app.add_middleware(Zugriffsschutz, auth=auth, clients=clients, datenbank=datenbank)
@@ -150,6 +159,8 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(regel_routen.router)
     app.include_router(webhook_router)
     app.include_router(geraete_routen.router)
+    app.include_router(telefonie_routen.adapter_router)
+    app.include_router(telefonie_routen.panel_router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
     app.router.routes.append(Route("/mcp/", endpoint=app.state.gateway))
@@ -192,6 +203,7 @@ def alte_daten_loeschen(app: FastAPI) -> None:
         + app.state.serverlast.aufraeumen()  # Messwerte: 7 Tage
         + app.state.regeln.aufraeumen(tage)
         + app.state.geraete.aufraeumen()  # Messwerte der Geräte: 7 Tage
+        + app.state.telefonie.aufraeumen(tage)
     )
     if geloescht:
         log.info("Aufgeräumt: %s Einträge älter als %s Tage gelöscht", geloescht, tage)

@@ -279,6 +279,34 @@ export function RegelEditor({ regel, optionen, onFertig, onAbbrechen }: Props) {
           </>
         )}
 
+        {aktion.art === "anruf" && (
+          <>
+            <div className="felder-reihe">
+              <Feld
+                titel="Nummer"
+                fuer={`${id}-nummer`}
+                hilfe={
+                  <>
+                    Leer lassen: deine eigene Nummer (Seite <Link to="/anrufe">Anrufe</Link>).
+                  </>
+                }
+              >
+                <input id={`${id}-nummer`} type="tel" placeholder="deine eigene Nummer" value={aktion.nummer ?? ""} onChange={(e) => setzeAktion({ nummer: e.target.value })} />
+              </Feld>
+              <Feld titel="Dringlichkeit" fuer={`${id}-dringlichkeit`} hilfe="In der Ruhezeit gehen nur dringende Anrufe durch.">
+                <select id={`${id}-dringlichkeit`} value={aktion.dringlichkeit ?? "normal"} onChange={(e) => setzeAktion({ dringlichkeit: e.target.value })}>
+                  {optionen.dringlichkeiten.map((eine) => (
+                    <option key={eine}>{eine}</option>
+                  ))}
+                </select>
+              </Feld>
+            </div>
+            <Feld titel="Was Missa am Telefon sagt" fuer={`${id}-nachricht`} pflicht hilfe="{wert} steht für den aktuellen Messwert.">
+              <textarea id={`${id}-nachricht`} rows={2} maxLength={500} placeholder="z. B. Die CPU von ai01 ist seit 5 Minuten bei {wert} %." value={aktion.nachricht ?? ""} onChange={(e) => setzeAktion({ nachricht: e.target.value })} />
+            </Feld>
+          </>
+        )}
+
         {aktion.art === "funktion" && (
           <>
             <Feld

@@ -195,6 +195,21 @@ ist der Name des Geräts, z. B. „Wohnzimmer“:
 - Knöpfe sind keine Funktionen: Jeder Druck kommt als Ereignis der Art `geraet` (Schritt 4), ebenso
   „online“ und „offline“.
 
+### Telefonie
+
+Ist die Integration „Telefonie“ aktiv, gibt es zwei Funktionen:
+
+| Funktion | Zweck | Standardrecht |
+| --- | --- | --- |
+| `telefon_anrufen` | ruft an und sagt `text`; ohne `nummer` den Besitzer; `dringlichkeit` wie bei Ereignissen | erst nachfragen |
+| `telefon_anrufe_anzeigen` | die letzten Anrufe (`anzahl`) | erlaubt |
+
+Wen Missa anrufen darf und wann (Ruhezeit), legt der Besitzer auf der Seite „Anrufe“ fest. Geht ein
+Anruf nicht – fremde Nummer, Ruhezeit –, kommt die Begründung sofort als Fehlermeldung zurück. Noch
+ist kein echtes Telefon angeschlossen: Mit dem Test-Adapter lautet das Ergebnis `status: "test"`.
+Jeder Anruf kommt zusätzlich als Ereignis der Art `anruf` (Schritt 4); in `daten` stehen `anruf_id`,
+`richtung` (`ausgehend`/`eingehend`), `nummer`, `name`, `status` und `test`.
+
 ## Schritt 4: Ereignisse abholen
 
 Ereignisse sind Dinge, die Missa wissen sollte, ohne gefragt zu haben: eine Regel hat ausgelöst,

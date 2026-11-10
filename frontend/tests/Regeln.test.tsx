@@ -373,6 +373,35 @@ test("Auslöser „Gerät meldet etwas“: Auswahl aus dem, was das Gerät melde
   });
 });
 
+test("Aktion „Anrufen“: Nummer, Dringlichkeit und was Missa sagt", async () => {
+  const optionen: Optionen = { ...OPTIONEN, aktionen: [...OPTIONEN.aktionen, { wert: "anruf", titel: "Anrufen" }] };
+  const aufrufe = backend({
+    "GET /api/regeln": { regeln: [], optionen },
+    [VERLAUF]: LEER,
+    "GET /api/katalog": KATALOG_AKTIV,
+    "POST /api/regeln/satz": { ok: true, satz: "Wenn …, dann ruft Missa dich an und sagt: „Die CPU glüht“." },
+    "POST /api/regeln": (koerper) => regel({ ...(koerper as Regel), id: 2 }),
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Regeln />);
+  await nutzer.click(await screen.findByRole("button", { name: "Neue Regel" }));
+  const dialog = screen.getByRole("dialog");
+  await nutzer.type(within(dialog).getByLabelText(/^Name/), "CPU-Anruf");
+  await nutzer.selectOptions(within(dialog).getByLabelText("Aktion"), "Anrufen");
+
+  expect(within(dialog).getByLabelText("Nummer")).toHaveAttribute("placeholder", "deine eigene Nummer");
+  expect(within(dialog).getByRole("link", { name: "Anrufe" })).toHaveAttribute("href", "/anrufe");
+  expect(within(dialog).getByText("In der Ruhezeit gehen nur dringende Anrufe durch.")).toBeInTheDocument();
+  await nutzer.type(within(dialog).getByLabelText(/Was Missa am Telefon sagt/), "Die CPU glüht");
+  await nutzer.selectOptions(within(dialog).getByLabelText("Dringlichkeit"), "dringend");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Speichern" }));
+
+  await waitFor(() => expect(aufrufe.some((aufruf) => aufruf.methode === "POST" && aufruf.pfad === "/api/regeln")).toBe(true));
+  expect(aufrufe.find((aufruf) => aufruf.methode === "POST" && aufruf.pfad === "/api/regeln")?.koerper).toMatchObject({
+    aktion: { art: "anruf", nachricht: "Die CPU glüht", dringlichkeit: "dringend", nummer: "" },
+  });
+});
+
 test("Regel bearbeiten, Fehler beim Speichern anzeigen und Regel löschen", async () => {
   let liste = [regel()];
   let ablehnen = true;

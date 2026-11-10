@@ -5,7 +5,7 @@ from typing import Literal
 from missa_control.sdk import Kontext, funktion, verbindungstest
 
 Ausloeser = Literal["zeitplan", "messwert", "webhook", "geraet", "integration_ausgefallen"]
-Aktion = Literal["ereignis", "funktion"]
+Aktion = Literal["ereignis", "funktion", "anruf"]
 Vergleich = Literal["ueber", "unter"]
 Dringlichkeit = Literal["niedrig", "normal", "hoch", "dringend"]
 Wochentag = Literal["mo", "di", "mi", "do", "fr", "sa", "so"]
@@ -13,7 +13,7 @@ Wochentag = Literal["mo", "di", "mi", "do", "fr", "sa", "so"]
 _PARAMETER = """
     name: Kurzer Name der Regel, z. B. „CPU-Alarm“
     ausloeser: Was die Regel auslöst – zeitplan (mit uhrzeit oder intervall_minuten), messwert (mit messwert, vergleich, schwelle, dauer_minuten), webhook, geraet oder integration_ausgefallen
-    aktion: Was dann passiert – ereignis (Missa bekommt die nachricht) oder funktion (ruft funktion mit argumente auf)
+    aktion: Was dann passiert – ereignis (Missa bekommt die nachricht), funktion (ruft funktion mit argumente auf) oder anruf (ruft an und sagt die nachricht)
     uhrzeit: Für zeitplan – Uhrzeit im Format HH:MM, z. B. 07:30
     intervall_minuten: Für zeitplan – stattdessen alle so viele Minuten
     messwert: Für messwert – cpu, ram, speicher (jeweils Prozent), last, cpu_temp, gpu, gpu_speicher oder gpu_temp
@@ -23,8 +23,9 @@ _PARAMETER = """
     integration: Für webhook und integration_ausgefallen – Name der Integration (weglassen = jede)
     geraet: Für geraet – Name des Geräts (weglassen = jedes)
     faehigkeit: Für geraet – was das Gerät meldet, z. B. knopf (weglassen = alles)
-    nachricht: Für ereignis – der Text an Missa; {wert} steht für den aktuellen Messwert
-    dringlichkeit: Für ereignis – niedrig, normal, hoch oder dringend
+    nachricht: Für ereignis und anruf – der Text an Missa bzw. was beim Anruf gesagt wird; {wert} steht für den aktuellen Messwert
+    dringlichkeit: Für ereignis und anruf – niedrig, normal, hoch oder dringend (in der Ruhezeit gehen nur dringende Anrufe durch)
+    nummer: Für anruf – die Telefonnummer (weglassen = eigene Nummer des Besitzers)
     funktion: Für funktion – Name der Funktion, genau wie in der Werkzeugliste
     argumente: Für funktion – ihre Parameter als Objekt
     wochentage: Bedingung – nur an diesen Tagen (mo, di, mi, do, fr, sa, so)
@@ -78,6 +79,7 @@ def regel_anlegen(
     dringlichkeit: Dringlichkeit | None = None,
     funktion: str | None = None,
     argumente: dict | None = None,
+    nummer: str | None = None,
     wochentage: list[Wochentag] | None = None,
     von: str | None = None,
     bis: str | None = None,
@@ -119,6 +121,7 @@ def regel_aendern(
     dringlichkeit: Dringlichkeit | None = None,
     funktion: str | None = None,
     argumente: dict | None = None,
+    nummer: str | None = None,
     wochentage: list[Wochentag] | None = None,
     von: str | None = None,
     bis: str | None = None,

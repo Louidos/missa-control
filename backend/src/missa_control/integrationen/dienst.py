@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, selectinload
 from missa_control import zeit
 from missa_control.fehler import PanelFehler
 from missa_control.integrationen.adapter import Adapter, standard_adapter
+from missa_control.integrationen.adapter import python as python_adapter
 from missa_control.integrationen.adapter import webhook as webhook_adapter
 from missa_control.integrationen.fehlertexte import fehler_erklaeren
 from missa_control.integrationen.katalog import Katalog, KatalogEintrag
@@ -673,6 +674,60 @@ class IntegrationsDienst:
             self._status_uebernehmen(integration, STATUS_OK, "Letzter Aufruf erfolgreich.")
         db.commit()
         return ergebnis
+
+    # ------------------------------------------------------------------ Telefonie-Adapter aus Integrationen
+
+    def _telefon_modul(self, integration: Integration) -> tuple[KatalogEintrag, Any] | None:
+        eintrag = self.katalog.eintraege.get(integration.manifest_id)
+        if eintrag is None or eintrag.manifest.art != "python":
+            return None
+        try:
+            modul = python_adapter.modul_laden(eintrag.ordner, eintrag.manifest.id)
+        except IntegrationsFehler:
+            return None
+        return (eintrag, modul) if modul.telefon_anrufen is not None else None
+
+    def telefon_adapter(self, db: Session) -> list[Integration]:
+        """Aktive Integrationen, deren main.py einen Telefonie-Adapter mitbringt (`@telefon_anrufen`)."""
+        aktive = db.scalars(
+            select(Integration).where(Integration.aktiv).order_by(func.lower(Integration.name))
+        )
+        return [integration for integration in aktive if self._telefon_modul(integration) is not None]
+
+    async def telefon_aufruf(self, db: Session, integration: Integration, was: str, *angaben: Any) -> Any:
+        """Ruft `@telefon_anrufen` bzw. `@telefon_auflegen` einer Integration auf."""
+        gefunden = self._telefon_modul(integration) if integration.aktiv else None
+        if gefunden is None:
+            raise IntegrationsFehler(
+                f"Die Integration „{integration.name}“ steht als Telefonie-Adapter nicht (mehr) zur Verfügung.",
+                "Unter „Anrufe“ einen anderen Adapter wählen oder die Integration wieder aktivieren.",
+            )
+        eintrag, modul = gefunden
+        aufruf = modul.telefon_anrufen if was == "anrufen" else modul.telefon_auflegen
+        if aufruf is None:
+            return None  # Auflegen ist freiwillig
+        kontext = self._kontext(
+            db,
+            eintrag,
+            name=integration.name,
+            kennung=integration.kennung,
+            konfig=integration.konfig,
+            zustand=integration.zustand,
+            integration_id=integration.id,
+        )
+        try:
+            return await python_adapter.ausfuehren(aufruf, kontext, *angaben)
+        except IntegrationsFehler:
+            raise
+        except Exception as fehler:
+            kontext.log.exception("Fehler im Telefonie-Adapter (%s)", was)
+            meldung, hinweis = fehler_erklaeren(fehler)
+            if meldung.startswith("Unerwarteter Fehler"):
+                meldung = (
+                    f"Fehler im Telefonie-Adapter „{integration.name}“: {type(fehler).__name__}: {fehler}"
+                )
+                hinweis = "Der Fehler kommt aus dem Code der Integration (main.py). Details stehen im Protokoll des Panels."
+            raise IntegrationsFehler(meldung, hinweis) from fehler
 
     async def vorschau(
         self, db: Session, integration: Integration, funktionsname: str, argumente: dict[str, Any] | None

@@ -1,0 +1,16 @@
+# Eingebaute Integration: Missa kann anrufen.
+id: telefonie
+name: Telefonie
+beschreibung: Missa kann anrufen – dich oder Nummern, die du erlaubt hast. Jeder Anruf braucht erst deine Freigabe.
+symbol: "📞"
+art: python
+version: 1.0.0
+mehrfach: false
+kennung: telefon
+hinweis: >-
+  Es gibt hier nichts einzustellen. Eigene Nummern, erlaubte Anrufer und Ruhezeiten stehen auf der
+  Seite „Anrufe“. Noch ist kein echtes Telefon angeschlossen: Der mitgelieferte Test-Adapter
+  protokolliert Anrufe nur und meldet sie als Ereignis.
+standardrechte:
+  anrufen: nachfragen
+  anrufe_anzeigen: erlaubt

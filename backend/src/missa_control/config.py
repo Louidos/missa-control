@@ -33,6 +33,8 @@ class Einstellungen:
     frontend_ordner: Path | None = None
     # Ordner mit den eingebauten Integrationen (im Repo: integrations/).
     integrations_ordner: Path | None = None
+    # Ordner mit Beispiel-Konfiguration (im Repo: config/).
+    config_ordner: Path | None = None
     host: str = "127.0.0.1"
     port: int = 8090
     # "auto": Cookie nur über HTTPS senden, wenn das Panel über HTTPS aufgerufen wird.
@@ -46,6 +48,8 @@ class Einstellungen:
     aufbewahrung_tage: int = 30
     # Ereignis-Stream: so oft kommt ein Lebenszeichen; dabei wird auch geprüft, ob der Token noch gilt.
     stream_ping_sekunden: float = 15.0
+    # Der Test-Chat auf der Seite „Charakter“ wartet höchstens so lange auf das Modell.
+    testchat_sekunden: float = 120.0
 
     def __post_init__(self) -> None:
         if len(self.secret_key) < 32:
@@ -78,6 +82,7 @@ class Einstellungen:
         umgebung = os.environ
         frontend = umgebung.get("MISSA_CONTROL_FRONTEND_DIR", "").strip()
         integrationen = umgebung.get("MISSA_CONTROL_INTEGRATIONS_DIR", "").strip()
+        config = umgebung.get("MISSA_CONTROL_CONFIG_DIR", "").strip()
         return cls(
             secret_key=umgebung.get("SECRET_KEY", "").strip(),
             encryption_key=umgebung.get("ENCRYPTION_KEY", "").strip(),
@@ -86,6 +91,7 @@ class Einstellungen:
             integrations_ordner=Path(integrationen).resolve()
             if integrationen
             else _repo_ordner("integrations"),
+            config_ordner=Path(config).resolve() if config else _repo_ordner("config"),
             host=umgebung.get("MISSA_CONTROL_HOST", "127.0.0.1"),
             port=int(umgebung.get("MISSA_CONTROL_PORT", "8090")),
             cookie_secure=umgebung.get("MISSA_CONTROL_COOKIE_SECURE", "auto").strip().lower() or "auto",

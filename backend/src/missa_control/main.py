@@ -33,6 +33,8 @@ from missa_control.integrationen.katalog import Katalog
 from missa_control.krypto import Krypto
 from missa_control.modellverwaltung import routen as modell_routen
 from missa_control.modellverwaltung.dienst import ModellDienst
+from missa_control.profil import routen as profil_routen
+from missa_control.profil.dienst import ProfilDienst
 from missa_control.zugaenge import routen as zugaenge_routen
 from missa_control.zugaenge.dienst import ZugangsDienst
 from missa_control.zugaenge.schwaerzen import SCHWAERZER, log_schutz_einrichten
@@ -81,6 +83,9 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     )
     app.state.integrationen.ereignis_melden = ereignisse.melden
     app.state.modelle = ModellDienst(datenbank, zugaenge)
+    app.state.profil = ProfilDienst(
+        app.state.modelle, einstellungen.config_ordner, einstellungen.testchat_sekunden
+    )
     zugaenge.verwendung_quellen = [
         app.state.integrationen.zugang_verwendung,
         app.state.modelle.zugang_verwendung,
@@ -106,6 +111,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(ereignisse_routen.panel_router)
     app.include_router(modell_routen.panel_router)
     app.include_router(modell_routen.proxy_router)
+    app.include_router(profil_routen.router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
     app.router.routes.append(Route("/mcp/", endpoint=app.state.gateway))

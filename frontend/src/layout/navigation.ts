@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
+import { Charakter } from "../charakter/Charakter";
 import { Clients } from "../gateway/Clients";
 import { Freigaben } from "../gateway/Freigaben";
 import { Protokoll } from "../gateway/Protokoll";
@@ -92,6 +93,7 @@ export const NAVIGATION: NavGruppe[] = [
         titel: "Charakter",
         symbol: Sparkles,
         beschreibung: "Missas Charakterprofil bearbeiten, mit Versionsverlauf und Test-Chat.",
+        seite: Charakter,
       },
       {
         pfad: "/modelle",

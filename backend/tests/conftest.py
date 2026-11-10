@@ -31,6 +31,7 @@ def einstellungen(tmp_path: Path) -> Einstellungen:
         encryption_key=Fernet.generate_key().decode(),
         daten_ordner=tmp_path / "data",
         integrations_ordner=Path(__file__).resolve().parents[2] / "integrations",
+        config_ordner=Path(__file__).resolve().parents[2] / "config",
     )
 
 

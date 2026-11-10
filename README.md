@@ -21,7 +21,8 @@ Version: noch keine Veröffentlichung.
 | Integrations-Katalog: MCP-Server, REST-APIs (OpenAPI), eigene Python-Integrationen | vorhanden |
 | Ein Anschluss für Missa: MCP-Gateway mit Client-Tokens, Freigaben, Protokoll und Ereignissen | vorhanden |
 | Modelle verwalten: Rollen „schnell“ und „stark“ mit Ersatzmodell, OpenAI-kompatibler Anschluss | vorhanden |
-| Charakter, Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Charakterprofil mit Versionsverlauf, YAML-Export/-Import und Test-Chat | vorhanden |
+| Serverlast, Gedächtnis, Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 
@@ -90,7 +91,7 @@ missa-core eintragen. Die ganze Anleitung: [docs/anbindung-missa-core.md](docs/a
 | `examples/geraete/` | Beispiel-Firmware für Geräte (Pico 2 W, ESP32) |
 | `scripts/` | `install.sh`, `update.sh`, `backup.sh` |
 | `docs/` | Anleitungen |
-| `config/` | Beispiel-Konfiguration |
+| `config/` | Beispiel-Charakterprofil (`profil.example.yaml`) |
 
 ## Entwicklung
 

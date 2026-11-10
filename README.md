@@ -24,7 +24,8 @@ Version: noch keine Veröffentlichung.
 | Charakterprofil mit Versionsverlauf, YAML-Export/-Import und Test-Chat | vorhanden |
 | Serverlast von ai01 (CPU, Arbeitsspeicher, Speicherplatz, GPU) mit Verlauf | vorhanden |
 | Gedächtnis: Missa merkt sich Dinge; ansehen, suchen, korrigieren, löschen, Export als JSON | vorhanden |
-| Regeln, Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
+| Regeln und Alarme mit Zeitplan, Schwellwerten, Ruhezeit und Verlauf – auch von Missa selbst anlegbar | vorhanden |
+| Geräte, Anrufe, Verbindungsbaum | in Arbeit – im Panel als Platzhalter sichtbar (siehe [CHANGELOG](CHANGELOG.md)) |
 
 ## Installation
 

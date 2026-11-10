@@ -1364,3 +1364,80 @@ textarea:focus-visible {
   gap: 0.5rem;
   align-items: center;
 }
+
+/* ---------- Regeln ---------- */
+
+.regel {
+  border-left: 4px solid var(--akzent);
+}
+
+.regel.pausiert {
+  border-left-color: var(--grau);
+}
+
+.regel.pausiert .regel-satz {
+  color: var(--text-2);
+}
+
+.regel-satz {
+  font-size: 1.02rem;
+  overflow-wrap: anywhere;
+}
+
+.regel-teil {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+}
+
+.regel-teil legend {
+  padding: 0 0.4rem;
+  font-weight: 700;
+  color: var(--akzent);
+}
+
+.felder-reihe {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.tage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tage button {
+  min-width: 2.6rem;
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+}
+
+.tage button[aria-pressed="true"] {
+  color: var(--auf-akzent);
+  background: var(--akzent);
+  border-color: var(--akzent);
+}
+
+.regel-vorschau {
+  padding: 0.7rem 0.9rem;
+  background: var(--akzent-hell);
+  border-radius: 8px;
+}
+
+.regel-vorschau p {
+  overflow-wrap: anywhere;
+}

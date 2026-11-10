@@ -360,6 +360,9 @@ class IntegrationsDienst:
                 if feld.typ == "datei" and isinstance(konfig.get(feld.name), str):
                     konfig[feld.name] = {"datei": True, "zeichen": len(konfig[feld.name])}
         zusatz: dict[str, Any] = {}
+        if getattr(integration, "einmalig", None):
+            # Nur direkt nach dem Einrichten: z. B. die Zugangsdaten eines Geräts (werden nie wieder gezeigt).
+            zusatz["kopplung"] = integration.einmalig
         if manifest and manifest.art == "webhook" and self.panel is not None:
             # Die geheime Adresse, an die andere Dienste senden – nur der angemeldete Besitzer sieht sie.
             zusatz["webhook"] = {"pfad": webhook_adapter.pfad(integration.zustand, self.panel.krypto)}
@@ -515,7 +518,6 @@ class IntegrationsDienst:
         kontext = self._kontext(
             db, eintrag, name=name, kennung=kennung, konfig=bereinigt, zustand=None, integration_id=None
         )
-        del adapter
         ergebnis = await self._ergebnis_fuer(db, eintrag, kontext, bereinigt, test_id)
         if not ergebnis.ok:
             raise PanelFehler(422, ergebnis.meldung, ergebnis.hinweis)
@@ -535,6 +537,16 @@ class IntegrationsDienst:
         self._funktionen_abgleichen(integration, manifest, ergebnis.funktionen, gepruefte_rechte)
         db.add(integration)
         db.commit()
+        eingerichtet = getattr(adapter, "eingerichtet", None)
+        if eingerichtet is not None:
+            # Manche Arten brauchen nach dem Speichern noch etwas (Geräte: Zugangsdaten am MQTT-Broker).
+            # Was dabei nur einmal gezeigt werden darf, steht einmalig in der Antwort.
+            try:
+                integration.einmalig = await eingerichtet(db, integration, self.panel)
+            except IntegrationsFehler as fehler:
+                db.delete(integration)
+                db.commit()
+                raise PanelFehler(503, fehler.meldung, fehler.hinweis) from fehler
         return integration
 
     async def aendern(
@@ -592,8 +604,25 @@ class IntegrationsDienst:
             self._funktionen_abgleichen(integration, eintrag.manifest, ergebnis.funktionen, rechte)
 
     def entfernen(self, db: Session, integration_id: int) -> None:
-        db.delete(self.holen(db, integration_id))
+        integration = self.holen(db, integration_id)
+        eintrag = self.katalog.eintraege.get(integration.manifest_id)
+        entfernt = getattr(self.adapter.get(eintrag.manifest.art), "entfernt", None) if eintrag else None
+        if entfernt is not None:
+            entfernt(db, integration, self.panel)  # z. B. den Zugang eines Geräts am MQTT-Broker löschen
+        db.delete(integration)
         db.commit()
+
+    def funktionen_uebernehmen(
+        self, db: Session, integration: Integration, funktionen: list[FunktionsInfo]
+    ) -> None:
+        """Für Integrationen, die ihre Funktionen von sich aus melden (Geräte beim Start).
+
+        Neue Funktionen bekommen das übliche Recht (lesend = erlaubt, schreibend = erst nachfragen);
+        bereits eingestellte Rechte bleiben. Gespeichert wird mit dem nächsten `db.commit()`.
+        """
+        eintrag = self.katalog.eintraege.get(integration.manifest_id)
+        if eintrag is not None:
+            self._funktionen_abgleichen(integration, eintrag.manifest, funktionen, {})
 
     # ------------------------------------------------------------------ Funktionen aufrufen
 

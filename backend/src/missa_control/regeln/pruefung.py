@@ -72,6 +72,8 @@ class Umfeld:
     integrationen: dict[int, str] = field(default_factory=dict)
     webhooks: dict[int, str] = field(default_factory=dict)
     geraete: dict[int, str] = field(default_factory=dict)
+    # Was ein Gerät melden kann (Kennung, Bezeichnung) – z. B. ("knopf", "Knopf"), ("offline", "geht offline")
+    geraete_meldungen: dict[int, list[tuple[str, str]]] = field(default_factory=dict)
     # Name am Gateway → Angaben
     funktionen: dict[str, FunktionsAngabe] = field(default_factory=dict)
     aktionen: dict[str, AktionsArt] = field(default_factory=dict)

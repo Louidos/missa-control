@@ -35,7 +35,29 @@ docker_pruefen() {
       "Dieses Skript ändert daran selbst nichts."
 }
 
-compose() { docker compose -p "$PROJEKT" "$@"; }
+# Alle Compose-Aufrufe laufen hier durch – immer mit dem eigenen Projektnamen.
+# Der MQTT-Broker für Geräte (Profil "geraete") ist standardmässig dabei. Abschalten: in .env
+# COMPOSE_PROFILES= (leer) eintragen. Steht in .env nichts dazu (ältere Installation), gilt der Standard.
+compose() {
+  if [ -z "${COMPOSE_PROFILES+x}" ] && ! grep -Eq '^[[:space:]]*COMPOSE_PROFILES=' .env 2>/dev/null; then
+    COMPOSE_PROFILES=geraete docker compose -p "$PROJEKT" "$@"
+  else
+    docker compose -p "$PROJEKT" "$@"
+  fi
+}
+
+# Ist der MQTT-Broker für Geräte eingeschaltet?
+geraete_aktiv() {
+  local profile
+  if [ -n "${COMPOSE_PROFILES+x}" ]; then
+    profile="$COMPOSE_PROFILES"
+  elif grep -Eq '^[[:space:]]*COMPOSE_PROFILES=' .env 2>/dev/null; then
+    profile="$(wert_aus_env COMPOSE_PROFILES "")"
+  else
+    profile="geraete"
+  fi
+  case ",$profile," in *,geraete,*) return 0 ;; *) return 1 ;; esac
+}
 
 # Liest einen Wert aus .env (ohne die Datei auszuführen). $1 = Name, $2 = Standardwert
 wert_aus_env() {
@@ -67,13 +89,18 @@ warte_auf_start() {
 }
 
 # Gibt die Adresse aus, unter der das Panel erreichbar ist.
-panel_adresse() {
+# Gibt „Adresse:Port“ aus, unter der ein Dienst erreichbar ist. $1 = Name der Einstellung, $2 = Standardwert
+erreichbar_unter() {
   local bind ip port
-  bind="$(wert_aus_env MISSA_CONTROL_BIND 0.0.0.0:8090)"
+  bind="$(wert_aus_env "$1" "$2")"
   if [[ "$bind" == *:* ]]; then ip="${bind%:*}"; port="${bind##*:}"; else ip="0.0.0.0"; port="$bind"; fi
   if [ "$ip" = "0.0.0.0" ] || [ -z "$ip" ]; then
     ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
     [ -n "$ip" ] || ip="$(hostname 2>/dev/null || echo localhost)"
   fi
-  printf 'http://%s:%s' "$ip" "$port"
+  printf '%s:%s' "$ip" "$port"
+}
+
+panel_adresse() {
+  printf 'http://%s' "$(erreichbar_unter MISSA_CONTROL_BIND 0.0.0.0:8090)"
 }

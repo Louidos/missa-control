@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "../api";
+import type { Kopplung } from "../geraete/geraete";
 import type { ZugangTyp } from "../zugaenge/zugaenge";
 
 export type Recht = "erlaubt" | "nachfragen" | "gesperrt";
@@ -102,6 +103,8 @@ export interface Integration {
   funktionen: Funktion[];
   /** Nur bei Webhooks: der Pfad der geheimen Adresse, an die andere Dienste senden. */
   webhook?: { pfad: string | null };
+  /** Nur bei Geräten und nur direkt nach dem Anlegen: die Zugangsdaten (das Passwort gibt es nur dieses eine Mal). */
+  kopplung?: Kopplung;
 }
 
 export const KATALOG = ["katalog"] as const;

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from missa_control.integrationen.adapter.geraet import GeraetAdapter
 from missa_control.integrationen.adapter.mcp import McpAdapter
 from missa_control.integrationen.adapter.openapi import OpenApiAdapter
 from missa_control.integrationen.adapter.python import PythonAdapter
@@ -24,5 +25,11 @@ class Adapter(Protocol):
 
 
 def standard_adapter() -> dict[str, Adapter]:
-    adapter: tuple[Adapter, ...] = (McpAdapter(), OpenApiAdapter(), PythonAdapter(), WebhookAdapter())
+    adapter: tuple[Adapter, ...] = (
+        McpAdapter(),
+        OpenApiAdapter(),
+        PythonAdapter(),
+        WebhookAdapter(),
+        GeraetAdapter(),
+    )
     return {einer.art: einer for einer in adapter}

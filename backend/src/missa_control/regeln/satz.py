@@ -77,7 +77,12 @@ def ausloeser_text(ausloeser: dict[str, Any], umfeld: Umfeld) -> str:
         return f"{wer}{dauer} {richtung} {mit_einheit(ausloeser['schwelle'], einheit)} liegt"
     if art == "geraet":
         name = _name(ausloeser.get("geraet_id"), umfeld.geraete)
-        was = f"„{ausloeser['faehigkeit']}“" if ausloeser.get("faehigkeit") else "etwas"
+        kennung = ausloeser.get("faehigkeit")
+        if kennung in ("offline", "online"):
+            vorgang = "offline geht" if kennung == "offline" else "online kommt"
+            return f"das Gerät „{name}“ {vorgang}" if name else f"ein Gerät {vorgang}"
+        bekannte = dict(umfeld.geraete_meldungen.get(ausloeser.get("geraet_id") or 0, []))
+        was = f"„{bekannte.get(kennung, kennung)}“" if kennung else "etwas"
         return f"das Gerät „{name}“ {was} meldet" if name else f"ein Gerät {was} meldet"
     if art == "webhook":
         name = _name(ausloeser.get("integration_id"), umfeld.webhooks)

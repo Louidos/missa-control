@@ -89,14 +89,49 @@ def test_compose_datei_bleibt_bei_den_eigenen_sachen() -> None:
             quelle, _ziel, *modus = str(volume).split(":")
             if quelle.startswith("./data"):
                 continue  # eigene Daten im Repo-Ordner
-            # Alles andere vom Host: nur /proc und /sys, und nur lesend.
-            assert quelle in ("/proc", "/sys"), f"{name}: unerwartetes Volume {volume}"
+            # Eigene Konfiguration aus dem Repo-Ordner – und vom Host nur /proc und /sys. Alles nur lesend.
+            assert quelle.startswith("./config/") or quelle in ("/proc", "/sys"), (
+                f"{name}: unerwartetes Volume {volume}"
+            )
             assert modus == ["ro"], f"{name}: {volume} muss nur lesend (:ro) eingebunden sein"
-    panel = compose["services"]["missa-control"]
-    assert panel["restart"] == "unless-stopped"
-    assert panel["read_only"] is True
-    assert panel["cap_drop"] == ["ALL"]
-    assert "10001" in panel["user"]  # nie root
+    assert set(compose["services"]) == {"missa-control", "mqtt"}  # nur eigene Dienste
+    for name in ("missa-control", "mqtt"):
+        dienst = compose["services"][name]
+        assert dienst["restart"] == "unless-stopped", name
+        assert dienst["read_only"] is True, name
+        assert dienst["cap_drop"] == ["ALL"], name
+        assert dienst["security_opt"] == ["no-new-privileges:true"], name
+        assert "10001" in dienst["user"], name  # nie root
+    # Keine Docker-Volumes: Alle eigenen Daten liegen in ./data. Das gilt auch für Volumes, die ein
+    # Image von sich aus vorsieht (Mosquitto: /mosquitto/data und /mosquitto/log) – sonst legt Docker
+    # dafür ein namenloses Volume an.
+    assert "volumes" not in compose
+    mqtt = compose["services"]["mqtt"]
+    assert "./data/mosquitto:/mosquitto/data" in mqtt["volumes"]
+    assert mqtt["tmpfs"] == ["/mosquitto/log"]
+    # Der MQTT-Broker gehört zum Profil „geraete“ und lässt sich damit abschalten.
+    assert mqtt["profiles"] == ["geraete"]
+    assert "COMPOSE_PROFILES=geraete" in (REPO / ".env.example").read_text(encoding="utf-8")
+
+
+def test_geraete_tests_fassen_nur_ihren_eigenen_test_container_an() -> None:
+    """Die Geräte-Tests starten den echten MQTT-Broker als Container. Auch sie bleiben bei ihren
+    eigenen Sachen: ein Container mit dem Präfix „missa-control“, der am Ende wieder gestoppt wird."""
+    quelle = (REPO / "backend" / "tests" / "server.py").read_text(encoding="utf-8")
+    assert set(re.findall(r'\[\s*"docker",\s*"(\w+)"', quelle)) == {"info", "run", "stop"}
+    assert 'self.name = f"missa-control-test-mqtt-' in quelle
+    assert '["docker", "stop", "-t", "1", self.name]' in quelle  # gestoppt wird nur genau dieser Container
+    assert '"--rm"' in quelle and '"--tmpfs", "/mosquitto/log"' in quelle  # nichts bleibt zurück
+    assert "docker.sock" not in quelle
+
+
+def test_mqtt_broker_laesst_niemanden_ohne_anmeldung_herein() -> None:
+    konfig = _ohne_kommentare((REPO / "config" / "mosquitto.conf").read_text(encoding="utf-8"))
+    assert "allow_anonymous false" in konfig
+    assert "allow_anonymous true" not in konfig
+    assert "mosquitto_dynamic_security.so" in konfig  # eigener Zugang pro Gerät
+    assert re.findall(r"^listener\s+(\d+)", konfig, flags=re.MULTILINE) == ["1883"]  # kein weiterer Anschluss
+    assert "/mosquitto/data/" in konfig  # alle Daten in ./data/mosquitto
 
 
 def test_gpu_zusatz_gibt_nur_das_auslese_werkzeug_frei() -> None:

@@ -74,7 +74,7 @@ export interface Optionen {
   messwerte: { kennung: string; titel: string; einheit: string; verfuegbar: boolean }[];
   integrationen: { id: number; name: string }[];
   webhooks: { id: number; name: string }[];
-  geraete: { id: number; name: string }[];
+  geraete: { id: number; name: string; meldungen: { wert: string; titel: string }[] }[];
   funktionen: FunktionsOption[];
   dringlichkeiten: string[];
   zeitzone: string;

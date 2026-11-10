@@ -17,6 +17,13 @@ interface Props {
   bis: number;
   /** Obergrenze der Y-Achse; ohne Angabe richtet sie sich nach den Werten. */
   max?: number;
+  /**
+   * Die Y-Achse richtet sich oben *und* unten nach den Werten, statt bei 0 zu beginnen – für Fühler wie
+   * Temperatur oder Luftdruck, bei denen es auf die Schwankung ankommt. Dann ohne Fläche unter der Linie.
+   */
+  angepasst?: boolean;
+  /** Wie ein Wert angezeigt wird; ohne Angabe wie bei der Serverlast (gerundet, mit Einheit). */
+  wertText?: (wert: number) => string;
   /** Abstand zweier Messungen: grössere Lücken werden nicht überbrückt. */
   rasterMs: number;
   /** Gemeinsamer Zeiger aller Diagramme (Zeitpunkt unter der Maus) – oder null. */
@@ -38,6 +45,15 @@ function schoeneObergrenze(wert: number): number {
   return 10 * stufe;
 }
 
+/** Ein Bereich mit glatten Grenzen um die Werte, z. B. 20,4 … 23,6 → 20 … 24. */
+function schoenerBereich(min: number, max: number): [number, number] {
+  if (min === max) [min, max] = [min - 1, max + 1];
+  const spanne = max - min;
+  const stufe = 10 ** Math.floor(Math.log10(spanne));
+  const schritt = [1, 2, 5, 10].map((faktor) => faktor * stufe).find((kandidat) => spanne / kandidat <= 4) ?? 10 * stufe;
+  return [Math.floor(min / schritt) * schritt, Math.ceil(max / schritt) * schritt];
+}
+
 function zeitMarken(von: number, bis: number): number[] {
   const schritt = (SCHRITTE_MIN.find((minuten) => (bis - von) / (minuten * 60_000) <= 6) ?? 2880) * 60_000;
   // An der Ortszeit ausrichten, damit die Marken auf vollen Stunden bzw. Mitternacht liegen.
@@ -52,7 +68,7 @@ function zeitMarken(von: number, bis: number): number[] {
  * Eine Reihe pro Diagramm (der Titel sagt, was gezeigt wird), dünne Linie mit zarter Fläche,
  * zurückhaltende Hilfslinien, Fadenkreuz mit Wert beim Überfahren oder mit den Pfeiltasten.
  */
-export function Liniendiagramm({ titel, einheit, punkte, von, bis, max, rasterMs, zeiger, onZeiger }: Props) {
+export function Liniendiagramm({ titel, einheit, punkte, von, bis, max, angepasst, wertText, rasterMs, zeiger, onZeiger }: Props) {
   const huelle = useRef<HTMLDivElement>(null);
   const [breite, setBreite] = useState(480);
   useEffect(() => {
@@ -64,11 +80,17 @@ export function Liniendiagramm({ titel, einheit, punkte, von, bis, max, rasterMs
   }, []);
 
   const gueltig = useMemo(() => punkte.filter((punkt): punkt is { t: number; w: number } => punkt.w !== null), [punkte]);
-  const obergrenze = max ?? schoeneObergrenze(Math.max(...gueltig.map((punkt) => punkt.w), 0));
+  const werte = gueltig.map((punkt) => punkt.w);
+  const [untergrenze, obergrenze] =
+    angepasst && werte.length > 0
+      ? schoenerBereich(Math.min(...werte), Math.max(...werte))
+      : [0, max ?? schoeneObergrenze(Math.max(...werte, 0))];
+  const text = (wert: number) => (wertText ? wertText(wert) : mitEinheit(wert, einheit));
   const innenBreite = breite - RAND.links - RAND.rechts;
   const innenHoehe = HOEHE - RAND.oben - RAND.unten;
   const x = (t: number) => RAND.links + ((t - von) / (bis - von || 1)) * innenBreite;
-  const y = (w: number) => RAND.oben + (1 - Math.min(w, obergrenze) / obergrenze) * innenHoehe;
+  const y = (w: number) =>
+    RAND.oben + (1 - (Math.min(Math.max(w, untergrenze), obergrenze) - untergrenze) / (obergrenze - untergrenze)) * innenHoehe;
   const grundlinie = RAND.oben + innenHoehe;
 
   // Linie und Fläche in Abschnitten: über Lücken (Panel war aus) wird nicht hinweg gezeichnet.
@@ -105,9 +127,9 @@ export function Liniendiagramm({ titel, einheit, punkte, von, bis, max, rasterMs
   };
 
   const mehrTage = bis - von > 86_400_000 * 1.5;
-  const yMarken = [0, obergrenze / 2, obergrenze];
+  const yMarken = [untergrenze, (untergrenze + obergrenze) / 2, obergrenze];
   const beschreibung = letzter
-    ? `${titel}: Verlauf, zuletzt ${mitEinheit(letzter.w, einheit)}. Mit den Pfeiltasten lassen sich einzelne Werte ablesen.`
+    ? `${titel}: Verlauf, zuletzt ${text(letzter.w)}. Mit den Pfeiltasten lassen sich einzelne Werte ablesen.`
     : `${titel}: noch keine Messwerte.`;
 
   return (
@@ -131,9 +153,9 @@ export function Liniendiagramm({ titel, einheit, punkte, von, bis, max, rasterMs
         >
           {yMarken.map((marke) => (
             <g key={marke}>
-              <line className={marke === 0 ? "viz-achse" : "viz-gitter"} x1={RAND.links} x2={breite - RAND.rechts} y1={y(marke)} y2={y(marke)} />
+              <line className={marke === untergrenze ? "viz-achse" : "viz-gitter"} x1={RAND.links} x2={breite - RAND.rechts} y1={y(marke)} y2={y(marke)} />
               <text className="viz-marke" x={RAND.links - 6} y={y(marke)} textAnchor="end" dominantBaseline="middle">
-                {Number.isInteger(marke) ? marke : marke.toFixed(1)}
+                {Number.isInteger(marke) ? marke : Number(marke.toFixed(2)).toLocaleString("de-CH")}
               </text>
             </g>
           ))}
@@ -144,10 +166,14 @@ export function Liniendiagramm({ titel, einheit, punkte, von, bis, max, rasterMs
           ))}
           {abschnitte.map((abschnitt, index) => (
             <g key={index}>
-              {abschnitt.length > 1 && (
+              {abschnitt.length > 1 && !angepasst && (
                 <path className="viz-flaeche" d={`${linie(abschnitt)}L${x(abschnitt[abschnitt.length - 1].t).toFixed(1)},${grundlinie}L${x(abschnitt[0].t).toFixed(1)},${grundlinie}Z`} />
               )}
-              <path className="viz-linie" d={linie(abschnitt)} />
+              {abschnitt.length > 1 ? (
+                <path className="viz-linie" d={linie(abschnitt)} />
+              ) : (
+                <circle className="viz-einzel" cx={x(abschnitt[0].t)} cy={y(abschnitt[0].w)} r={2} />
+              )}
             </g>
           ))}
           {letzter && !aktiv && <circle className="viz-punkt" cx={x(letzter.t)} cy={y(letzter.w)} r={4} />}
@@ -165,7 +191,7 @@ export function Liniendiagramm({ titel, einheit, punkte, von, bis, max, rasterMs
             style={x(aktiv.t) > breite * 0.6 ? { right: breite - x(aktiv.t) + 10 } : { left: x(aktiv.t) + 10 }}
           >
             <span className="viz-schluessel" aria-hidden />
-            <strong>{mitEinheit(aktiv.w, einheit)}</strong>
+            <strong>{text(aktiv.w)}</strong>
             <span className="gedaempft">{GENAU.format(aktiv.t)}</span>
           </div>
         )}

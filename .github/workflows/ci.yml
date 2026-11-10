@@ -31,6 +31,10 @@ jobs:
       - name: Linter
         run: uv run ruff check .
       - name: Tests
+        # Die Geräte-Tests starten den echten MQTT-Broker (Mosquitto) als eigenen Test-Container.
+        # Hier dürfen sie nicht übersprungen werden.
+        env:
+          GERAETE_TESTS_PFLICHT: "1"
         run: uv run pytest
 
   frontend:
@@ -70,6 +74,26 @@ jobs:
           ./scripts/install.sh
           curl -fsS http://127.0.0.1:8090/api/health
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/api/auth/abmelden -X POST)" = "401"
+      - name: MQTT-Broker für Geräte läuft, lässt aber niemanden ohne Anmeldung herein
+        run: |
+          test -n "$(docker compose -p missa-control ps --status running -q mqtt)"
+          # Das Panel meldet sich mit dem Passwort an, das der Broker beim ersten Start angelegt hat.
+          for versuch in $(seq 1 30); do
+            docker compose -p missa-control logs mqtt 2>&1 | grep -q "as missa-control-" && break
+            sleep 1
+          done
+          docker compose -p missa-control logs mqtt 2>&1 | grep "as missa-control-"
+          python3 - <<'PY'
+          import socket
+          verbindung = socket.create_connection(("127.0.0.1", 1883), timeout=5)
+          verbindung.sendall(bytes([0x10, 12, 0, 4]) + b"MQTT" + bytes([4, 2, 0, 30, 0, 0]))  # CONNECT ohne Zugang
+          antwort = verbindung.recv(4)
+          assert antwort[:2] == b"\x20\x02" and antwort[3] != 0, antwort
+          print("Ohne Anmeldung abgelehnt (Code %d)" % antwort[3])
+          PY
+          # Alle Daten liegen in ./data – es gibt keine Docker-Volumes.
+          test -f data/mosquitto/dynamic-security.json
+          test -z "$(docker volume ls -q --filter label=com.docker.compose.project=missa-control)"
       - name: Zweiter Lauf überschreibt weder .env noch Daten
         run: |
           sha256sum .env > /tmp/env.sum
@@ -81,15 +105,20 @@ jobs:
           ./scripts/backup.sh
           tar -tzf backups/missa-control-*.tar.gz | sort | tee /tmp/inhalt.txt
           grep -qx 'data/missa-control.db' /tmp/inhalt.txt
+          grep -qx 'data/mosquitto/dynamic-security.json' /tmp/inhalt.txt
           grep -qx '.env' /tmp/inhalt.txt
       - name: Belegter Port bricht ab, ohne etwas Fremdes zu stoppen
         run: |
           docker compose -p missa-control down
-          python3 -m http.server 8090 >/dev/null 2>&1 &
-          sleep 2
-          if ./scripts/install.sh; then echo "install.sh hätte abbrechen müssen"; exit 1; fi
-          curl -fsS -o /dev/null http://127.0.0.1:8090/
-          test -z "$(docker compose -p missa-control ps -q)"
+          for port in 1883 8090; do
+            python3 -m http.server "$port" >/dev/null 2>&1 &
+            fremd=$!
+            sleep 2
+            if ./scripts/install.sh; then echo "install.sh hätte abbrechen müssen (Port $port)"; exit 1; fi
+            curl -fsS -o /dev/null "http://127.0.0.1:$port/"
+            test -z "$(docker compose -p missa-control ps -q)"
+            kill "$fremd"
+          done
       - name: Protokoll bei Fehler
         if: failure()
         run: docker compose -p missa-control logs --no-color || true

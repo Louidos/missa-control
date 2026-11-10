@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { Link } from "react-router";
 
 import { api } from "../api";
+import { KopplungsDaten } from "../geraete/KopplungsDaten";
 import { Dialog } from "../ui/Dialog";
 import { FehlerMeldung, Feld, Knopf, Meldung } from "../ui/ui";
 import { Formular } from "./Formular";
@@ -134,10 +135,15 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
               </p>
               <RechteListe funktionen={test.funktionen} rechte={rechte} onAendern={setRechte} />
             </div>
+          ) : eintrag.art === "webhook" ? (
+            <p className="gedaempft">
+              Ein Webhook hat keine Funktionen für Missa: Was er empfängt, wird zum Ereignis und kann Regeln auslösen.
+            </p>
           ) : (
-            eintrag.art === "webhook" && (
+            eintrag.art === "geraet" && (
               <p className="gedaempft">
-                Ein Webhook hat keine Funktionen für Missa: Was er empfängt, wird zum Ereignis und kann Regeln auslösen.
+                Ein Gerät sagt beim ersten Verbinden selbst, was es kann. Daraus werden Funktionen für Missa: Werte lesen ist
+                erlaubt, Schalten fragt erst nach. Nach dem Aktivieren bekommst du die Konfiguration für das Gerät.
               </p>
             )
           )}
@@ -163,8 +169,10 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
         <div className="stapel">
           <div className="leer">
             <CircleCheck aria-hidden style={{ color: "var(--ok)" }} />
-            <h2>„{fertig.name}“ ist aktiv</h2>
-            {fertig.webhook ? (
+            <h2>„{fertig.name}“ ist {fertig.kopplung ? "angelegt" : "aktiv"}</h2>
+            {fertig.kopplung ? (
+              <p>Jetzt braucht das Gerät nur noch seine Konfiguration.</p>
+            ) : fertig.webhook ? (
               <p>Meldungen an die geheime Adresse werden ab jetzt zu Ereignissen für Missa.</p>
             ) : (
               <p>
@@ -173,9 +181,10 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
             )}
           </div>
           {fertig.webhook?.pfad && <WebhookAdresse pfad={fertig.webhook.pfad} />}
+          {fertig.kopplung && <KopplungsDaten name={fertig.name} kopplung={fertig.kopplung} />}
           <div className="dialog-fuss">
-            <Link className="knopf" to="/integrationen" onClick={onSchliessen}>
-              Zu den Integrationen
+            <Link className="knopf" to={fertig.kopplung ? "/geraete" : "/integrationen"} onClick={onSchliessen}>
+              {fertig.kopplung ? "Zu den Geräten" : "Zu den Integrationen"}
             </Link>
             <Knopf art="haupt" onClick={onSchliessen}>
               Fertig

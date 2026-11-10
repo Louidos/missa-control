@@ -177,6 +177,24 @@ Ist in Home Assistant der **MCP-Server** eingerichtet (Integration „Model Cont
 reicht das Panel stattdessen dessen Werkzeuge durch, z. B. `home_assistant_HassTurnOn` und
 `home_assistant_GetLiveContext`. Welche Geräte dabei sichtbar sind, bestimmt Home Assistant.
 
+### Geräte
+
+Jedes Gerät von der Seite „Geräte“ bringt die Funktionen mit, die es selbst meldet. Die Vorsilbe
+ist der Name des Geräts, z. B. „Wohnzimmer“:
+
+| Was das Gerät hat | Funktion | Standardrecht |
+| --- | --- | --- |
+| Sensor | `wohnzimmer_temperatur` – liefert `wert`, `einheit`, `gemessen` und `geraet_online` | erlaubt |
+| Schalter | `wohnzimmer_led_schalten` (`an`: true oder false) | erst nachfragen |
+| Stellwert | `wohnzimmer_helligkeit_setzen` (`wert`: Zahl) | erst nachfragen |
+| Textanzeige | `wohnzimmer_anzeige_senden` (`text`) | erst nachfragen |
+
+- Ist das Gerät offline, liefert das Lesen den letzten Wert mit `geraet_online: false` und einem
+  Hinweis; Schalten antwortet mit „Das Gerät … ist offline.“
+- Die Freigabe sagt, was passieren würde, z. B. „‚LED‘ am Gerät ‚Wohnzimmer‘ wird eingeschaltet.“
+- Knöpfe sind keine Funktionen: Jeder Druck kommt als Ereignis der Art `geraet` (Schritt 4), ebenso
+  „online“ und „offline“.
+
 ## Schritt 4: Ereignisse abholen
 
 Ereignisse sind Dinge, die Missa wissen sollte, ohne gefragt zu haben: eine Regel hat ausgelöst,
@@ -226,7 +244,7 @@ Antwort: `{"ereignisse": [...], "letzte_id": 42}` – älteste zuerst.
 | `titel` | kurze Überschrift |
 | `nachricht` | ausformulierter Text, den Missa vorlesen kann |
 | `dringlichkeit` | `niedrig`, `normal`, `hoch` oder `dringend` |
-| `daten` | weitere Angaben je nach Art (z. B. Messwert, Nummer der Freigabe; bei `webhook` steht unter `inhalt`, was empfangen wurde) |
+| `daten` | weitere Angaben je nach Art (z. B. Messwert, Nummer der Freigabe; bei `webhook` steht unter `inhalt`, was empfangen wurde; bei `geraet` stehen `geraet_id`, `geraet` und `faehigkeit` – z. B. `knopf`, `online` oder `offline`) |
 
 Ereignisse bleiben 30 Tage gespeichert.
 

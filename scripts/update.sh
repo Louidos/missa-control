@@ -21,14 +21,7 @@ fi
 schritt "Hole die neue Version"
 git pull --ff-only
 
-schritt "Baue und starte Missa Control neu"
-compose up -d --build
-
-schritt "Warte, bis das Panel antwortet"
-if ! warte_auf_start; then
-  fehler "Das Panel antwortet nach dem Update nicht." \
-    "Ursache ansehen mit: docker compose -p $PROJEKT logs $DIENST"
-fi
-
-meldung ""
-meldung "Missa Control ist aktuell und läuft: $(panel_adresse)"
+# Ab hier übernimmt install.sh in der soeben geholten Version: Es prüft die Ports, legt Ordner an,
+# die eine neue Version braucht, und baut und startet nur das eigene Compose-Projekt.
+# Vorhandene Einstellungen (.env) und Daten bleiben dabei unverändert.
+MISSA_CONTROL_NACH_UPDATE=1 exec ./scripts/install.sh

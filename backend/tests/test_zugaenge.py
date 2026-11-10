@@ -47,7 +47,7 @@ def test_benutzer_und_passwort(angemeldet: TestClient) -> None:
         angemeldet, name="Nextcloud", typ="benutzer_passwort", benutzer="missa", wert=PASSWORT_WERT
     )
     assert zugang["benutzer"] == "missa"  # der Benutzername ist kein Geheimnis
-    assert zugang["maske"] == "••••ort!"
+    assert zugang["maske"] == "••••0rt!"
 
     ohne_benutzer = angemeldet.post(
         "/api/zugaenge", json={"name": "Ohne", "typ": "benutzer_passwort", "wert": PASSWORT_WERT}

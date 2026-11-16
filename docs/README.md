@@ -10,5 +10,8 @@
 | Geräte anbinden (ESP32, Raspberry Pi Pico), eigene Firmware | [geraete.md](geraete.md) |
 | Meldungen an ntfy oder einen Webhook (Freigabe wartet, Ausfall) | [meldungen.md](meldungen.md) |
 | Telefonie: Einstellungen und eigene Adapter | [telefonie.md](telefonie.md) |
+| Aufbau des Panels: Container, Backend, Gateway, Daten, Oberfläche | [architektur.md](architektur.md) |
+| Alle HTTP-Pfade des Panels mit Zugang (Referenz) | [api-referenz.md](api-referenz.md) |
+| Entwicklung: lokal starten, prüfen, erweitern, Release | [entwicklung.md](entwicklung.md) |
 
 Was sich wann geändert hat, steht im [CHANGELOG](../CHANGELOG.md).

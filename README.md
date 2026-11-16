@@ -6,6 +6,11 @@ Missa Control läuft neben `missa-core` auf derselben Maschine (ai01), komplett 
 Cloud-Dienste. Über das Panel bekommt Missa neue Fähigkeiten – ohne Programmieren und in wenigen
 Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
 
+Zu Missa gehören drei Repos: [Missa-Core](https://github.com/Louidos/Missa-Core) (Missa selbst, die
+ganze Logik), **missa-control** (dieses Panel) und [missa-chat](https://github.com/Louidos/missa-chat)
+(Chat-App für Browser und Handy). Wie das Panel aufgebaut ist und mit missa-core zusammenspielt:
+[docs/architektur.md](docs/architektur.md).
+
 > **Oberste Regel:** Missa Control verändert `missa-core` nie. Das Panel arbeitet nur mit seinen
 > eigenen Containern, Volumes und Netzwerken (Compose-Projekt `missa-control`) und legt alle Daten
 > in `./data` ab.
@@ -162,6 +167,9 @@ Alle Skripte arbeiten nur mit dem Compose-Projekt `missa-control` und nur im Rep
 | Geräte anbinden (ESP32, Raspberry Pi Pico), eigene Firmware | [docs/geraete.md](docs/geraete.md) |
 | Meldungen an ntfy oder einen Webhook (Freigabe wartet, Ausfall) | [docs/meldungen.md](docs/meldungen.md) |
 | Telefonie: Einstellungen und eigene Adapter | [docs/telefonie.md](docs/telefonie.md) |
+| Aufbau des Panels: Container, Backend, Gateway, Daten, Oberfläche | [docs/architektur.md](docs/architektur.md) |
+| Alle HTTP-Pfade des Panels mit Zugang (Referenz) | [docs/api-referenz.md](docs/api-referenz.md) |
+| Entwicklung: lokal starten, prüfen, erweitern, Release | [docs/entwicklung.md](docs/entwicklung.md) |
 
 ### Übersicht
 
@@ -247,6 +255,9 @@ einen Reverse Proxy, Telemetrie, Cloud-Dienste. Was sich wann geändert hat: [CH
 | `config/` | Beispiel-Charakterprofil (`profil.example.yaml`), Zusatz für GPU-Werte (`compose.gpu.yaml`), Einstellungen des MQTT-Brokers (`mosquitto.conf`) |
 
 ## Entwicklung
+
+Ausführlich – lokal starten mit Oberfläche, alle Prüfungen, neue Bereiche, Migrationen und Release:
+[docs/entwicklung.md](docs/entwicklung.md).
 
 ```bash
 # Backend (Python 3.12, uv)

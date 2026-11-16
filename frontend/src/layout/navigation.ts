@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArchiveRestore,
   BarChart3,
   BellRing,
   Brain,
@@ -30,6 +31,7 @@ import { Katalog } from "../integrationen/Katalog";
 import { Modelle } from "../modelle/Modelle";
 import { Regeln } from "../regeln/Regeln";
 import { Serverlast } from "../serverlast/Serverlast";
+import { Sicherung } from "../sicherung/Sicherung";
 import { Statistik } from "../statistik/Statistik";
 import { Uebersicht } from "../uebersicht/Uebersicht";
 import { Zugaenge } from "../zugaenge/Zugaenge";
@@ -172,6 +174,13 @@ export const NAVIGATION: NavGruppe[] = [
         symbol: Activity,
         beschreibung: "CPU, Arbeitsspeicher, Speicherplatz und GPU von ai01 mit Verlauf.",
         seite: Serverlast,
+      },
+      {
+        pfad: "/sicherung",
+        titel: "Sicherung",
+        symbol: ArchiveRestore,
+        beschreibung: "Die ganze Einrichtung als Datei herunterladen und wieder einspielen.",
+        seite: Sicherung,
       },
     ],
   },

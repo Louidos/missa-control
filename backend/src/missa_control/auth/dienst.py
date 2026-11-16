@@ -214,6 +214,28 @@ class AuthDienst:
         admin.gesperrt_bis = None
         return self._sitzung_erzeugen(db)
 
+    def bestaetigen(self, db: Session, passwort: str, code: str) -> None:
+        """Erneute Bestätigung mit Passwort und Code – für heikle Aktionen bei laufender Sitzung
+        (z. B. Sicherung mit Zugängen, Sicherung einspielen). Zählt Fehlversuche wie die Anmeldung."""
+        admin = self.admin(db)
+        if admin is None or not admin.eingerichtet:
+            raise PanelFehler(409, "Das Panel ist noch nicht eingerichtet.")
+        self._sperre_pruefen(admin)
+        passwort_ok = self._passwort_pruefen(admin, (passwort or "")[:MAX_PASSWORT_LAENGE])
+        if not (passwort_ok and self._totp_pruefen(admin, code or "")):
+            verbleibend = self._fehlversuch(db, admin)
+            if verbleibend == 0:
+                raise self._gesperrt_fehler(admin)
+            raise PanelFehler(
+                403,
+                "Passwort oder Code falsch – bitte zur Bestätigung erneut eingeben.",
+                f"Noch {verbleibend} Versuch(e), danach ist die Anmeldung "
+                f"{self.einstellungen.sperre_minuten} Minuten gesperrt.",
+            )
+        admin.fehlversuche = 0
+        admin.gesperrt_bis = None
+        db.commit()
+
     def abmelden(self, db: Session, token: str | None) -> None:
         if token:
             db.execute(delete(Sitzung).where(Sitzung.token_pruefsumme == self.krypto.token_pruefsumme(token)))

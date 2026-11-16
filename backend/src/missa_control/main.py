@@ -37,6 +37,8 @@ from missa_control.integrationen.katalog import Katalog
 from missa_control.integrationen.webhook import WebhookDienst
 from missa_control.integrationen.webhook import router as webhook_router
 from missa_control.krypto import Krypto
+from missa_control.meldungen import routen as meldungen_routen
+from missa_control.meldungen.dienst import MeldungsDienst
 from missa_control.modellverwaltung import routen as modell_routen
 from missa_control.modellverwaltung.dienst import ModellDienst
 from missa_control.profil import routen as profil_routen
@@ -96,6 +98,8 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.state.statistik = StatistikDienst(einstellungen.zeitzone)
     app.state.freigaben = freigaben
     app.state.zugaenge = zugaenge
+    app.state.meldungen = MeldungsDienst(datenbank, zugaenge, protokoll)
+    ereignisse.zuhoerer.append(app.state.meldungen.zuhoeren)
     app.state.serverlast = ServerlastDienst(einstellungen, datenbank)
     app.state.gedaechtnis = GedaechtnisDienst(datenbank)
     app.state.integrationen = IntegrationsDienst(
@@ -180,6 +184,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(telefonie_routen.panel_router)
     app.include_router(status_routen.router)
     app.include_router(sicherung_routen.router)
+    app.include_router(meldungen_routen.router)
     app.include_router(statistik_routen.router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
@@ -207,6 +212,7 @@ async def _lebenszyklus(app: FastAPI) -> AsyncIterator[None]:
             yield
         finally:
             app.state.geraete.stoppen()
+            app.state.meldungen.stoppen()
             for aufgabe in aufgaben:
                 aufgabe.cancel()
             for aufgabe in aufgaben:

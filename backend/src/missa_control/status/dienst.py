@@ -89,6 +89,7 @@ class StatusDienst:
 
         # ---------- Missa (missa-core)
         status, text = self.missa_core.stand()
+        abgeholt = db.scalar(select(func.max(Client.zuletzt_abgeholt)).where(Client.widerrufen.is_(None)))
         knoten.append(
             {
                 "id": MISSA,
@@ -108,6 +109,12 @@ class StatusDienst:
                         f"{self.missa_core.antwort_ms} ms"
                         if self.missa_core.antwort_ms is not None
                         else None,
+                    ),
+                    # Holt Missa die Funktionen wirklich ab? (tools/list am Gateway, mit Client-Token)
+                    _detail(
+                        "Funktionen abgeholt",
+                        _zeit(abgeholt) if abgeholt else "noch nie",
+                        zeit=bool(abgeholt),
                     ),
                 ],
                 "hinweis": "Das Panel fragt missa-core nur lesend ab (HTTP-GET) und verändert dort nichts. "
@@ -132,6 +139,7 @@ class StatusDienst:
                     "details": [
                         _detail("Token beginnt mit", client.token_anfang),
                         _detail("Zuletzt gesehen", _zeit(client.zuletzt_gesehen), zeit=True),
+                        _detail("Funktionen abgeholt", _zeit(client.zuletzt_abgeholt), zeit=True),
                         _detail("Angelegt", _zeit(client.erstellt), zeit=True),
                     ],
                     "link": {"pfad": "/clients", "titel": "Clients verwalten"},

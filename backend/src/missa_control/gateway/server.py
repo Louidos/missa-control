@@ -27,7 +27,7 @@ from starlette.types import Receive, Scope, Send
 
 from missa_control import __version__
 from missa_control.auth.schutz import CLIENT_SCHLUESSEL
-from missa_control.clients.dienst import ClientAngaben
+from missa_control.clients.dienst import ClientAngaben, ClientDienst
 from missa_control.db import Datenbank
 from missa_control.fehler import fehler_antwort
 from missa_control.gateway.freigaben import FreigabeDienst
@@ -138,7 +138,10 @@ class Gateway:
     async def _funktionen_auflisten(
         self, ctx: ServerRequestContext[Any], params: types.PaginatedRequestParams | None
     ) -> types.ListToolsResult:
+        client = _client_aus(ctx)
         with self.datenbank.sitzung() as db:
+            if client.id:
+                ClientDienst.abgeholt(db, client.id)  # für „Missa hat die Funktionen abgeholt“
             werkzeuge = [
                 types.Tool(
                     name=name,

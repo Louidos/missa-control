@@ -19,4 +19,6 @@ class Client(Base):
     token_anfang: Mapped[str] = mapped_column(String)
     erstellt: Mapped[datetime] = mapped_column(UTCDateTime)
     zuletzt_gesehen: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    # Wann der Client zuletzt die Funktionen abgeholt hat (tools/list am Gateway).
+    zuletzt_abgeholt: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     widerrufen: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

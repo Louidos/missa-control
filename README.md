@@ -214,7 +214,8 @@ Von Hand: [docs/anbindung-missa-core.md](docs/anbindung-missa-core.md).
 
 ## Projektstand
 
-Version: **0.1.0** – erste Veröffentlichung.
+Version: **0.2.0** – APIs in einem Schritt, Zugriffsstufen, Missa-Core verbinden, Vorlagen, Statistik,
+Sicherung, Meldungen und Installation mit einem Befehl.
 
 Alle Bereiche des Panels sind vorhanden und durch automatische Tests abgedeckt. Was noch **nicht**
 gegen die echte Gegenstelle erprobt ist:

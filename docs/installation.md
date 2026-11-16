@@ -15,7 +15,41 @@ andere Linux mit Docker.
 
 Docker fehlt noch? Anleitung: <https://docs.docker.com/engine/install/debian/>
 
-## Installation in 3 Befehlen
+## Installation in 1 Befehl
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Louidos/missa-control/main/scripts/schnellstart.sh | bash
+```
+
+Das Skript `scripts/schnellstart.sh` prüft git und Docker, holt das Repo nach `~/missa-control` (bzw.
+aktualisiert es mit `git pull --ff-only`, wenn es schon da ist) und übergibt an `scripts/install.sh` –
+das prüft die Ports, erzeugt `.env`, startet das Panel und zeigt am Ende die Adresse.
+
+- Es installiert nichts selbst – auch nicht Docker. Fehlt git oder Docker, bricht es mit der passenden
+  Anleitung ab und verändert nichts.
+- Es liest nichts von der Tastatur und kann beliebig oft ausgeführt werden: `.env` und `data/` bleiben
+  unverändert.
+- Liegt in `~/missa-control` schon etwas anderes, bricht es mit einer Meldung ab – es löscht nichts.
+- Anderer Ordner: `MISSA_CONTROL_ORDNER=/opt/missa-control` vor `bash` setzen, also
+  `curl -fsSL … | MISSA_CONTROL_ORDNER=/opt/missa-control bash`.
+- Der ganze Inhalt steckt in einer Funktion, die erst in der letzten Zeile aufgerufen wird – bricht der
+  Download ab, wird nichts halb ausgeführt.
+
+**Erst ansehen, dann ausführen** (empfohlen, wenn du Skripte aus dem Netz nicht blind startest):
+
+```bash
+curl -fsSL -o schnellstart.sh https://raw.githubusercontent.com/Louidos/missa-control/main/scripts/schnellstart.sh
+```
+
+```bash
+less schnellstart.sh
+```
+
+```bash
+bash schnellstart.sh
+```
+
+## Von Hand: Installation in 3 Befehlen
 
 ```bash
 git clone https://github.com/Louidos/missa-control.git

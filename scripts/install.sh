@@ -142,6 +142,7 @@ fi
 meldung ""
 meldung "  Adresse:  $(panel_adresse)"
 if geraete_aktiv; then
+  # shellcheck disable=SC1111 # die deutschen Anführungszeichen sind gewollt
   meldung "  Geräte:   MQTT-Broker auf $(erreichbar_unter MQTT_BIND 0.0.0.0:1883) (Geräte im Panel unter „Geräte“ hinzufügen)"
 fi
 [ -z "${MISSA_CONTROL_NACH_UPDATE:-}" ] || exit 0

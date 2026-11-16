@@ -59,6 +59,14 @@ jobs:
       - name: Build
         run: npm run build
 
+  skripte:
+    name: Skripte (shellcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Alle Skripte mit shellcheck prüfen
+        run: shellcheck -x scripts/*.sh
+
   docker:
     name: Docker (compose build, install.sh)
     runs-on: ubuntu-latest
@@ -171,3 +179,33 @@ jobs:
       - name: Protokoll bei Fehler
         if: failure()
         run: docker compose -p missa-control logs --no-color || true
+      - name: Installation mit einem Befehl (schnellstart.sh)
+        run: |
+          # Das Panel aus dem Checkout anhalten – schnellstart.sh richtet es im eigenen Ordner neu ein.
+          docker compose -p missa-control down
+          # Quelle ist der ausgecheckte Stand (statt GitHub), als eigener Branch.
+          git switch -c schnellstart-test
+          export MISSA_CONTROL_REPO_URL="$GITHUB_WORKSPACE"
+          export MISSA_CONTROL_ZWEIG=schnellstart-test
+          export MISSA_CONTROL_ORDNER="$RUNNER_TEMP/missa-control"
+          bash < scripts/schnellstart.sh | tee /tmp/schnellstart.txt
+          grep -q "Adresse:  http://" /tmp/schnellstart.txt
+          curl -fsS http://127.0.0.1:8090/api/health
+          # Zweiter Aufruf: ändert weder .env noch Daten und endet ohne Fehler.
+          sha256sum "$MISSA_CONTROL_ORDNER/.env" > /tmp/schnell-env.sum
+          touch "$MISSA_CONTROL_ORDNER/data/merker"
+          bash < scripts/schnellstart.sh | tee /tmp/schnellstart-2.txt
+          grep -q "Bereits vorhanden" /tmp/schnellstart-2.txt
+          sha256sum -c /tmp/schnell-env.sum
+          test -f "$MISSA_CONTROL_ORDNER/data/merker"
+          curl -fsS http://127.0.0.1:8090/api/health
+      - name: Ohne Docker bricht schnellstart.sh ab und verändert nichts
+        run: |
+          mkdir -p /tmp/nurgit
+          ln -s "$(command -v git)" /tmp/nurgit/git
+          ln -s "$(command -v bash)" /tmp/nurgit/bash
+          if env -i HOME=/tmp/leer PATH=/tmp/nurgit bash < scripts/schnellstart.sh 2> /tmp/ohne-docker.txt; then
+            echo "schnellstart.sh hätte abbrechen müssen"; exit 1
+          fi
+          grep -q "Docker ist nicht installiert" /tmp/ohne-docker.txt
+          test ! -e /tmp/leer/missa-control

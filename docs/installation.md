@@ -112,6 +112,25 @@ tar -xzf backups/missa-control-<datum>.tar.gz
 ./scripts/install.sh
 ```
 
+### Sicherung im Panel – der Unterschied
+
+| | `./scripts/backup.sh` | Seite **„Sicherung“** im Panel |
+| --- | --- | --- |
+| Was | alles: `data/` (Datenbank, Protokoll, Gedächtnis, Messwerte, MQTT-Broker, eigene Integrationen) und `.env` | nur die Einrichtung: Integrationen mit Rechten und Zugriffsstufe, Regeln, Charakterprofil, Modelle und Rollen, Telefonie, Anordnung der Übersicht |
+| Zugänge | mit drin (über `.env` lesbar) | nur mit einem eigenen Passwort, dann verschlüsselt – sonst gar nicht |
+| Nicht drin | – | Login und 2FA, Client-Tokens, Protokoll, Messwerte, Gedächtnis (eigener Export unter „Gedächtnis“), Geräte |
+| Wo | auf ai01, per Konsole | im Browser, ohne Konsole |
+| Wofür | Server-Umzug, Notfall, vor einem Update | Einrichtung auf ein neues Panel übertragen, eine Einrichtung zurückholen |
+
+So geht es im Panel: **Sicherung → Herunterladen** (wahlweise mit Zugängen: dann ein eigenes Passwort
+wählen und mit Passwort und Code des Panels bestätigen). **Sicherung → Einspielen**: Datei wählen,
+die Vorschau zeigt pro Bereich, was „neu“ ist, was „würde überschrieben“ und was „unverändert“ bleibt;
+pro Bereich „ergänzen“ (neue dazu, gleichnamige überschreiben) oder „ersetzen“ (Bereich vorher leeren)
+wählen und mit Passwort und Code bestätigen. Eingespielte Integrationen stehen auf „ungetestet“, bis
+sie getestet sind; fehlt ein Zugang, steht dort „Zugang fehlt“. Ein Webhook bekommt beim ersten Test
+eine neue geheime Adresse. Eine Sicherung aus einer neueren Panel-Version wird mit einer Meldung
+abgelehnt – dann zuerst das Panel aktualisieren.
+
 ## Alltag
 
 | Aufgabe | Befehl |

@@ -23,6 +23,8 @@ Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
   nachfragen“ (Standard) oder „Voller Zugriff“.
 - **Statistik:** welche Funktionen Missa wie oft benutzt, wie oft sie scheitern und wie schnell sie
   sind – für 24 Stunden, 7 oder 30 Tage, mit „Nie benutzt“ für Funktionen ohne einen einzigen Aufruf.
+- **Sicherung:** die ganze Einrichtung im Panel als Datei herunterladen und wieder einspielen – mit
+  Vorschau, Zugänge nur verschlüsselt mit eigenem Passwort.
 - **Zugänge:** API-Keys, Tokens und Passwörter verschlüsselt gespeichert, nach dem Speichern nur noch
   maskiert sichtbar.
 - **Modelle:** Rollen „schnell“ und „stark“ mit Haupt- und Ersatzmodell, OpenAI-kompatibler Anschluss.
@@ -115,6 +117,10 @@ Eigene Integrationen mit wenig Code – oder eine eigene Vorlage nur mit einer Y
 Backup wiederherstellen: Panel anhalten, `tar -xzf backups/missa-control-<datum>.tar.gz` im
 Repo-Ordner, dann `./scripts/install.sh`. Das Backup enthält die Schlüssel aus `.env` und gehört an
 einen sicheren Ort.
+
+Nur die Einrichtung (Integrationen, Regeln, Profil, Modelle …) ohne Konsole sichern oder auf ein
+neues Panel übertragen: im Panel **Sicherung** – Unterschied zu `backup.sh` siehe
+[docs/installation.md](docs/installation.md#sicherung-im-panel--der-unterschied).
 
 Alle Skripte arbeiten nur mit dem Compose-Projekt `missa-control` und nur im Repo-Ordner.
 

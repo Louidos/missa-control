@@ -127,6 +127,13 @@ Regeln dafür:
   Zugänge lesen. Sie gehört an einen sicheren Ort ausserhalb von ai01 – am besten verschlüsselt –
   und nicht in einen geteilten Ordner.
 - Ohne `ENCRYPTION_KEY` sind die Zugänge verloren. Ein Backup ohne `.env` ist deshalb wertlos.
+- Die **Sicherung im Panel** (Seite „Sicherung“) ist etwas anderes: Sie enthält nur die Einrichtung,
+  nie Login, 2FA oder Client-Tokens. Zugänge kommen nur mit, wenn du beim Herunterladen ein eigenes
+  Passwort wählst – dann verschlüsselt (Schlüssel aus dem Passwort abgeleitet, PBKDF2-SHA256 mit
+  390 000 Durchläufen, Fernet). Ohne dieses Passwort steht kein Geheimnis in der Datei. Herunterladen
+  mit Zugängen und jedes Einspielen verlangen erneut Passwort und Code des Panels; Fehlversuche zählen
+  wie bei der Anmeldung. Wähle für die Sicherung ein anderes, langes Passwort und bewahre die Datei
+  trotzdem sicher auf.
 - Verdacht, dass ein Schlüssel oder ein Backup in fremde Hände kam: die betroffenen Zugänge bei den
   jeweiligen Diensten erneuern (neues App-Passwort, neuer Token), im Panel neu eintragen und die
   Tokens unter „Clients“ widerrufen und neu ausstellen.

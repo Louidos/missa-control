@@ -19,6 +19,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   YAML-Datei (#41)
 - Seite „Statistik“: Aufrufe, Fehler und Dauer pro Integration und Funktion, dazu nie benutzte
   Funktionen (#42)
+- Seite „Sicherung“: die ganze Einrichtung als Datei herunterladen und wieder einspielen, Zugänge nur
+  mit eigenem Passwort (#43)
 
 ## [0.1.0] - 2026-11-10
 

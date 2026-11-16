@@ -148,6 +148,7 @@ test("Navigation enthält alle Bereiche, jeder hat eine Seite oder einen Platzha
     "Protokoll",
     "Statistik",
     "Serverlast",
+    "Sicherung",
   ];
   expect(ALLE_EINTRAEGE.map((eintrag) => eintrag.titel)).toEqual(erwartet);
 

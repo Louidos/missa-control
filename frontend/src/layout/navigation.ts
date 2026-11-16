@@ -2,6 +2,7 @@ import {
   Activity,
   ArchiveRestore,
   BarChart3,
+  Bell,
   BellRing,
   Brain,
   Cpu,
@@ -28,6 +29,7 @@ import { Gedaechtnis } from "../gedaechtnis/Gedaechtnis";
 import { Geraete } from "../geraete/Geraete";
 import { Integrationen } from "../integrationen/Integrationen";
 import { Katalog } from "../integrationen/Katalog";
+import { Meldungen } from "../meldungen/Meldungen";
 import { Modelle } from "../modelle/Modelle";
 import { Regeln } from "../regeln/Regeln";
 import { Serverlast } from "../serverlast/Serverlast";
@@ -146,6 +148,13 @@ export const NAVIGATION: NavGruppe[] = [
         symbol: ShieldCheck,
         beschreibung: "Aktionen, bei denen Missa erst nachfragen muss: erlauben oder ablehnen.",
         seite: Freigaben,
+      },
+      {
+        pfad: "/meldungen",
+        titel: "Meldungen",
+        symbol: Bell,
+        beschreibung: "Nachricht an ntfy oder einen Webhook, wenn eine Freigabe wartet oder etwas ausfällt.",
+        seite: Meldungen,
       },
       {
         pfad: "/clients",

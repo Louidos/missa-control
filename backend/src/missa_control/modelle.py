@@ -7,6 +7,7 @@ from missa_control.gateway.modelle import Aufruf, Freigabe
 from missa_control.gedaechtnis.modelle import GedaechtnisEintrag
 from missa_control.geraete.modelle import Geraet, GeraeteWert
 from missa_control.integrationen.modelle import Funktion, Integration
+from missa_control.meldungen.modelle import Meldeziel
 from missa_control.modellverwaltung.modelle import Modell, ModellAnfrage, Rolle
 from missa_control.profil.modelle import ProfilVersion
 from missa_control.regeln.modelle import Ausloesung, Regel
@@ -29,6 +30,7 @@ __all__ = [
     "GeraeteWert",
     "Integration",
     "KnotenPosition",
+    "Meldeziel",
     "Messwert",
     "Modell",
     "ModellAnfrage",

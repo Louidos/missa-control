@@ -95,7 +95,13 @@ class FreigabeDienst:
             f"„{client_name}“ möchte „{funktion}“ ausführen. Bitte im Panel unter „Freigaben“ erlauben oder ablehnen.",
             dringlichkeit="hoch",
             quelle=integration_name,
-            daten={"freigabe_id": freigabe_id, "funktion": funktion, "client": client_name},
+            # Ohne Parameter: sie können Geheimnisse enthalten. Die Vorschau sagt in einem Satz, was passiert.
+            daten={
+                "freigabe_id": freigabe_id,
+                "funktion": funktion,
+                "client": client_name,
+                "vorschau": vorschau,
+            },
         )
         try:
             return await asyncio.wait_for(antwort, timeout=self.frist_sekunden)

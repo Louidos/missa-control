@@ -21,6 +21,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   Funktionen (#42)
 - Seite „Sicherung“: die ganze Einrichtung als Datei herunterladen und wieder einspielen, Zugänge nur
   mit eigenem Passwort (#43)
+- Seite „Meldungen“: Nachricht an ntfy oder einen Webhook, wenn eine Freigabe wartet oder eine
+  Integration ausfällt (#44)
 
 ## [0.1.0] - 2026-11-10
 

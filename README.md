@@ -25,6 +25,8 @@ Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
   sind – für 24 Stunden, 7 oder 30 Tage, mit „Nie benutzt“ für Funktionen ohne einen einzigen Aufruf.
 - **Sicherung:** die ganze Einrichtung im Panel als Datei herunterladen und wieder einspielen – mit
   Vorschau, Zugänge nur verschlüsselt mit eigenem Passwort.
+- **Meldungen:** Wartet eine Freigabe oder fällt eine Integration aus, kommt eine Nachricht aufs Handy
+  (ntfy) oder an einen Webhook – mit Schutz vor Flut; erlauben und ablehnen nur im Panel.
 - **Zugänge:** API-Keys, Tokens und Passwörter verschlüsselt gespeichert, nach dem Speichern nur noch
   maskiert sichtbar.
 - **Modelle:** Rollen „schnell“ und „stark“ mit Haupt- und Ersatzmodell, OpenAI-kompatibler Anschluss.
@@ -134,6 +136,7 @@ Alle Skripte arbeiten nur mit dem Compose-Projekt `missa-control` und nur im Rep
 | Eine API mit Adresse und Key hinzufügen | [docs/api-hinzufuegen.md](docs/api-hinzufuegen.md) |
 | Eigene Integration schreiben | [docs/eigene-integration.md](docs/eigene-integration.md) |
 | Geräte anbinden (ESP32, Raspberry Pi Pico), eigene Firmware | [docs/geraete.md](docs/geraete.md) |
+| Meldungen an ntfy oder einen Webhook (Freigabe wartet, Ausfall) | [docs/meldungen.md](docs/meldungen.md) |
 | Telefonie: Einstellungen und eigene Adapter | [docs/telefonie.md](docs/telefonie.md) |
 
 ### Übersicht

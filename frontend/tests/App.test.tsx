@@ -144,6 +144,7 @@ test("Navigation enthält alle Bereiche, jeder hat eine Seite oder einen Platzha
     "Regeln",
     "Anrufe",
     "Freigaben",
+    "Meldungen",
     "Clients",
     "Protokoll",
     "Statistik",

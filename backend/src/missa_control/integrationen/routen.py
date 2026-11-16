@@ -30,6 +30,7 @@ class IntegrationNeu(BaseModel):
     konfig: dict[str, Any] = Field(default_factory=dict)
     rechte: dict[str, str] = Field(default_factory=dict)
     test_id: str | None = None
+    zugriff: str | None = None
 
 
 class IntegrationAenderung(BaseModel):
@@ -37,6 +38,10 @@ class IntegrationAenderung(BaseModel):
     konfig: dict[str, Any] | None = None
     aktiv: bool | None = None
     rechte: dict[str, str] | None = None
+    # „lesen“, „nachfragen“ oder „voll“: setzt alle Rechte auf einmal (vor `rechte`).
+    zugriff: str | None = None
+    # Neu dazugekommene Funktionen als geprüft markieren (Hinweis „bitte prüfen“ verschwindet).
+    neue_geprueft: bool = False
 
 
 class AufrufEingabe(BaseModel):

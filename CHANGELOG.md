@@ -11,6 +11,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 
 - Neue Karte „API hinzufügen“: Adresse und Key eintragen, testen, aktivieren – das Panel findet die
   Funktionen selbst oder gibt Missa zwei allgemeine Funktionen zum Abrufen und Senden (#38)
+- Zugriffsstufe pro Integration: „Nur lesen“, „Schreiben erst nachfragen“ oder „Voller Zugriff“
+  mit einem Klick (#39)
 
 ## [0.1.0] - 2026-11-10
 

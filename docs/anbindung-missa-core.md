@@ -273,7 +273,8 @@ curl -s http://<adresse>:8090/api/config/integrations -H "Authorization: Bearer 
 ```
 
 liefert alle aktiven Integrationen mit ihren sichtbaren Funktionen, dem Recht jeder Funktion
-(`erlaubt` oder `nachfragen`) und dem Status der Integration (`ok` oder `fehler`). Nützlich, wenn
+(`erlaubt` oder `nachfragen`), dem Status der Integration (`ok` oder `fehler`) und ihrer
+Zugriffsstufe (`zugriff`: `lesen`, `nachfragen` oder `voll`). Nützlich, wenn
 Missa wissen soll, was sie kann, ohne erst die Tool-Liste zu holen.
 
 ```bash

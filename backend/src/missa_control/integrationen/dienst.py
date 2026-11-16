@@ -32,11 +32,15 @@ from missa_control.integrationen.typen import (
     RECHTE,
     STATUS_FEHLER,
     STATUS_OK,
+    ZUGRIFF_NAMEN,
+    ZUGRIFFE,
     AufrufErgebnis,
     FunktionsInfo,
     IntegrationsFehler,
     Recht,
     TestErgebnis,
+    Zugriff,
+    recht_fuer_stufe,
     standardrecht,
 )
 from missa_control.zugaenge.dienst import TYP_NAMEN, ZugangsDienst
@@ -436,6 +440,9 @@ class IntegrationsDienst:
             "art_name": ART_NAMEN[manifest.art] if manifest else "unbekannt",
             "konfig": konfig,
             "aktiv": integration.aktiv,
+            "zugriff": integration.zugriff,
+            "zugriff_angepasst": zugriff_angepasst(integration),
+            "neu_zu_pruefen": sum(1 for f in integration.funktionen if f.zu_pruefen and f.vorhanden),
             "status": integration.status if manifest else STATUS_FEHLER,
             "status_meldung": integration.status_meldung
             if manifest
@@ -455,6 +462,7 @@ class IntegrationsDienst:
                     "schreibend": funktion.schreibend,
                     "recht": funktion.recht,
                     "vorhanden": funktion.vorhanden,
+                    "zu_pruefen": funktion.zu_pruefen,
                     "parameter": funktion.parameter,
                 }
                 for funktion in integration.funktionen
@@ -484,6 +492,37 @@ class IntegrationsDienst:
             geprueft[name] = recht  # type: ignore[assignment]
         return geprueft
 
+    @staticmethod
+    def _zugriff_pruefen(zugriff: str | None) -> Zugriff | None:
+        if zugriff is None:
+            return None
+        if zugriff not in ZUGRIFFE:
+            raise PanelFehler(
+                422, f"Unbekannte Zugriffsstufe „{zugriff}“.", "Erlaubt: lesen, nachfragen, voll."
+            )
+        return zugriff  # type: ignore[return-value]
+
+    def _neues_recht(
+        self,
+        integration: Integration,
+        manifest: Manifest,
+        info: FunktionsInfo,
+        *,
+        erstmalig: bool,
+        viele: bool,
+    ) -> tuple[Recht, bool]:
+        """Recht einer Funktion, die neu dazukommt – nach der Zugriffsstufe. Gibt (Recht, zu prüfen) zurück.
+
+        Unter „Voller Zugriff“ starten später entdeckte schreibende Funktionen trotzdem mit „erst
+        nachfragen“ und werden zum Prüfen markiert: Der Besitzer hat sie ja noch nie gesehen.
+        """
+        zugriff = integration.zugriff or "nachfragen"
+        if zugriff == "nachfragen":
+            return self._empfohlenes_recht(manifest, info, viele), False
+        if zugriff == "voll" and info.schreibend and not erstmalig:
+            return "nachfragen", True
+        return recht_fuer_stufe(zugriff, info.schreibend), False
+
     def _funktionen_abgleichen(
         self,
         integration: Integration,
@@ -493,16 +532,22 @@ class IntegrationsDienst:
     ) -> None:
         """Übernimmt die Funktionen aus einem Test: neue dazu, bekannte aktualisieren, fehlende markieren."""
         vorhandene = {funktion.name: funktion for funktion in integration.funktionen}
-        viele = len(gefunden) > VORAUSWAHL_GRENZE and not vorhandene
+        erstmalig = not vorhandene
+        viele = len(gefunden) > VORAUSWAHL_GRENZE and erstmalig
         for info in gefunden:
             funktion = vorhandene.pop(info.name, None)
             if funktion is None:
-                funktion = Funktion(
-                    name=info.name,
-                    recht=rechte.get(info.name) or self._empfohlenes_recht(manifest, info, viele),
-                )
+                if info.name in rechte:
+                    recht, zu_pruefen = rechte[info.name], False
+                else:
+                    recht, zu_pruefen = self._neues_recht(
+                        integration, manifest, info, erstmalig=erstmalig, viele=viele
+                    )
+                funktion = Funktion(name=info.name, recht=recht, zu_pruefen=zu_pruefen)
                 integration.funktionen.append(funktion)
             elif info.name in rechte:
+                if funktion.recht != rechte[info.name]:
+                    funktion.zu_pruefen = False
                 funktion.recht = rechte[info.name]
             funktion.beschreibung = info.beschreibung
             funktion.parameter = info.parameter
@@ -556,6 +601,7 @@ class IntegrationsDienst:
         konfig: dict[str, Any],
         rechte: dict[str, str] | None = None,
         test_id: str | None = None,
+        zugriff: str | None = None,
     ) -> Integration:
         """„Aktivieren“ im Assistenten: speichert die Integration samt Funktionen und Rechten."""
         eintrag = self.katalog.holen(manifest_id)
@@ -571,6 +617,7 @@ class IntegrationsDienst:
                 "Diese Integration gibt es nur einmal – unter „Integrationen“ lässt sie sich bearbeiten.",
             )
         gepruefte_rechte = self._rechte_pruefen(rechte)
+        stufe = self._zugriff_pruefen(zugriff) or "nachfragen"
         bereinigt = self._konfig_pruefen(db, manifest, konfig, vollstaendig=True)
         kennung = self._freie_kennung(db, manifest.kennung or kennung_aus_name(name))
         kontext = self._kontext(
@@ -588,6 +635,7 @@ class IntegrationsDienst:
             konfig=bereinigt,
             zustand=ergebnis.zustand,
             aktiv=True,
+            zugriff=stufe,
             erstellt=zeitpunkt,
             geaendert=zeitpunkt,
         )
@@ -616,6 +664,8 @@ class IntegrationsDienst:
         konfig: dict[str, Any] | None = None,
         aktiv: bool | None = None,
         rechte: dict[str, str] | None = None,
+        zugriff: str | None = None,
+        neue_geprueft: bool = False,
     ) -> Integration:
         integration = self.holen(db, integration_id)
         if name is not None and name.strip():
@@ -623,9 +673,15 @@ class IntegrationsDienst:
         if aktiv is not None:
             integration.aktiv = aktiv
         gepruefte_rechte = self._rechte_pruefen(rechte)
+        stufe = self._zugriff_pruefen(zugriff)
+        vorher = self._stufe_setzen(integration, stufe) if stufe is not None else integration.zugriff
         for funktion in integration.funktionen:
             if funktion.name in gepruefte_rechte:
+                if funktion.recht != gepruefte_rechte[funktion.name]:
+                    funktion.zu_pruefen = False  # der Besitzer hat sich die Funktion angesehen
                 funktion.recht = gepruefte_rechte[funktion.name]
+            if neue_geprueft:
+                funktion.zu_pruefen = False
         if konfig is not None:
             eintrag = self.katalog.holen(integration.manifest_id)
             integration.konfig = self._konfig_pruefen(
@@ -634,7 +690,35 @@ class IntegrationsDienst:
             await self._testen_und_uebernehmen(db, integration, eintrag, gepruefte_rechte)
         integration.geaendert = zeit.jetzt()
         db.commit()
+        self._stufenwechsel_melden(integration, vorher)
         return integration
+
+    def _stufe_setzen(self, integration: Integration, stufe: Zugriff) -> str:
+        """Setzt die Zugriffsstufe und damit alle Rechte auf einmal. Gibt die bisherige Stufe zurück."""
+        vorher = integration.zugriff or "nachfragen"
+        integration.zugriff = stufe
+        for funktion in integration.funktionen:
+            funktion.recht = recht_fuer_stufe(stufe, funktion.schreibend)
+            funktion.zu_pruefen = False
+        return vorher
+
+    def _stufenwechsel_melden(self, integration: Integration, vorher: str) -> None:
+        """Meldet den Wechsel als Ereignis (erst nach dem Speichern: eigene Datenbank-Sitzung)."""
+        stufe = integration.zugriff
+        if vorher == stufe or self.ereignis_melden is None:
+            return
+        self.ereignis_melden(
+            "zugriff_geaendert",
+            f"Zugriff auf „{integration.name}“: {ZUGRIFF_NAMEN[stufe]}",
+            f"Vorher: {ZUGRIFF_NAMEN.get(vorher, vorher)}. Jetzt: {ZUGRIFF_NAMEN[stufe]}.",
+            quelle=integration.name,
+            daten={
+                "integration_id": integration.id,
+                "kennung": integration.kennung,
+                "alt": vorher,
+                "neu": stufe,
+            },
+        )
 
     async def erneut_testen(self, db: Session, integration_id: int) -> Integration:
         integration = self.holen(db, integration_id)
@@ -893,6 +977,16 @@ class IntegrationsDienst:
                 if feld.typ == "zugang" and isinstance(wert, int):
                     verwendung.setdefault(wert, []).append(integration.name)
         return verwendung
+
+
+def zugriff_angepasst(integration: Integration) -> bool:
+    """Weicht ein Recht von dem ab, was die Zugriffsstufe vorgibt? (Anzeige „angepasst“)"""
+    stufe = integration.zugriff or "nachfragen"
+    return any(
+        funktion.recht != recht_fuer_stufe(stufe, funktion.schreibend)
+        for funktion in integration.funktionen
+        if funktion.vorhanden and not funktion.zu_pruefen
+    )
 
 
 def ergebnis_als_text(ergebnis: AufrufErgebnis) -> str:

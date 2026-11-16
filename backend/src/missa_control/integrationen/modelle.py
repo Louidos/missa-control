@@ -24,6 +24,8 @@ class Integration(Base):
     # Was sich die Integration selbst merkt (z. B. welche Verbindungsart funktioniert).
     zustand: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     aktiv: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Wie viel Missa darf: "lesen", "nachfragen" (Standard) oder "voll". Setzt die Rechte auf einmal.
+    zugriff: Mapped[str] = mapped_column(String, default="nachfragen", server_default="nachfragen")
     status: Mapped[str] = mapped_column(String, default="ungetestet")
     status_meldung: Mapped[str] = mapped_column(Text, default="")
     status_hinweis: Mapped[str] = mapped_column(Text, default="")
@@ -53,6 +55,8 @@ class Funktion(Base):
     recht: Mapped[str] = mapped_column(String, default="nachfragen")
     # False, wenn die Integration die Funktion beim letzten Test nicht mehr angeboten hat.
     vorhanden: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Neu dazugekommen unter „Voller Zugriff“: startet mit „erst nachfragen“, bis der Besitzer prüft.
+    zu_pruefen: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     extra: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     integration: Mapped[Integration] = relationship(back_populates="funktionen")

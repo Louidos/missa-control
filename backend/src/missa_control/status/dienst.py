@@ -20,10 +20,10 @@ from missa_control.fehler import PanelFehler
 from missa_control.gateway.modelle import FREIGABE_OFFEN, Freigabe
 from missa_control.geraete.dienst import GeraeteDienst
 from missa_control.geraete.modelle import Geraet
-from missa_control.integrationen.dienst import IntegrationsDienst, gateway_name
+from missa_control.integrationen.dienst import IntegrationsDienst, gateway_name, zugriff_angepasst
 from missa_control.integrationen.manifest import ART_NAMEN
 from missa_control.integrationen.modelle import Integration
-from missa_control.integrationen.typen import STATUS_FEHLER, STATUS_OK
+from missa_control.integrationen.typen import STATUS_FEHLER, STATUS_OK, ZUGRIFF_NAMEN
 from missa_control.modellverwaltung.modelle import Modell, Rolle
 from missa_control.regeln.dienst import RegelDienst
 from missa_control.regeln.modelle import Regel
@@ -269,10 +269,18 @@ class StatusDienst:
                     _detail(
                         "Funktionen für Missa", f"{sichtbar} von {len(funktionen)}" if funktionen else None
                     ),
+                    _detail(
+                        "Zugriff",
+                        ZUGRIFF_NAMEN.get(integration.zugriff, integration.zugriff)
+                        + (" (angepasst)" if zugriff_angepasst(integration) else ""),
+                    ),
                     _detail("Zuletzt geprüft", _zeit(integration.geprueft), zeit=True),
                 ]
                 link = {"pfad": "/integrationen", "titel": "Zur Integration"}
                 untertitel = ART_NAMEN.get(manifest.art, manifest.art) if manifest else "Integration"
+                if funktionen and integration.zugriff != "nachfragen":
+                    # Am Knoten sichtbar, wenn Missa mehr oder weniger darf als üblich.
+                    untertitel += " · " + ZUGRIFF_NAMEN.get(integration.zugriff, integration.zugriff)
             if wartend and status in ("ok", "grau") and integration.aktiv:
                 status = "warn"
                 text = f"{wartend} Freigabe{'' if wartend == 1 else 'n'} wartet{'' if wartend == 1 else 'en'} auf deine Entscheidung."
@@ -290,6 +298,7 @@ class StatusDienst:
                     "hinweis": hinweis,
                     "funktionen": funktionen,
                     "link": link,
+                    **({} if geraet is not None else {"zugriff": integration.zugriff}),
                 }
             )
             kante(MISSA, kennung)

@@ -19,7 +19,8 @@ Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
   mit wenig Python.
 - **Ein Anschluss für Missa:** Alle Funktionen kommen über ein MCP-Gateway bei missa-core an – mit
   Rechten pro Funktion (lesen: erlaubt, alles andere: erst nachfragen), Freigaben, Protokoll und
-  Ereignissen.
+  Ereignissen. Pro Integration legt ein Klick fest, wie viel Missa darf: „Nur lesen“, „Schreiben erst
+  nachfragen“ (Standard) oder „Voller Zugriff“.
 - **Zugänge:** API-Keys, Tokens und Passwörter verschlüsselt gespeichert, nach dem Speichern nur noch
   maskiert sichtbar.
 - **Modelle:** Rollen „schnell“ und „stark“ mit Haupt- und Ersatzmodell, OpenAI-kompatibler Anschluss.

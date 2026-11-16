@@ -9,7 +9,19 @@ import { datum } from "../ui/format";
 import { FehlerMeldung, Feld, Knopf, Lade, Meldung, type Status, StatusMarke } from "../ui/ui";
 import { Formular } from "./Formular";
 import { RechteListe } from "./RechteListe";
-import { type Funktion, type Integration, INTEGRATIONEN, KATALOG, type Konfig, type Recht, type TestErgebnis, useIntegrationen } from "./typen";
+import { StufenSchalter } from "./StufenSchalter";
+import {
+  type Funktion,
+  type Integration,
+  INTEGRATIONEN,
+  KATALOG,
+  type Konfig,
+  type Recht,
+  type TestErgebnis,
+  useIntegrationen,
+  ZUGRIFFE,
+  type Zugriff,
+} from "./typen";
 import { WebhookAdresse } from "./WebhookAdresse";
 
 type Offen =
@@ -37,7 +49,16 @@ export function Integrationen() {
     queryClient.setQueryData<Integration[]>(INTEGRATIONEN, (alt) => alt?.map((i) => (i.id === neu.id ? neu : i)));
 
   const aendern = useMutation({
-    mutationFn: ({ id, ...daten }: { id: number; aktiv?: boolean; rechte?: Record<string, Recht> }) =>
+    mutationFn: ({
+      id,
+      ...daten
+    }: {
+      id: number;
+      aktiv?: boolean;
+      rechte?: Record<string, Recht>;
+      zugriff?: Zugriff;
+      neue_geprueft?: boolean;
+    }) =>
       api.put<Integration>(`/api/integrationen/${id}`, daten),
     onSuccess: uebernehmen,
   });
@@ -112,6 +133,10 @@ export function Integrationen() {
                 <div className="gedaempft klein">
                   {integration.art_name} ·{" "}
                   {integration.webhook ? "empfängt Meldungen" : `${sichtbar} von ${integration.funktionen.length} Funktionen für Missa sichtbar`}
+                  {!integration.webhook && integration.zugriff && (
+                    <> · {ZUGRIFFE.find((stufe) => stufe.wert === integration.zugriff)?.name}
+                      {integration.zugriff_angepasst && " (angepasst)"}</>
+                  )}
                   {integration.geprueft && ` · geprüft ${datum(integration.geprueft)}`}
                 </div>
               </div>
@@ -135,6 +160,27 @@ export function Integrationen() {
                 <Trash2 aria-hidden />
               </Knopf>
             </div>
+
+            {integration.neu_zu_pruefen > 0 && (
+              <Meldung
+                art="warn"
+                hinweis="Unter „Voller Zugriff“ starten neue schreibende Funktionen trotzdem mit „erst nachfragen“."
+              >
+                <span className="reihe zwischen">
+                  {integration.neu_zu_pruefen} neue Funktion{integration.neu_zu_pruefen === 1 ? "" : "en"} – bitte prüfen
+                  <span className="reihe" style={{ gap: "0.4rem" }}>
+                    {!istOffen && (
+                      <Knopf klein onClick={() => umklappen(integration.id)}>
+                        Ansehen
+                      </Knopf>
+                    )}
+                    <Knopf klein onClick={() => aendern.mutate({ id: integration.id, neue_geprueft: true })}>
+                      Als geprüft markieren
+                    </Knopf>
+                  </span>
+                </span>
+              </Meldung>
+            )}
 
             {integration.status === "fehler" && (
               <Meldung art="fehler" hinweis={integration.status_hinweis || undefined}>
@@ -162,6 +208,15 @@ export function Integrationen() {
                   </Knopf>
                 </div>
               </div>
+            )}
+            {istOffen && !integration.webhook && integration.funktionen.length > 0 && (
+              <StufenSchalter
+                wert={integration.zugriff}
+                angepasst={integration.zugriff_angepasst}
+                schreibende={integration.funktionen.filter((f) => f.schreibend && f.vorhanden).map((f) => f.gateway_name)}
+                laeuft={aendern.isPending}
+                onWaehlen={(zugriff) => aendern.mutate({ id: integration.id, zugriff })}
+              />
             )}
             {istOffen && !integration.webhook && (
               <RechteListe

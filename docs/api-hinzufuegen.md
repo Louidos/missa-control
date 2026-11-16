@@ -11,8 +11,31 @@ REST-API – nur mit der Adresse und, falls nötig, einem Key. Eine OpenAPI-Date
 3. **„Testen und aktivieren“** – fertig.
 
 Danach stehen die Funktionen sofort am Gateway `/mcp` – Missa sieht sie beim nächsten `tools/list`,
-ohne Neustart. Lesende Funktionen sind erlaubt, schreibende fragen erst nach (unter „Freigaben“). Die
-Rechte lassen sich jederzeit unter **Integrationen** ändern.
+ohne Neustart. Wie viel Missa darf, bestimmt die **Zugriffsstufe** (siehe unten); Standard: lesende
+Funktionen sind erlaubt, schreibende fragen erst nach (unter „Freigaben“). Die Rechte lassen sich
+jederzeit unter **Integrationen** ändern.
+
+## Wie viel darf Missa? – die Zugriffsstufe
+
+Über der Liste der Funktionen steht ein Schalter mit drei Stufen. Ein Klick setzt alle Rechte auf einmal:
+
+| Stufe | Lesende Funktionen | Schreibende Funktionen |
+| --- | --- | --- |
+| **Nur lesen** | erlaubt | gesperrt – Missa sieht sie gar nicht |
+| **Schreiben erst nachfragen** (Standard) | erlaubt | erst nach deiner Freigabe unter „Freigaben“ |
+| **Voller Zugriff** | erlaubt | erlaubt – ohne Nachfrage, aber im Protokoll |
+
+- „Voller Zugriff“ fragt vorher nach: *Missa darf dann ohne Nachfrage auch ändern und löschen.* – mit der
+  Liste der betroffenen Funktionen.
+- Einzelne Rechte lassen sich danach weiter ändern; dann steht neben der Stufe „angepasst“.
+- Kommen später neue Funktionen dazu (erneuter Test, geänderte API, neue Werkzeuge eines MCP-Servers),
+  bekommen sie ihr Recht nach der Stufe. Ausnahme bei „Voller Zugriff“: neue **schreibende** Funktionen
+  starten mit „erst nachfragen“, und die Integration zeigt „N neue Funktionen – bitte prüfen“. Mit
+  „Als geprüft markieren“ verschwindet der Hinweis.
+- Jeder Wechsel der Stufe steht als Ereignis `zugriff_geaendert` im Protokoll (mit alter und neuer Stufe).
+
+Die Stufe gibt es bei jeder Integration – beim Einrichten (bei „API hinzufügen“ direkt im Formular)
+und später unter **Integrationen** beim Aufklappen von „Funktionen und Rechte“.
 
 ## Was beim Testen passiert
 

@@ -7,6 +7,13 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unveröffentlicht
 
+## [0.2.0] - 2026-11-16
+
+APIs in einem Schritt, Zugriffsstufen, Missa-Core verbinden, Vorlagen, Statistik, Sicherung,
+Meldungen und die Installation mit einem Befehl. Bestehende Integrationen verhalten sich nach dem
+Update genau wie vorher (Zugriffsstufe „Schreiben erst nachfragen“, Rechte unverändert); die
+Datenbank wird beim Start von selbst ergänzt.
+
 ### Hinzugefügt
 
 - Neue Karte „API hinzufügen“: Adresse und Key eintragen, testen, aktivieren – das Panel findet die
@@ -128,4 +135,5 @@ Wer das Panel schon vor dieser Version installiert hatte, führt nach dem Update
   Integration als ausgefallen (Status „Fehler“, Ereignis für Regeln) – bei MCP-Servern, REST-APIs
   und eigenen Python-Integrationen (#23)
 
+[0.2.0]: https://github.com/Louidos/missa-control/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Louidos/missa-control/releases/tag/v0.1.0

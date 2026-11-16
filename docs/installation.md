@@ -125,6 +125,11 @@ tar -xzf backups/missa-control-<datum>.tar.gz
 
 Alle Befehle betreffen nur das Projekt `missa-control`.
 
+**Wie lange das Panel was aufbewahrt:** Das Protokoll der Aufrufe (Seite „Protokoll“, Grundlage der
+Seite „Statistik“), Ereignisse, entschiedene Freigaben, ausgelöste Regeln und der Anrufverlauf bleiben
+30 Tage – genug für die Statistik über 30 Tage. Messwerte (Serverlast, Geräte) und die Statistik der
+Modelle bleiben 7 Tage. Älteres löscht das Panel von selbst.
+
 ## Notfall: Authenticator-App verloren
 
 Ohne Code kommt niemand ins Panel – auch du nicht. Wer Zugriff auf ai01 hat, setzt die

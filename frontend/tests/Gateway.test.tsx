@@ -263,3 +263,43 @@ test("Reiter Ereignisse: Liste und Test-Ereignis senden", async () => {
   expect(await screen.findByText("Das ist ein Test-Ereignis aus dem Panel.")).toBeInTheDocument();
   expect(aufrufe.some((a) => a.methode === "POST" && a.pfad === "/api/ereignisse/test")).toBe(true);
 });
+
+// ---------------------------------------------------------------- Missa-Core verbinden
+
+test("Missa-Core verbinden: zwei Zeilen und Neustart-Befehl, wartet sichtbar und zeigt „Verbunden“", async () => {
+  const liste: Client[] = [];
+  let gemeldet = false;
+  backend({
+    "GET /api/clients": () =>
+      liste.map((c) =>
+        gemeldet
+          ? { ...c, zuletzt_gesehen: new Date(Date.now() - 3000).toISOString(), zuletzt_abgeholt: new Date().toISOString() }
+          : c,
+      ),
+    "POST /api/clients/missa-core": () => {
+      liste.push(client({ id: 4 }));
+      return { ...client({ id: 4 }), token: TOKEN, port: 8090 };
+    },
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Clients />);
+  await nutzer.click(await screen.findByRole("button", { name: /Missa-Core verbinden/ }));
+
+  const dialog = await screen.findByRole("dialog", { name: "Missa-Core verbinden" });
+  expect(within(dialog).getByText("/etc/missa/missa.env")).toBeInTheDocument();
+  expect(within(dialog).getByLabelText(/Adresse des Panels/)).toHaveValue("MISSA_CONTROL_URL=http://127.0.0.1:8090");
+  expect(within(dialog).getByLabelText("2 · Token")).toHaveValue(`MISSA_CONTROL_TOKEN=${TOKEN}`);
+  expect(within(dialog).getByLabelText(/neu starten/)).toHaveValue("sudo systemctl restart missa-core");
+  expect(within(dialog).getByRole("status", { name: "Verbindung" })).toHaveTextContent("Warte auf Missa-Core");
+
+  // Missa-Core fragt das Gateway ab → der Dialog wechselt (er fragt alle 2 Sekunden nach)
+  gemeldet = true;
+  await waitFor(() => expect(within(dialog).getByRole("status", { name: "Verbindung" })).toHaveTextContent(/Verbunden – zuletzt gesehen vor \d+ Sekunden/), {
+    timeout: 4000,
+  });
+  expect(within(dialog).getByRole("status", { name: "Verbindung" })).toHaveTextContent("Funktionen abgeholt");
+
+  await nutzer.click(within(dialog).getByRole("button", { name: "Fertig" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(document.body.innerHTML).not.toContain(TOKEN);
+});

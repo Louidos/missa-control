@@ -13,6 +13,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   Funktionen selbst oder gibt Missa zwei allgemeine Funktionen zum Abrufen und Senden (#38)
 - Zugriffsstufe pro Integration: „Nur lesen“, „Schreiben erst nachfragen“ oder „Voller Zugriff“
   mit einem Klick (#39)
+- „Missa-Core verbinden“: zwei Zeilen kopieren, Missa-Core neu starten, das Panel zeigt, sobald
+  Missa verbunden ist (#40)
 
 ## [0.1.0] - 2026-11-10
 

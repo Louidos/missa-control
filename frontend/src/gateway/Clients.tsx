@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, Copy, MonitorSmartphone, Plus, Trash2 } from "lucide-react";
+import { Ban, Copy, Link2, MonitorSmartphone, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 
 import { api } from "../api";
 import { Bestaetigung, Dialog } from "../ui/Dialog";
 import { datum } from "../ui/format";
 import { FehlerMeldung, Feld, Knopf, Lade, Meldung, StatusMarke } from "../ui/ui";
+import { CLIENTS } from "./clients";
+import { MissaCoreVerbinden, type NeuerMissaCore } from "./MissaCoreVerbinden";
 
 export interface Client {
   id: number;
@@ -13,15 +15,17 @@ export interface Client {
   token_anfang: string;
   erstellt: string;
   zuletzt_gesehen: string | null;
+  /** Wann der Client zuletzt die Funktionen abgeholt hat (tools/list). */
+  zuletzt_abgeholt?: string | null;
   widerrufen: string | null;
   aktiv: boolean;
   /** Nur in der Antwort direkt nach dem Anlegen enthalten. */
   token?: string;
 }
 
-const CLIENTS = ["clients"] as const;
-
-type Offen = { art: "neu" } | { art: "token"; client: Client } | { art: "widerrufen" | "loeschen"; client: Client } | null;
+type Offen =
+  | { art: "missa-core"; neu: NeuerMissaCore }
+  | { art: "neu" } | { art: "token"; client: Client } | { art: "widerrufen" | "loeschen"; client: Client } | null;
 
 /** Seite „Clients“: wer sich mit dem Panel verbinden darf – jeder mit eigenem Token. */
 export function Clients() {
@@ -36,6 +40,13 @@ export function Clients() {
     onSuccess: async (client) => {
       setName("");
       setOffen({ art: "token", client });
+      await neuLaden();
+    },
+  });
+  const missaCore = useMutation({
+    mutationFn: () => api.post<NeuerMissaCore>("/api/clients/missa-core"),
+    onSuccess: async (neu) => {
+      setOffen({ art: "missa-core", neu });
       await neuLaden();
     },
   });
@@ -60,19 +71,25 @@ export function Clients() {
           Clients sind Programme, die sich mit Missa Control verbinden dürfen – zum Beispiel missa-core oder eine App.
           Jeder bekommt einen eigenen Token, der sich einzeln widerrufen lässt.
         </p>
-        <Knopf art="haupt" onClick={() => setOffen({ art: "neu" })}>
-          <Plus aria-hidden />
-          Neuer Client
-        </Knopf>
+        <div className="reihe" style={{ gap: "0.5rem" }}>
+          <Knopf art="haupt" onClick={() => missaCore.mutate()} disabled={missaCore.isPending}>
+            <Link2 aria-hidden />
+            Missa-Core verbinden
+          </Knopf>
+          <Knopf onClick={() => setOffen({ art: "neu" })}>
+            <Plus aria-hidden />
+            Neuer Client
+          </Knopf>
+        </div>
       </div>
-      <FehlerMeldung fehler={clients.error} />
+      <FehlerMeldung fehler={clients.error ?? missaCore.error} />
       {clients.isPending && <Lade />}
 
       {clients.data?.length === 0 && (
         <div className="karte leer">
           <MonitorSmartphone aria-hidden />
           <h2>Noch keine Clients</h2>
-          <p>Lege einen Client für missa-core an, um Missa mit dem Panel zu verbinden.</p>
+          <p>Mit „Missa-Core verbinden“ bekommst du zwei Zeilen für missa-core – mehr braucht es nicht.</p>
         </div>
       )}
 
@@ -86,6 +103,7 @@ export function Clients() {
                 <th>Status</th>
                 <th>Angelegt</th>
                 <th>Zuletzt gesehen</th>
+                <th>Funktionen abgeholt</th>
                 <th>
                   <span className="sr-only">Aktionen</span>
                 </th>
@@ -103,6 +121,7 @@ export function Clients() {
                   </td>
                   <td className="gedaempft klein">{datum(client.erstellt)}</td>
                   <td className="gedaempft klein">{client.zuletzt_gesehen ? datum(client.zuletzt_gesehen) : "noch nie"}</td>
+                  <td className="gedaempft klein">{client.zuletzt_abgeholt ? datum(client.zuletzt_abgeholt) : "noch nie"}</td>
                   <td className="aktionen">
                     {client.aktiv && (
                       <Knopf art="still" aria-label={`Token von ${client.name} widerrufen`} title="Token widerrufen" onClick={() => setOffen({ art: "widerrufen", client })}>
@@ -142,6 +161,7 @@ export function Clients() {
           </form>
         </Dialog>
       )}
+      {offen?.art === "missa-core" && <MissaCoreVerbinden neu={offen.neu} onSchliessen={schliessen} />}
       {offen?.art === "token" && <TokenAnzeige client={offen.client} onSchliessen={schliessen} />}
       {(offen?.art === "widerrufen" || offen?.art === "loeschen") && (
         <Bestaetigung

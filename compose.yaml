@@ -22,6 +22,8 @@ services:
       MISSA_CONTROL_MQTT_HOST: mqtt
       # Nur zur Anzeige: unter diesem Port erreichen die Geräte den Broker von aussen.
       MQTT_BIND: ${MQTT_BIND:-0.0.0.0:1883}
+      # Nur zur Anzeige („Missa-Core verbinden“): unter diesem Port ist das Panel auf ai01 erreichbar.
+      MISSA_CONTROL_BIND: ${MISSA_CONTROL_BIND:-0.0.0.0:8090}
     # Damit MISSA_CORE_HEALTH_URL auch http://host.docker.internal:<Port>/… lauten kann, wenn missa-core
     # seinen Port auf ai01 veröffentlicht. Das betrifft nur die Namensauflösung in diesem Container.
     extra_hosts:

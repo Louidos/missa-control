@@ -1895,3 +1895,19 @@ textarea:focus-visible {
     grid-template-columns: 1fr 6rem;
   }
 }
+
+@keyframes drehen {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dreht {
+  animation: drehen 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dreht {
+    animation: none;
+  }
+}

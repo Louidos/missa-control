@@ -41,6 +41,7 @@ class ClientDienst:
             "token_anfang": client.token_anfang,
             "erstellt": client.erstellt.isoformat(),
             "zuletzt_gesehen": client.zuletzt_gesehen.isoformat() if client.zuletzt_gesehen else None,
+            "zuletzt_abgeholt": client.zuletzt_abgeholt.isoformat() if client.zuletzt_abgeholt else None,
             "widerrufen": client.widerrufen.isoformat() if client.widerrufen else None,
             "aktiv": client.widerrufen is None,
         }
@@ -67,6 +68,26 @@ class ClientDienst:
         db.add(client)
         db.commit()
         return client, token
+
+    def missa_core_anlegen(self, db: Session) -> tuple[Client, str]:
+        """„Missa-Core verbinden“: legt einen Client „missa-core“ an (bzw. „missa-core 2“ usw.)."""
+        vergeben = set(db.scalars(select(Client.name)))
+        name, nummer = "missa-core", 2
+        while name in vergeben:
+            name = f"missa-core {nummer}"
+            nummer += 1
+        return self.anlegen(db, name)
+
+    @staticmethod
+    def abgeholt(db: Session, client_id: int) -> None:
+        """Merkt sich, dass der Client die Funktionen abgeholt hat (höchstens einmal pro Minute gespeichert)."""
+        client = db.get(Client, client_id)
+        if client is None:
+            return
+        jetzt = zeit.jetzt()
+        if client.zuletzt_abgeholt is None or jetzt - client.zuletzt_abgeholt > _GESEHEN_ABSTAND:
+            client.zuletzt_abgeholt = jetzt
+            db.commit()
 
     def holen(self, db: Session, client_id: int) -> Client:
         client = db.get(Client, client_id)

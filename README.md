@@ -161,8 +161,11 @@ Telefon angeschlossen: Der mitgelieferte Test-Adapter protokolliert Anrufe nur.
 ### Missa anbinden
 
 Missa Control verändert missa-core nie – missa-core holt sich Funktionen, Ereignisse und
-Konfiguration selbst ab. Dafür im Panel unter **Clients** einen Client anlegen und dessen Token in
-missa-core eintragen.
+Konfiguration selbst ab. Der kurze Weg: im Panel unter **Clients → Missa-Core verbinden** klicken,
+die zwei angezeigten Zeilen (`MISSA_CONTROL_URL`, `MISSA_CONTROL_TOKEN`) in `/etc/missa/missa.env`
+eintragen und `sudo systemctl restart missa-core` ausführen. Der Dialog zeigt, sobald Missa
+verbunden ist; die Übersicht zeigt am Knoten „Missa“, wann Missa zuletzt die Funktionen abgeholt hat.
+Von Hand: [docs/anbindung-missa-core.md](docs/anbindung-missa-core.md).
 
 ## Projektstand
 
@@ -173,7 +176,7 @@ gegen die echte Gegenstelle erprobt ist:
 
 | Bereich | Stand |
 | --- | --- |
-| Anbindung an missa-core | Das Panel stellt alles bereit; das Einbinden in missa-core macht der Besitzer von Hand nach `docs/anbindung-missa-core.md`. |
+| Anbindung an missa-core | Das Panel stellt alles bereit; „Missa-Core verbinden“ setzt eine Missa-Core-Version mit eingebauter Anbindung voraus (`MISSA_CONTROL_URL`, `MISSA_CONTROL_TOKEN`) – gegen ein echtes missa-core noch nicht erprobt. |
 | Nextcloud-Kalender | gegen einen CalDAV-Testserver geprüft, nicht gegen eine echte Nextcloud |
 | Home Assistant | gegen einen Nachbau der Schnittstelle geprüft, nicht gegen ein echtes Home Assistant |
 | Geräte | MQTT-Broker und Panel gegen den echten Broker geprüft; die Beispiel-Firmware lief nur am Prüfstand, nicht auf echter Hardware |

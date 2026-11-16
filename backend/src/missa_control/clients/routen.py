@@ -33,6 +33,21 @@ def anlegen(eingabe: ClientNeu, request: Request, db: Session = Depends(get_db))
     return {**dienst.ansicht(client), "token": token}
 
 
+@router.post("/missa-core", status_code=201)
+def missa_core_verbinden(request: Request, db: Session = Depends(get_db)) -> dict[str, object]:
+    """„Missa-Core verbinden“: neuer Client plus alles für die zwei Zeilen in /etc/missa/missa.env.
+
+    Das Panel schreibt nichts nach missa-core – die Zeilen trägt der Besitzer selbst ein.
+    """
+    dienst = _dienst(request)
+    client, token = dienst.missa_core_anlegen(db)
+    return {
+        **dienst.ansicht(client),
+        "token": token,
+        "port": request.app.state.einstellungen.panel_port_aussen,
+    }
+
+
 @router.post("/{client_id}/widerrufen")
 def widerrufen(client_id: int, request: Request, db: Session = Depends(get_db)) -> dict[str, object]:
     dienst = _dienst(request)

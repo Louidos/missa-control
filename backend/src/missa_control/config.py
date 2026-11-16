@@ -86,6 +86,8 @@ class Einstellungen:
     mqtt_port: int = 1883
     # Unter diesem Port erreichen die Geräte den Broker von aussen (aus MQTT_BIND, nur zur Anzeige).
     mqtt_port_aussen: int = 1883
+    # Unter diesem Port ist das Panel auf ai01 erreichbar (aus MISSA_CONTROL_BIND, nur zur Anzeige).
+    panel_port_aussen: int = 8090
     # Hier legt Mosquitto das Verwalter-Passwort ab (Standard: data/mosquitto/dynamic-security.json.pw).
     mqtt_passwort_datei_pfad: Path | None = None
 
@@ -157,6 +159,7 @@ class Einstellungen:
             mqtt_host=umgebung.get("MISSA_CONTROL_MQTT_HOST", "").strip(),
             mqtt_port=int(umgebung.get("MISSA_CONTROL_MQTT_PORT", "1883")),
             mqtt_port_aussen=_port_aus(umgebung.get("MQTT_BIND", ""), 1883),
+            panel_port_aussen=_port_aus(umgebung.get("MISSA_CONTROL_BIND", ""), 8090),
             missa_core_health_url=_health_url(umgebung.get("MISSA_CORE_HEALTH_URL", "")),
             pruef_intervall_sekunden=20.0,
         )

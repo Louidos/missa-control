@@ -7,7 +7,43 @@ Diese Anleitung beschreibt, wie **du selbst** missa-core mit Missa Control verbi
 > nichts an missa-core. Alles, was Missa braucht, **holt missa-core selbst ab** – über die
 > Anschlüsse unten. Die Änderungen dafür machst du von Hand in missa-core.
 
-## Überblick
+## Der kurze Weg
+
+Setzt eine Missa-Core-Version mit eingebauter Anbindung voraus (sie liest `MISSA_CONTROL_URL` und
+`MISSA_CONTROL_TOKEN`).
+
+1. Im Panel **Clients → Missa-Core verbinden** klicken. Das Panel legt einen Client `missa-core` an
+   und zeigt genau zwei Zeilen.
+2. Die beiden Zeilen in `/etc/missa/missa.env` auf ai01 eintragen (`sudo nano /etc/missa/missa.env`):
+
+   ```ini
+   MISSA_CONTROL_URL=http://127.0.0.1:8090
+   MISSA_CONTROL_TOKEN=mc_…
+   ```
+
+   Der Port kommt aus `MISSA_CONTROL_BIND` in der `.env` des Panels. Läuft missa-core auf einem
+   anderen Rechner (oder in einem Container), steht im Dialog die Variante mit der Adresse von ai01.
+3. Missa-Core neu starten:
+
+   ```bash
+   sudo systemctl restart missa-core
+   ```
+
+Der Dialog wartet sichtbar und wechselt auf **„Verbunden – zuletzt gesehen vor … Sekunden“**, sobald
+Missa-Core das Gateway zum ersten Mal mit dem Token abfragt. Der Token ist nur in diesem Dialog zu
+sehen; nach dem Schliessen nicht mehr.
+
+Ob Missa die Funktionen wirklich abholt, zeigt danach auch die **Übersicht** am Knoten „Missa“
+(„Funktionen abgeholt“: wann zuletzt `tools/list` mit einem gültigen Token kam) und die Spalte
+„Funktionen abgeholt“ auf der Seite **Clients**.
+
+Das Panel schreibt dabei nichts nach missa-core – die Zeilen trägst du selbst ein.
+
+## Von Hand
+
+Ohne eingebaute Anbindung in Missa-Core (oder für andere Clients) geht es Schritt für Schritt:
+
+### Überblick
 
 | Was Missa braucht | Anschluss am Panel | Art |
 | --- | --- | --- |
@@ -20,7 +56,7 @@ Diese Anleitung beschreibt, wie **du selbst** missa-core mit Missa Control verbi
 Alle Anschlüsse verlangen denselben **Client-Token** im Header
 `Authorization: Bearer <Token>`. Ohne gültigen Token antwortet das Panel mit `401`.
 
-## Schritt 1: Client anlegen
+### Schritt 1: Client anlegen
 
 1. Im Panel **Clients → Neuer Client** öffnen, Namen eingeben (z. B. `missa-core`).
 2. Den angezeigten Token kopieren. **Er wird nur dieses eine Mal angezeigt.**
@@ -30,7 +66,7 @@ Jeder Client bekommt einen eigenen Token. Geht einer verloren oder wird er nicht
 **Clients → Token widerrufen**. Das wirkt sofort; ein bereits offener Ereignis-Stream endet innerhalb
 weniger Sekunden.
 
-## Schritt 2: Adresse des Panels
+### Schritt 2: Adresse des Panels
 
 Das Panel lauscht auf ai01 auf Port `8090` (einstellbar über `MISSA_CONTROL_BIND` in `.env`).
 
@@ -48,7 +84,7 @@ Kurzer Test von dort, wo missa-core läuft:
 curl -s http://<adresse>:8090/api/health
 ```
 
-## Schritt 3: Funktionen über das MCP-Gateway
+### Schritt 3: Funktionen über das MCP-Gateway
 
 Das Gateway bündelt die Funktionen **aller aktiven Integrationen** an einem einzigen MCP-Endpoint.
 missa-core muss also nur diesen einen MCP-Server kennen – neue Integrationen im Panel erscheinen
@@ -99,7 +135,7 @@ curl -s http://<adresse>:8090/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-### Was missa-core dabei wissen muss
+#### Was missa-core dabei wissen muss
 
 - **Namen:** Jede Funktion trägt die Vorsilbe ihrer Integration, z. B. `kalender_termine_anzeigen`.
   Die Namen bleiben gleich, auch wenn die Integration im Panel umbenannt wird.
@@ -117,7 +153,7 @@ curl -s http://<adresse>:8090/mcp \
   `isError: true`, verständlicher Meldung und Lösungshinweis.
 - **Zugänge:** API-Keys und Passwörter setzt das Panel ein. missa-core sieht sie nie.
 
-### Gedächtnis
+#### Gedächtnis
 
 Ist im Panel die Integration „Gedächtnis“ aktiv, stehen am Gateway drei Funktionen bereit:
 
@@ -132,7 +168,7 @@ Gedächtnis von sich aus nutzt, hilft ein Satz im Charakterprofil, z. B.: „Mer
 später wichtig sind, mit `gedaechtnis_merken` und sieh mit `gedaechtnis_suchen` nach, bevor du
 nach etwas fragst, das du schon wissen könntest.“ Alle Einträge stehen im Panel unter „Gedächtnis“.
 
-### Regeln
+#### Regeln
 
 Mit der Integration „Regeln“ kann Missa Regeln und Alarme per Sprache verwalten („Sag mir Bescheid,
 wenn die CPU länger als 5 Minuten über 90 % liegt“):
@@ -153,7 +189,7 @@ Nachfrage aus: die Freigabe der Regel gilt dafür.
 Löst eine Regel mit der Aktion „Ereignis an Missa“ aus, kommt das als Ereignis der Art `regel`
 (siehe Schritt 4).
 
-### Kalender und Home Assistant
+#### Kalender und Home Assistant
 
 Die fertigen Integrationen aus dem Katalog bringen diese Funktionen mit (Vorsilbe wie im Panel
 angezeigt; bei mehreren Kalendern heisst der zweite `kalender_2_…`):
@@ -177,7 +213,7 @@ Ist in Home Assistant der **MCP-Server** eingerichtet (Integration „Model Cont
 reicht das Panel stattdessen dessen Werkzeuge durch, z. B. `home_assistant_HassTurnOn` und
 `home_assistant_GetLiveContext`. Welche Geräte dabei sichtbar sind, bestimmt Home Assistant.
 
-### Geräte
+#### Geräte
 
 Jedes Gerät von der Seite „Geräte“ bringt die Funktionen mit, die es selbst meldet. Die Vorsilbe
 ist der Name des Geräts, z. B. „Wohnzimmer“:
@@ -195,7 +231,7 @@ ist der Name des Geräts, z. B. „Wohnzimmer“:
 - Knöpfe sind keine Funktionen: Jeder Druck kommt als Ereignis der Art `geraet` (Schritt 4), ebenso
   „online“ und „offline“.
 
-### Telefonie
+#### Telefonie
 
 Ist die Integration „Telefonie“ aktiv, gibt es zwei Funktionen:
 
@@ -210,13 +246,13 @@ ist kein echtes Telefon angeschlossen: Mit dem Test-Adapter lautet das Ergebnis 
 Jeder Anruf kommt zusätzlich als Ereignis der Art `anruf` (Schritt 4); in `daten` stehen `anruf_id`,
 `richtung` (`ausgehend`/`eingehend`), `nummer`, `name`, `status` und `test`.
 
-## Schritt 4: Ereignisse abholen
+### Schritt 4: Ereignisse abholen
 
 Ereignisse sind Dinge, die Missa wissen sollte, ohne gefragt zu haben: eine Regel hat ausgelöst,
 ein Gerät meldet etwas, ein Webhook ist eingegangen, eine Integration ist ausgefallen, eine
 Freigabe wartet.
 
-### Laufend, per Stream (empfohlen)
+#### Laufend, per Stream (empfohlen)
 
 ```bash
 curl -N http://<adresse>:8090/api/events/stream -H "Authorization: Bearer <Token>"
@@ -234,7 +270,7 @@ data: {"id": 42, "zeit": "2026-01-15T12:00:00+00:00", "art": "regel", "quelle": 
 - Nach einer Unterbrechung beim Wiederverbinden den Header `Last-Event-ID: <letzte id>` mitsenden
   (oder `?nach_id=<letzte id>` anhängen): Das Panel liefert zuerst alles Verpasste nach.
 
-### Auf Abruf
+#### Auf Abruf
 
 ```bash
 curl -s "http://<adresse>:8090/api/events?seit=2026-01-15T12:00:00Z" -H "Authorization: Bearer <Token>"
@@ -248,7 +284,7 @@ curl -s "http://<adresse>:8090/api/events?seit=2026-01-15T12:00:00Z" -H "Authori
 
 Antwort: `{"ereignisse": [...], "letzte_id": 42}` – älteste zuerst.
 
-### Felder eines Ereignisses
+#### Felder eines Ereignisses
 
 | Feld | Inhalt |
 | --- | --- |
@@ -266,7 +302,7 @@ Ereignisse bleiben 30 Tage gespeichert.
 **Testen:** Im Panel unter **Protokoll → Ereignisse → Test-Ereignis senden**. Das Ereignis muss
 im Stream von missa-core ankommen.
 
-## Schritt 5: Konfiguration lesen
+### Schritt 5: Konfiguration lesen
 
 ```bash
 curl -s http://<adresse>:8090/api/config/integrations -H "Authorization: Bearer <Token>"
@@ -286,7 +322,7 @@ liefert Missas Charakterprofil. Solange im Panel noch keines gespeichert ist, st
 
 Die Konfig-API ist **nur lesend** – es gibt keine Möglichkeit, darüber etwas zu ändern.
 
-## Schritt 6: Modelle über den Modell-Anschluss
+### Schritt 6: Modelle über den Modell-Anschluss
 
 Unter **Modelle** legst du im Panel fest, welches Sprachmodell für welche Aufgabe verwendet wird.
 missa-core kennt nur feste Namen – welches Modell gerade dahinter steckt, kann sich im Panel jederzeit
@@ -315,7 +351,7 @@ curl -s http://<adresse>:8090/v1/chat/completions \
 - Fehler kommen im Format der OpenAI-API (`{"error": {"message": …}}`) mit verständlichem Text.
 - „Stark“ darf länger dauern: Das Zeitlimit in missa-core für diese Rolle grosszügig wählen.
 
-## Optional: Anzeigen, ob missa-core läuft
+### Optional: Anzeigen, ob missa-core läuft
 
 Das ist der einzige Fall, in dem das Panel von sich aus missa-core anspricht – und es ist freiwillig.
 Hat missa-core eine Health-Adresse, lässt sie sich in `.env` von Missa Control eintragen:
@@ -334,7 +370,7 @@ Adresse antwortet) oder rot (keine Antwort oder ein Fehler); ohne die Einstellun
   einem eigenen Container.
 - An missa-core selbst ist dafür nichts einzurichten.
 
-## Prüfliste
+### Prüfliste
 
 - [ ] `curl …/api/health` antwortet von dort, wo missa-core läuft
 - [ ] `tools/list` mit Token zeigt die Funktionen, ohne Token kommt `401`
@@ -344,7 +380,7 @@ Adresse antwortet) oder rot (keine Antwort oder ein Fehler); ohne die Einstellun
 - [ ] `missa-schnell` antwortet über `/v1/chat/completions`
 - [ ] Im Panel steht beim Client unter „Zuletzt gesehen“ eine aktuelle Zeit
 
-## Wenn etwas nicht klappt
+### Wenn etwas nicht klappt
 
 | Anzeichen | Ursache und Lösung |
 | --- | --- |

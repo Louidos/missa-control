@@ -6,6 +6,8 @@ symbol: "🌐"
 art: openapi
 version: 1.0.0
 hinweis: >-
+  Einfacher geht es mit der Karte „API hinzufügen“: dort reicht die Adresse der API, die Beschreibung
+  sucht das Panel selbst. Diese Karte ist für eine OpenAPI-Datei, die du selbst hast.
   Gib die Adresse der OpenAPI-Beschreibung an (meist …/openapi.json oder …/swagger.json) oder lade die
   Datei hoch. Danach wählst du aus, welche Endpunkte Missa sehen darf: lesende (GET) sind erlaubt,
   alle anderen fragen erst nach.

@@ -1,0 +1,58 @@
+# Eine REST-API nur mit Adresse und Key – ganz ohne OpenAPI-Datei.
+id: api
+name: API hinzufügen
+beschreibung: >-
+  Adresse und – falls nötig – Key eintragen, testen, aktivieren. Das Panel findet die Funktionen selbst
+  oder gibt Missa zwei allgemeine Funktionen zum Abrufen und Senden.
+symbol: "✨"
+art: api
+version: 1.0.0
+hervorgehoben: true
+hinweis: >-
+  Trag die Adresse der API ein, z. B. https://api.example.ch/v1. Beim Testen sucht das Panel selbst
+  nach einer OpenAPI-Beschreibung (openapi.json, swagger.json …). Gibt es keine, kann Missa die API
+  trotzdem nutzen: mit „abrufen“ (lesen) und „senden“ (ändern, fragt erst nach). Aufrufe gehen nur an
+  diese Adresse. Achtung: „localhost“ meint hier den Panel-Container – für Dienste auf ai01 die Adresse
+  von ai01 verwenden.
+felder:
+  - name: adresse
+    titel: Adresse der API
+    typ: url
+    pflicht: true
+    platzhalter: https://api.example.ch/v1
+    hilfe: Missa darf nur Pfade unterhalb dieser Adresse aufrufen.
+  - name: zugang
+    titel: Zugang (optional)
+    typ: zugang
+    hilfe: API-Key, Token oder Benutzer + Passwort – nur nötig, wenn die API einen verlangt.
+  - name: key_art
+    titel: Wie wird der Key gesendet?
+    typ: auswahl
+    standard: bearer
+    optionen:
+      - wert: bearer
+        titel: "Authorization: Bearer … (Standard)"
+      - wert: header
+        titel: Eigener Header (z. B. X-API-Key)
+      - wert: query
+        titel: URL-Parameter (z. B. ?api_key=…)
+      - wert: basic
+        titel: Benutzer und Passwort
+  - name: key_name
+    titel: Name des Headers bzw. URL-Parameters
+    typ: text
+    platzhalter: X-API-Key
+    hilfe: Steht in der Doku der API. Leer = X-API-Key bzw. api_key.
+    sichtbar_wenn:
+      key_art: [header, query]
+  - name: beschreibung
+    titel: Was ist das für eine API? (optional)
+    typ: text
+    platzhalter: z. B. Lagerverwaltung – Artikel, Bestände und Lieferungen
+    hilfe: Kommt in die Funktionsbeschreibungen, damit Missa weiss, wofür die API gut ist.
+  - name: endpunkte
+    titel: Eigene Endpunkte (optional)
+    typ: endpunkte
+    hilfe: >-
+      Jede Zeile wird eine eigene Funktion. Platzhalter wie {id} im Pfad werden zu Parametern.
+      GET ist lesend, alles andere schreibend.

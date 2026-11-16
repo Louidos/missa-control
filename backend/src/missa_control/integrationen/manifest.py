@@ -19,6 +19,7 @@ Beispiel:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
@@ -37,8 +38,9 @@ from missa_control.integrationen.typen import Recht
 
 MANIFEST_DATEI = "integration.yaml"
 
-Art = Literal["mcp", "openapi", "python", "webhook", "geraet"]
+Art = Literal["api", "mcp", "openapi", "python", "webhook", "geraet"]
 ART_NAMEN = {
+    "api": "API",
     "mcp": "MCP-Server",
     "openapi": "REST-API",
     "python": "Python",
@@ -46,7 +48,9 @@ ART_NAMEN = {
     "geraet": "Gerät",
 }
 
-FeldTyp = Literal["text", "zahl", "url", "auswahl", "zugang", "schalter", "datei"]
+FeldTyp = Literal["text", "zahl", "url", "auswahl", "zugang", "schalter", "datei", "endpunkte"]
+Methode = Literal["GET", "POST", "PUT", "PATCH", "DELETE"]
+METHODEN: tuple[str, ...] = ("GET", "POST", "PUT", "PATCH", "DELETE")
 ZugangTyp = Literal["api_key", "benutzer_passwort", "bearer_token"]
 
 Kennung = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]*$", max_length=40)]
@@ -75,6 +79,44 @@ class Option(BaseModel):
         return self
 
 
+class Endpunkt(BaseModel):
+    """Ein Endpunkt einer API, aus dem eine eigene Funktion wird (Feldtyp `endpunkte`).
+
+    `pfad` ist relativ zur Adresse der API und darf Platzhalter enthalten, z. B. `/artikel/{id}`.
+    GET ist lesend, alles andere schreibend.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: Kennung
+    methode: Methode = "GET"
+    pfad: str = Field(min_length=1, max_length=300)
+    beschreibung: str = Field(default="", max_length=500)
+
+    @field_validator("methode", mode="before")
+    @classmethod
+    def _gross(cls, wert: Any) -> Any:
+        return wert.strip().upper() if isinstance(wert, str) else wert
+
+    @field_validator("pfad")
+    @classmethod
+    def _pfad(cls, wert: str) -> str:
+        wert = wert.strip()
+        if not wert.startswith("/"):
+            wert = "/" + wert
+        if "://" in wert or wert.startswith("//") or "\\" in wert:
+            raise ValueError(
+                "Der Pfad darf keine vollständige Adresse sein – nur der Teil nach der Adresse der API"
+            )
+        if ".." in wert.split("?")[0].split("/"):
+            raise ValueError("Der Pfad darf kein „..“ enthalten")
+        return wert
+
+    def platzhalter(self) -> list[str]:
+        """Die Namen der Platzhalter im Pfad, z. B. `["id"]` für `/artikel/{id}`."""
+        return re.findall(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", self.pfad)
+
+
 class Feld(BaseModel):
     """Ein Feld im automatisch erzeugten Formular."""
 
@@ -95,6 +137,8 @@ class Feld(BaseModel):
     endungen: list[str] = Field(default_factory=list)
     # Feld erscheint erst nach erfolgreichem Test (Auswahl kommt aus dem Testergebnis).
     nach_test: bool = False
+    # Feld erscheint nur, wenn ein anderes Feld einen dieser Werte hat, z. B. {key_art: [header, query]}.
+    sichtbar_wenn: dict[str, list[str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _pruefen(self) -> Feld:
@@ -121,6 +165,8 @@ class Manifest(BaseModel):
     kennung: Kennung | None = None
     # Längerer Hinweis über dem Formular.
     hinweis: str = ""
+    # Karte steht im Katalog ganz vorne und ist hervorgehoben.
+    hervorgehoben: bool = False
 
     @field_validator("version", mode="before")
     @classmethod

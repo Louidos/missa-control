@@ -167,6 +167,87 @@ def artikel_rest_api(api_key: str | None = None) -> FastAPI:
     return app
 
 
+def einfache_api(
+    key: str | None = None,
+    art: str = "bearer",
+    name: str = "X-API-Key",
+    beschreibung_unter: str | None = None,
+    weiter_nach: str | None = None,
+) -> FastAPI:
+    """Eine REST-API unter /v1 – mit oder ohne OpenAPI-Beschreibung, mit Key auf vier Arten.
+
+    `art`: "bearer", "header" (Header `name`), "query" (URL-Parameter `name`) oder "basic"
+    (`key` = "benutzer:passwort"). `beschreibung_unter`: Pfad der OpenAPI-Beschreibung (sonst keine).
+    `weiter_nach`: /v1/weiter leitet dorthin weiter.
+    """
+    import base64
+
+    app = FastAPI(title="Lager-API", openapi_url=beschreibung_unter, docs_url=None, redoc_url=None)
+    app.state.anfragen = []
+    artikel: dict[str, dict[str, Any]] = {"1": {"id": "1", "name": "Apfel"}}
+
+    def erlaubt(request: Request) -> bool:
+        if key is None:
+            return True
+        if art == "bearer":
+            return request.headers.get("authorization") == f"Bearer {key}"
+        if art == "header":
+            return request.headers.get(name) == key
+        if art == "query":
+            return request.query_params.get(name) == key
+        return request.headers.get("authorization") == "Basic " + base64.b64encode(key.encode()).decode()
+
+    @app.middleware("http")
+    async def mitschreiben(request: Request, weiter: Any) -> Any:
+        app.state.anfragen.append(
+            {
+                "methode": request.method,
+                "pfad": request.url.path,
+                "query": dict(request.query_params),
+                "headers": dict(request.headers),
+            }
+        )
+        if request.url.path != beschreibung_unter and not erlaubt(request):
+            return JSONResponse({"error": "unauthorized"}, status_code=401)
+        return await weiter(request)
+
+    @app.get("/v1", include_in_schema=False)
+    def wurzel() -> dict[str, str]:
+        return {"name": "Lager-API"}
+
+    @app.get("/v1/artikel", operation_id="artikel_auflisten", summary="Alle Artikel auflisten")
+    def auflisten(suche: str | None = None) -> list[dict[str, Any]]:
+        return [a for a in artikel.values() if not suche or suche.lower() in a["name"].lower()]
+
+    @app.get("/v1/artikel/{artikel_id}", operation_id="artikel_lesen", summary="Einen Artikel lesen")
+    def lesen(artikel_id: str) -> dict[str, Any]:
+        if artikel_id not in artikel:
+            raise HTTPException(status_code=404, detail="gibt es nicht")
+        return artikel[artikel_id]
+
+    @app.post("/v1/artikel", operation_id="artikel_anlegen", summary="Einen Artikel anlegen")
+    def anlegen(neu: Artikel) -> dict[str, Any]:
+        nummer = str(len(artikel) + 1)
+        artikel[nummer] = {"id": nummer, "name": neu.name}
+        return artikel[nummer]
+
+    @app.get("/v1/echo", include_in_schema=False)
+    def echo(request: Request) -> dict[str, Any]:
+        return {"headers": dict(request.headers), "query": dict(request.query_params)}
+
+    @app.get("/v1/weiter", include_in_schema=False)
+    def weiter() -> Any:
+        from starlette.responses import RedirectResponse
+
+        return RedirectResponse(weiter_nach or "/v1/artikel", status_code=302)
+
+    @app.get("/geheim", include_in_schema=False)
+    def ausserhalb() -> dict[str, str]:
+        return {"das": "sollte niemand sehen"}
+
+    return app
+
+
 def modell_server(modellname: str = "test-modell", api_key: str | None = None, pause: float = 0.0) -> FastAPI:
     """Ein kleiner OpenAI-kompatibler Server. `app.state.kaputt = True` lässt ihn mit 500 antworten."""
     app = FastAPI()

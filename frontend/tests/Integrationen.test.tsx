@@ -658,3 +658,124 @@ test("Bearbeiten lädt die Auswahl aus dem Verbindungstest von selbst (z. B. die
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(aufrufe.find((a) => a.methode === "PUT")?.koerper).toMatchObject({ konfig: { kalender: "/louis/arbeit/" } });
 });
+
+// ---------------------------------------------------------------- API hinzufügen
+
+const API_KARTE = karte({
+  id: "api",
+  name: "API hinzufügen",
+  beschreibung: "Adresse und Key eintragen, testen, aktivieren.",
+  symbol: "✨",
+  art: "api",
+  art_name: "API",
+  hervorgehoben: true,
+  felder: [
+    feld({ name: "adresse", titel: "Adresse der API", typ: "url", pflicht: true }),
+    feld({ name: "zugang", titel: "Zugang (optional)", typ: "zugang" }),
+    feld({
+      name: "key_art",
+      titel: "Wie wird der Key gesendet?",
+      typ: "auswahl",
+      standard: "bearer",
+      optionen: [
+        { wert: "bearer", titel: "Authorization: Bearer" },
+        { wert: "header", titel: "Eigener Header" },
+      ],
+    }),
+    feld({ name: "key_name", titel: "Name des Headers", sichtbar_wenn: { key_art: ["header", "query"] } }),
+    feld({ name: "endpunkte", titel: "Eigene Endpunkte (optional)", typ: "endpunkte" }),
+  ],
+});
+
+test("„API hinzufügen“ steht zuerst und ist hervorgehoben", async () => {
+  backend({ "GET /api/katalog": { eintraege: [karte({}), REST, API_KARTE], probleme: [] } });
+  zeige(<Katalog />, "/katalog");
+  const titel = await screen.findAllByRole("heading", { level: 2 });
+  expect(titel[0]).toHaveTextContent("API hinzufügen");
+  expect(titel[0].closest("article")).toHaveClass("hervorgehoben");
+});
+
+test("API hinzufügen: Adresse eintragen, „Testen und aktivieren“ – ein Klick, fertig", async () => {
+  const aufrufe = backend({
+    "GET /api/katalog": { eintraege: [API_KARTE], probleme: [] },
+    "GET /api/zugaenge": [],
+    "POST /api/integrationen/testen": {
+      ...TEST_OK,
+      meldung: "Verbunden mit https://lager.example/v1. Keine OpenAPI-Beschreibung gefunden.",
+      details: ["Adresse der API: https://lager.example/v1"],
+      funktionen: [
+        { name: "abrufen", beschreibung: "Ruft Daten ab", schreibend: false, recht: "erlaubt" },
+        { name: "senden", beschreibung: "Sendet Daten", schreibend: true, recht: "nachfragen" },
+        { name: "artikel_lesen", beschreibung: "Ein Artikel", schreibend: false, recht: "erlaubt" },
+      ],
+    },
+    "POST /api/integrationen": integration({
+      name: "Lager",
+      kennung: "lager",
+      manifest_id: "api",
+      funktionen: [
+        { ...integration({}).funktionen[0], id: 7, name: "abrufen", gateway_name: "lager_abrufen" },
+        { ...integration({}).funktionen[1], id: 8, name: "senden", gateway_name: "lager_senden" },
+      ],
+    }),
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Katalog />, "/katalog");
+  await nutzer.click(await screen.findByRole("button", { name: "API hinzufügen" }));
+  const dialog = screen.getByRole("dialog");
+  await nutzer.clear(within(dialog).getByLabelText("Name"));
+  await nutzer.type(within(dialog).getByLabelText("Name"), "Lager");
+  await nutzer.type(within(dialog).getByLabelText(/Adresse der API/), "https://lager.example/v1");
+
+  // Der Name des Headers erscheint erst, wenn „Eigener Header“ gewählt ist.
+  expect(within(dialog).queryByLabelText("Name des Headers")).not.toBeInTheDocument();
+  await nutzer.selectOptions(within(dialog).getByLabelText(/Wie wird der Key gesendet/), "header");
+  await nutzer.type(within(dialog).getByLabelText("Name des Headers"), "X-Lager-Key");
+
+  // Eigener Endpunkt (aufklappbar)
+  await nutzer.click(within(dialog).getByText("Eigene Endpunkte (optional)"));
+  await nutzer.click(within(dialog).getByRole("button", { name: "Endpunkt hinzufügen" }));
+  await nutzer.type(within(dialog).getByLabelText("Name der Funktion"), "artikel_lesen");
+  await nutzer.type(within(dialog).getByLabelText("Pfad"), "/artikel/{{id}");
+
+  await nutzer.click(within(dialog).getByRole("button", { name: "Testen und aktivieren" }));
+  expect(await within(dialog).findByText("„Lager“ ist aktiv")).toBeInTheDocument();
+  expect(within(dialog).getByText(/Keine OpenAPI-Beschreibung gefunden/)).toBeInTheDocument();
+  expect(within(dialog).getByText("lager_abrufen")).toBeInTheDocument();
+  expect(within(dialog).getByText(/Missa kann jetzt 3 Funktionen nutzen/)).toBeInTheDocument();
+
+  const konfig = {
+    adresse: "https://lager.example/v1",
+    key_art: "header",
+    key_name: "X-Lager-Key",
+    endpunkte: [{ name: "artikel_lesen", methode: "GET", pfad: "/artikel/{id}", beschreibung: "" }],
+  };
+  expect(aufrufe.find((a) => a.pfad === "/api/integrationen/testen")?.koerper).toEqual({ manifest_id: "api", konfig });
+  expect(aufrufe.find((a) => a.methode === "POST" && a.pfad === "/api/integrationen")?.koerper).toEqual({
+    manifest_id: "api",
+    name: "Lager",
+    konfig,
+    rechte: { abrufen: "erlaubt", senden: "nachfragen", artikel_lesen: "erlaubt" },
+    test_id: "test-1",
+  });
+});
+
+test("API hinzufügen: fehlgeschlagener Test bleibt im Formular und aktiviert nichts", async () => {
+  const aufrufe = backend({
+    "GET /api/katalog": { eintraege: [API_KARTE], probleme: [] },
+    "GET /api/zugaenge": [],
+    "POST /api/integrationen/testen": {
+      ok: false,
+      meldung: "Die Gegenstelle lehnt den Zugang ab (401 – nicht angemeldet).",
+      hinweis: "Die API verlangt einen Key.",
+    },
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Katalog />, "/katalog?neu=api");
+  const dialog = await screen.findByRole("dialog");
+  await nutzer.type(within(dialog).getByLabelText(/Adresse der API/), "https://lager.example/v1");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Testen und aktivieren" }));
+  expect(await within(dialog).findByText(/lehnt den Zugang ab/)).toBeInTheDocument();
+  expect(within(dialog).getByText("Die API verlangt einen Key.")).toBeInTheDocument();
+  expect(aufrufe.some((a) => a.methode === "POST" && a.pfad === "/api/integrationen")).toBe(false);
+});

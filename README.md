@@ -13,7 +13,8 @@ Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
 ## Was es kann
 
 - **Integrationen in 3 Schritten:** Karte im Katalog wählen, Formular ausfüllen, „Testen und
-  aktivieren“. Ohne Code für MCP-Server (per URL), REST-APIs (per OpenAPI), eingehende Webhooks und
+  aktivieren“. Ohne Code für beliebige APIs (nur Adresse und Key), MCP-Server (per URL), REST-APIs
+  (per OpenAPI-Datei), eingehende Webhooks und
   Geräte; fertige Karten für Nextcloud-Kalender und Home Assistant; eigene Integrationen als Ordner
   mit wenig Python.
 - **Ein Anschluss für Missa:** Alle Funktionen kommen über ein MCP-Gateway bei missa-core an – mit
@@ -72,14 +73,19 @@ Ausführlich, mit allen Einstellungen und Fehlerbehebung: [docs/installation.md]
 
 ## Erste Integration in 3 Schritten
 
-1. Im Panel **Katalog** öffnen und eine Karte wählen, z. B. „MCP-Server“.
-2. Das Formular ausfüllen (beim MCP-Server nur die URL) und **Verbindung testen**.
-3. Rechte prüfen und **Aktivieren**.
+1. Im Panel **Katalog** öffnen und die Karte **„API hinzufügen“** wählen (ganz vorne).
+2. Die **Adresse der API** eintragen und – falls die API einen verlangt – den **Key** als Zugang.
+3. **Testen und aktivieren.**
 
-Lesende Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“. Die Integration erscheint
-sofort in der Übersicht.
+Das Panel sucht selbst nach einer OpenAPI-Beschreibung. Gibt es eine, entstehen die Funktionen
+daraus; sonst bekommt Missa zwei allgemeine Funktionen, `…_abrufen` und `…_senden`. Lesende
+Funktionen sind danach „erlaubt“, schreibende fragen „erst nach“. Die Funktionen stehen sofort am
+Gateway, die Integration erscheint in der Übersicht. Mehr dazu: [docs/api-hinzufuegen.md](docs/api-hinzufuegen.md).
 
-Fertige Karten gibt es für MCP-Server, REST-APIs (OpenAPI), Nextcloud-Kalender, Home Assistant,
+Bei den anderen Karten ist es genauso: Karte wählen, Formular ausfüllen (beim MCP-Server nur die
+URL), **Verbindung testen**, Rechte prüfen und **Aktivieren**.
+
+Fertige Karten gibt es für beliebige APIs („API hinzufügen“), MCP-Server, REST-APIs (OpenAPI-Datei), Nextcloud-Kalender, Home Assistant,
 eingehende Webhooks, Geräte sowie Serverlast, Gedächtnis, Regeln und Telefonie. Eigene Integrationen
 mit wenig Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
 
@@ -106,6 +112,7 @@ Alle Skripte arbeiten nur mit dem Compose-Projekt `missa-control` und nur im Rep
 | Installation, alle Einstellungen, Update, Backup, Fehlerbehebung | [docs/installation.md](docs/installation.md) |
 | Sicherheit: wer das Panel erreichen darf, Firewall, VPN, `.env` und Backups | [docs/sicherheit.md](docs/sicherheit.md) |
 | missa-core anbinden (Funktionen, Ereignisse, Modelle, Profil) | [docs/anbindung-missa-core.md](docs/anbindung-missa-core.md) |
+| Eine API mit Adresse und Key hinzufügen | [docs/api-hinzufuegen.md](docs/api-hinzufuegen.md) |
 | Eigene Integration schreiben | [docs/eigene-integration.md](docs/eigene-integration.md) |
 | Geräte anbinden (ESP32, Raspberry Pi Pico), eigene Firmware | [docs/geraete.md](docs/geraete.md) |
 | Telefonie: Einstellungen und eigene Adapter | [docs/telefonie.md](docs/telefonie.md) |

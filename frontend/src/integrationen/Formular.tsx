@@ -2,7 +2,8 @@ import { useId } from "react";
 
 import { Feld as FeldRahmen } from "../ui/ui";
 import { ZugangFeld } from "../zugaenge/ZugangFeld";
-import type { Feld, Konfig, Option, Wert } from "./typen";
+import { EndpunkteFeld } from "./EndpunkteFeld";
+import { type Endpunkt, type Feld, feldSichtbar, type Konfig, type Option, type Wert } from "./typen";
 
 interface Props {
   felder: Feld[];
@@ -21,7 +22,7 @@ export function Formular({ felder, werte, onAendern, optionen, zugangName }: Pro
 
   return (
     <>
-      {felder.map((feld) => {
+      {felder.filter((feld) => feldSichtbar(feld, werte)).map((feld) => {
         const id = `${basis}-${feld.name}`;
         const wert = werte[feld.name];
         const text = typeof wert === "string" || typeof wert === "number" ? String(wert) : "";
@@ -35,6 +36,18 @@ export function Formular({ felder, werte, onAendern, optionen, zugangName }: Pro
               </label>
               {feld.hilfe && <div className="feld-hilfe">{feld.hilfe}</div>}
             </div>
+          );
+        }
+
+        if (feld.typ === "endpunkte") {
+          return (
+            <EndpunkteFeld
+              key={feld.name}
+              titel={feld.titel}
+              hilfe={feld.hilfe}
+              wert={Array.isArray(wert) ? (wert as Endpunkt[]) : []}
+              onAendern={(liste) => setze(feld.name, liste)}
+            />
           );
         }
 

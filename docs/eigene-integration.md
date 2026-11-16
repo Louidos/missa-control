@@ -95,7 +95,7 @@ erlaubt) und `erreichbarkeit_notiz_merken` (schreibend, fragt erst nach).
 | `id` | ja | Eindeutiger Kurzname: Kleinbuchstaben, Ziffern, Bindestriche |
 | `name` | ja | Titel der Karte im Katalog |
 | `beschreibung` | ja | Ein Satz: Was kann Missa damit? |
-| `art` | ja | `python` für eigenen Code (daneben gibt es `mcp`, `openapi`, `webhook`, `geraet`) |
+| `art` | ja | `python` für eigenen Code (daneben gibt es `api`, `mcp`, `openapi`, `webhook`, `geraet`) |
 | `symbol` | nein | Ein Emoji |
 | `version` | nein | Version der Integration, z. B. `1.0.0` |
 | `felder` | nein | Die Felder des Formulars (siehe unten) |
@@ -103,6 +103,7 @@ erlaubt) und `erreichbarkeit_notiz_merken` (schreibend, fragt erst nach).
 | `mehrfach` | nein | `false`, wenn die Integration nur einmal eingerichtet werden darf |
 | `kennung` | nein | Feste Vorsilbe der Funktionsnamen (sonst aus dem Namen gebildet) |
 | `hinweis` | nein | Erklärender Text über dem Formular |
+| `hervorgehoben` | nein | `true`: Karte steht im Katalog ganz vorne und ist hervorgehoben |
 
 Tippfehler fallen sofort auf: Unbekannte Einträge lehnt das Panel mit einer klaren Meldung ab.
 
@@ -119,10 +120,12 @@ Jedes Feld hat `name` (so heisst der Wert im Code), `titel` (Beschriftung) und e
 | `schalter` | Ein/Aus | → `True` / `False` |
 | `zugang` | Zugang auswählen oder direkt neu anlegen | `kontext.zugang("name")` |
 | `datei` | Datei hochladen (Inhalt als Text) | → Inhalt der Datei |
+| `endpunkte` | aufklappbare Liste aus Name, Methode, Pfad, Beschreibung (für `art: api`) | → Liste von Endpunkten |
 
 Weitere Angaben pro Feld: `pflicht`, `hilfe`, `platzhalter`, `standard`, bei `auswahl` die `optionen`
 (`- wert` oder `- {wert: …, titel: …}`), bei `zugang` die erlaubten `zugang_typen`
-(`api_key`, `bearer_token`, `benutzer_passwort`), bei `datei` die `endungen`.
+(`api_key`, `bearer_token`, `benutzer_passwort`), bei `datei` die `endungen`. Mit `sichtbar_wenn`
+erscheint ein Feld nur bei bestimmten Werten eines anderen Feldes, z. B. `sichtbar_wenn: {key_art: [header, query]}`.
 
 **Geheimnisse gehören nie in ein Textfeld.** Mit `typ: zugang` werden sie verschlüsselt gespeichert,
 nur maskiert angezeigt und automatisch aus allen Protokollen geschwärzt.

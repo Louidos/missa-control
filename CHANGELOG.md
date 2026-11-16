@@ -7,6 +7,11 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unveröffentlicht
 
+### Hinzugefügt
+
+- Neue Doku zum Aufbau des Panels (`docs/architektur.md`), eine Referenz aller HTTP-Pfade mit
+  Zugang (`docs/api-referenz.md`) und eine Anleitung für die Entwicklung (`docs/entwicklung.md`)
+
 ## [0.2.0] - 2026-11-16
 
 APIs in einem Schritt, Zugriffsstufen, Missa-Core verbinden, Vorlagen, Statistik, Sicherung,

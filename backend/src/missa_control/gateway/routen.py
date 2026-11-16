@@ -107,6 +107,8 @@ def konfig_integrationen(db: Session = Depends(get_db)) -> dict[str, Any]:
                 "kennung": integration.kennung,
                 "art": integration.manifest_id,
                 "status": integration.status,
+                # Wie viel Missa bei dieser Integration darf: "lesen", "nachfragen" oder "voll".
+                "zugriff": integration.zugriff,
                 "funktionen": [],
             },
         )

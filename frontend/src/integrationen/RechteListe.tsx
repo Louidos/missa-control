@@ -4,7 +4,7 @@ import { Knopf } from "../ui/ui";
 import { type Recht, RECHTE, type TestFunktion } from "./typen";
 
 interface Props {
-  funktionen: (TestFunktion & { anzeigeName?: string; vorhanden?: boolean })[];
+  funktionen: (TestFunktion & { anzeigeName?: string; vorhanden?: boolean; zu_pruefen?: boolean })[];
   rechte: Record<string, Recht>;
   onAendern: (rechte: Record<string, Recht>) => void;
   /** Zusätzliche Spalte am Ende jeder Zeile (z. B. „Ausprobieren“). */
@@ -61,6 +61,7 @@ export function RechteListe({ funktionen, rechte, onAendern, aktion }: Props) {
                   {funktion.schreibend ? "schreibend" : "lesend"}
                 </span>
                 {funktion.vorhanden === false && <span className="etikett fehlt">nicht mehr vorhanden</span>}
+                {funktion.zu_pruefen && <span className="etikett warn">neu – bitte prüfen</span>}
               </div>
               <div className="gedaempft klein">{funktion.beschreibung}</div>
             </div>

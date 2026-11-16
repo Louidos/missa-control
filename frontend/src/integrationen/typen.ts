@@ -12,6 +12,30 @@ export const RECHTE: { wert: Recht; name: string }[] = [
   { wert: "gesperrt", name: "gesperrt" },
 ];
 
+/** Wie viel Missa bei einer Integration darf – setzt alle Rechte auf einmal. */
+export type Zugriff = "lesen" | "nachfragen" | "voll";
+
+export const ZUGRIFFE: { wert: Zugriff; name: string; text: string }[] = [
+  { wert: "lesen", name: "Nur lesen", text: "Lesende Funktionen erlaubt, schreibende gesperrt." },
+  { wert: "nachfragen", name: "Schreiben erst nachfragen", text: "Lesend erlaubt, schreibend erst nach deiner Freigabe." },
+  { wert: "voll", name: "Voller Zugriff", text: "Alles erlaubt – auch ändern und löschen, ohne Nachfrage." },
+];
+
+/** Das Recht einer Funktion nach der Zugriffsstufe (wie im Backend). */
+export function rechtFuerStufe(stufe: Zugriff, schreibend: boolean): Recht {
+  if (!schreibend || stufe === "voll") return "erlaubt";
+  return stufe === "lesen" ? "gesperrt" : "nachfragen";
+}
+
+/** Weicht ein Recht von der Stufe ab? */
+export function stufeAngepasst(
+  stufe: Zugriff,
+  funktionen: { name: string; schreibend: boolean }[],
+  rechte: Record<string, Recht>,
+): boolean {
+  return funktionen.some((f) => rechte[f.name] !== undefined && rechte[f.name] !== rechtFuerStufe(stufe, f.schreibend));
+}
+
 export interface Option {
   wert: string;
   titel: string;
@@ -91,6 +115,8 @@ export interface Funktion extends TestFunktion {
   id: number;
   gateway_name: string;
   vorhanden: boolean;
+  /** Neu dazugekommen unter „Voller Zugriff“ – startet mit „erst nachfragen“, bis du sie prüfst. */
+  zu_pruefen?: boolean;
   parameter: { properties?: Record<string, unknown>; required?: string[] };
 }
 
@@ -108,6 +134,11 @@ export interface Integration {
   art_name: string;
   konfig: Konfig;
   aktiv: boolean;
+  zugriff: Zugriff;
+  /** Einzelne Rechte weichen von der Stufe ab. */
+  zugriff_angepasst: boolean;
+  /** So viele neue Funktionen warten darauf, geprüft zu werden. */
+  neu_zu_pruefen: number;
   status: "ok" | "fehler" | "ungetestet";
   status_meldung: string;
   status_hinweis: string;

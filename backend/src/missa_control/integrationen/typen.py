@@ -9,6 +9,10 @@ Recht = Literal["erlaubt", "nachfragen", "gesperrt"]
 RECHTE: tuple[Recht, ...] = ("erlaubt", "nachfragen", "gesperrt")
 RECHT_NAMEN = {"erlaubt": "erlaubt", "nachfragen": "erst nachfragen", "gesperrt": "gesperrt"}
 
+Zugriff = Literal["lesen", "nachfragen", "voll"]
+ZUGRIFFE: tuple[Zugriff, ...] = ("lesen", "nachfragen", "voll")
+ZUGRIFF_NAMEN = {"lesen": "Nur lesen", "nachfragen": "Schreiben erst nachfragen", "voll": "Voller Zugriff"}
+
 STATUS_OK = "ok"
 STATUS_FEHLER = "fehler"
 STATUS_UNGETESTET = "ungetestet"
@@ -29,6 +33,18 @@ class IntegrationsFehler(Exception):
 def standardrecht(schreibend: bool) -> Recht:
     """Lesende Funktionen sind erlaubt, schreibende/löschende/anrufende fragen erst nach."""
     return "nachfragen" if schreibend else "erlaubt"
+
+
+def recht_fuer_stufe(zugriff: str, schreibend: bool) -> Recht:
+    """Das Recht einer Funktion nach der Zugriffsstufe der Integration.
+
+    - `lesen`: lesend erlaubt, schreibend gesperrt
+    - `nachfragen`: lesend erlaubt, schreibend erst nachfragen
+    - `voll`: alles erlaubt
+    """
+    if not schreibend or zugriff == "voll":
+        return "erlaubt"
+    return "gesperrt" if zugriff == "lesen" else "nachfragen"
 
 
 @dataclass

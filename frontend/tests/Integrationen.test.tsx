@@ -69,6 +69,9 @@ function integration(teil: Partial<Integration>): Integration {
     art_name: "MCP-Server",
     konfig: { url: "http://server:8000/mcp" },
     aktiv: true,
+    zugriff: "nachfragen",
+    zugriff_angepasst: false,
+    neu_zu_pruefen: 0,
     status: "ok",
     status_meldung: "",
     status_hinweis: "",
@@ -206,6 +209,7 @@ test("MCP-Server in drei Schritten: Karte wählen, URL eintragen und testen, akt
     konfig: { url: "http://server:8000/mcp" },
     rechte: { notizen_auflisten: "erlaubt", notiz_anlegen: "nachfragen" },
     test_id: "test-1",
+    zugriff: "nachfragen",
   });
 });
 
@@ -757,6 +761,7 @@ test("API hinzufügen: Adresse eintragen, „Testen und aktivieren“ – ein Kl
     konfig,
     rechte: { abrufen: "erlaubt", senden: "nachfragen", artikel_lesen: "erlaubt" },
     test_id: "test-1",
+    zugriff: "nachfragen",
   });
 });
 
@@ -778,4 +783,88 @@ test("API hinzufügen: fehlgeschlagener Test bleibt im Formular und aktiviert ni
   expect(await within(dialog).findByText(/lehnt den Zugang ab/)).toBeInTheDocument();
   expect(within(dialog).getByText("Die API verlangt einen Key.")).toBeInTheDocument();
   expect(aufrufe.some((a) => a.methode === "POST" && a.pfad === "/api/integrationen")).toBe(false);
+});
+
+// ---------------------------------------------------------------- Zugriffsstufe
+
+test("Assistent: Stufe „Nur lesen“ setzt alle Rechte, ein einzelnes Recht ändern zeigt „angepasst“", async () => {
+  const aufrufe = backend({
+    "GET /api/katalog": KATALOG,
+    "GET /api/zugaenge": [],
+    "POST /api/integrationen/testen": TEST_OK,
+    "POST /api/integrationen": integration({ zugriff: "lesen" }),
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Katalog />, "/katalog?neu=mcp-server");
+  const dialog = await screen.findByRole("dialog");
+  await nutzer.type(within(dialog).getByLabelText(/URL des MCP-Servers/), "http://server:8000/mcp");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Verbindung testen" }));
+
+  const stufen = await within(dialog).findByRole("radiogroup", { name: "Zugriffsstufe" });
+  expect(within(stufen).getByRole("radio", { name: "Schreiben erst nachfragen" })).toHaveAttribute("aria-checked", "true");
+  await nutzer.click(within(stufen).getByRole("radio", { name: "Nur lesen" }));
+  expect(within(dialog).getByLabelText("Recht für notiz_anlegen")).toHaveValue("gesperrt");
+  expect(within(dialog).getByLabelText("Recht für notizen_auflisten")).toHaveValue("erlaubt");
+  expect(within(dialog).queryByText("angepasst")).not.toBeInTheDocument();
+
+  await nutzer.selectOptions(within(dialog).getByLabelText("Recht für notiz_anlegen"), "nachfragen");
+  expect(within(dialog).getByText("angepasst")).toBeInTheDocument();
+
+  await nutzer.click(within(dialog).getByRole("button", { name: "Aktivieren" }));
+  await within(dialog).findByText("„Notizen“ ist aktiv");
+  expect(aufrufe.find((a) => a.methode === "POST" && a.pfad === "/api/integrationen")?.koerper).toMatchObject({
+    zugriff: "lesen",
+    rechte: { notizen_auflisten: "erlaubt", notiz_anlegen: "nachfragen" },
+  });
+});
+
+test("„Voller Zugriff“ fragt mit der Liste der schreibenden Funktionen nach", async () => {
+  backend({
+    "GET /api/katalog": KATALOG,
+    "GET /api/zugaenge": [],
+    "POST /api/integrationen/testen": TEST_OK,
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Katalog />, "/katalog?neu=mcp-server");
+  const dialog = await screen.findByRole("dialog");
+  await nutzer.type(within(dialog).getByLabelText(/URL des MCP-Servers/), "http://server:8000/mcp");
+  await nutzer.click(within(dialog).getByRole("button", { name: "Verbindung testen" }));
+  await nutzer.click(await within(dialog).findByRole("radio", { name: "Voller Zugriff" }));
+
+  const frage = await screen.findByRole("dialog", { name: "Voller Zugriff?" });
+  expect(within(frage).getByText("Missa darf dann ohne Nachfrage auch ändern und löschen.")).toBeInTheDocument();
+  expect(within(within(frage).getByRole("list", { name: "Betroffene Funktionen" })).getAllByRole("listitem")).toHaveLength(1);
+  expect(within(frage).getByText("notiz_anlegen")).toBeInTheDocument();
+
+  // Abbrechen ändert nichts
+  await nutzer.click(within(frage).getByRole("button", { name: "Abbrechen" }));
+  expect(within(dialog).getByLabelText("Recht für notiz_anlegen")).toHaveValue("nachfragen");
+
+  await nutzer.click(within(dialog).getByRole("radio", { name: "Voller Zugriff" }));
+  await nutzer.click(within(await screen.findByRole("dialog", { name: "Voller Zugriff?" })).getByRole("button", { name: "Voller Zugriff" }));
+  expect(within(dialog).getByLabelText("Recht für notiz_anlegen")).toHaveValue("erlaubt");
+  expect(within(dialog).getByRole("radio", { name: "Voller Zugriff" })).toHaveAttribute("aria-checked", "true");
+});
+
+test("Seite Integrationen: Stufe mit einem Klick wechseln, neue Funktionen als geprüft markieren", async () => {
+  const neu = integration({
+    zugriff: "voll",
+    neu_zu_pruefen: 1,
+    funktionen: integration({}).funktionen.map((f) => (f.schreibend ? { ...f, zu_pruefen: true } : f)),
+  });
+  const aufrufe = backend({
+    "GET /api/integrationen": [neu],
+    "PUT /api/integrationen/1": (koerper) =>
+      (koerper as { zugriff?: string }).zugriff
+        ? { ...neu, zugriff: "lesen", neu_zu_pruefen: 0 }
+        : { ...neu, neu_zu_pruefen: 0 },
+  });
+  const nutzer = userEvent.setup();
+  zeige(<Integrationen />, "/integrationen");
+  expect(await screen.findByText(/1 neue Funktion – bitte prüfen/)).toBeInTheDocument();
+  await nutzer.click(screen.getByRole("button", { name: "Ansehen" }));
+  expect(screen.getByText("neu – bitte prüfen")).toBeInTheDocument();
+  await nutzer.click(screen.getByRole("radio", { name: "Nur lesen" }));
+  await waitFor(() => expect(screen.queryByText(/neue Funktion – bitte prüfen/)).not.toBeInTheDocument());
+  expect(aufrufe.find((a) => a.methode === "PUT")?.koerper).toEqual({ zugriff: "lesen" });
 });

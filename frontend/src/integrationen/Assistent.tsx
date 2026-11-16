@@ -5,10 +5,11 @@ import { Link } from "react-router";
 
 import { api } from "../api";
 import { KopplungsDaten } from "../geraete/KopplungsDaten";
-import { Dialog } from "../ui/Dialog";
+import { Bestaetigung, Dialog } from "../ui/Dialog";
 import { FehlerMeldung, Feld, Knopf, Meldung } from "../ui/ui";
 import { Formular } from "./Formular";
 import { RechteListe } from "./RechteListe";
+import { StufenSchalter } from "./StufenSchalter";
 import { WebhookAdresse } from "./WebhookAdresse";
 import {
   type Integration,
@@ -17,8 +18,11 @@ import {
   type KatalogEintrag,
   type Konfig,
   type Recht,
+  rechtFuerStufe,
   standardwerte,
+  stufeAngepasst,
   type TestErgebnis,
+  type Zugriff,
 } from "./typen";
 
 type Erfolg = Extract<TestErgebnis, { ok: true }>;
@@ -34,6 +38,9 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
   const [test, setTest] = useState<Erfolg | null>(null);
   const [rechte, setRechte] = useState<Record<string, Recht>>({});
   const [fertig, setFertig] = useState<Integration | null>(null);
+  const [stufe, setStufe] = useState<Zugriff>("nachfragen");
+  // Nur bei „API hinzufügen“ mit „Voller Zugriff“: nach dem Test noch einmal nachfragen.
+  const [vollNachfrage, setVollNachfrage] = useState<{ test: Erfolg; rechte: Record<string, Recht> } | null>(null);
 
   // Bei „API hinzufügen“ geht es in einem Schritt: testen und gleich mit den Vorschlägen aktivieren.
   const direkt = eintrag.art === "api";
@@ -45,10 +52,19 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
     onSuccess: (ergebnis) => {
       if (!ergebnis.ok) return;
       setTest(ergebnis);
-      const vorschlag = Object.fromEntries(ergebnis.funktionen.map((funktion) => [funktion.name, funktion.recht]));
+      const vorschlag = Object.fromEntries(
+        ergebnis.funktionen.map((funktion) => [
+          funktion.name,
+          stufe === "nachfragen" ? funktion.recht : rechtFuerStufe(stufe, funktion.schreibend),
+        ]),
+      );
       setRechte(vorschlag);
       if (direkt) {
-        aktivieren.mutate({ test: ergebnis, rechte: vorschlag });
+        if (stufe === "voll" && ergebnis.funktionen.some((funktion) => funktion.schreibend)) {
+          setVollNachfrage({ test: ergebnis, rechte: vorschlag });
+        } else {
+          aktivieren.mutate({ test: ergebnis, rechte: vorschlag });
+        }
         return;
       }
       // Auswahlfelder, die erst der Test füllt (z. B. die gefundenen Kalender): die erste Möglichkeit vorschlagen.
@@ -68,6 +84,7 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
         konfig: werte,
         rechte: direktDaten?.rechte ?? rechte,
         test_id: direktDaten?.test.test_id ?? test?.test_id,
+        zugriff: stufe,
       }),
     onSuccess: async (integration) => {
       setFertig(integration);
@@ -106,6 +123,12 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
             <input id="assistent-name" type="text" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
           </Feld>
           <Formular felder={vorTest} werte={werte} onAendern={setWerte} zugangName={name} />
+          {direkt && (
+            <div className="feld">
+              <span className="feld-titel">Was darf Missa?</span>
+              <StufenSchalter wert={stufe} angepasst={false} schreibende={[]} onWaehlen={setStufe} />
+            </div>
+          )}
           {fehlgeschlagen && (
             <Meldung art="fehler" hinweis={fehlgeschlagen.hinweis ?? undefined}>
               {fehlgeschlagen.meldung}
@@ -157,6 +180,17 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
                   ? "Diese API hat sehr viele Funktionen. Zunächst ist alles gesperrt – wähle aus, was Missa sehen darf."
                   : "Vorschlag: Lesende Funktionen sind erlaubt, schreibende fragen erst nach. Gesperrte sieht Missa gar nicht."}
               </p>
+              <StufenSchalter
+                wert={stufe}
+                angepasst={stufeAngepasst(stufe, test.funktionen, rechte)}
+                schreibende={test.funktionen.filter((funktion) => funktion.schreibend).map((funktion) => funktion.name)}
+                onWaehlen={(neu) => {
+                  setStufe(neu);
+                  setRechte(
+                    Object.fromEntries(test.funktionen.map((f) => [f.name, rechtFuerStufe(neu, f.schreibend)])),
+                  );
+                }}
+              />
               <RechteListe funktionen={test.funktionen} rechte={rechte} onAendern={setRechte} />
             </div>
           ) : eintrag.art === "webhook" ? (
@@ -236,6 +270,38 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
             </Knopf>
           </div>
         </div>
+      )}
+      {vollNachfrage && (
+        <Bestaetigung
+          titel="Voller Zugriff?"
+          text={
+            <div className="stapel eng">
+              <p>
+                <strong>Missa darf dann ohne Nachfrage auch ändern und löschen.</strong> Das betrifft diese schreibenden
+                Funktionen:
+              </p>
+              <ul aria-label="Betroffene Funktionen">
+                {vollNachfrage.test.funktionen
+                  .filter((funktion) => funktion.schreibend)
+                  .map((funktion) => (
+                    <li key={funktion.name}>
+                      <code>{funktion.name}</code>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          }
+          knopf="Voller Zugriff"
+          laeuft={aktivieren.isPending}
+          onBestaetigen={() => {
+            aktivieren.mutate(vollNachfrage);
+            setVollNachfrage(null);
+          }}
+          onAbbrechen={() => {
+            setVollNachfrage(null);
+            setTest(null);
+          }}
+        />
       )}
     </Dialog>
   );

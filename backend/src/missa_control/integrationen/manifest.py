@@ -79,6 +79,28 @@ class Option(BaseModel):
         return self
 
 
+ParameterTyp = Literal["string", "integer", "number", "boolean", "array"]
+
+
+class EndpunktParameter(BaseModel):
+    """Ein Parameter eines Endpunkts aus einer Vorlage – wird ein Parameter der Funktion für Missa.
+
+    `ort`: `query` (URL-Parameter, Standard) oder `json` (Feld im JSON-Inhalt der Anfrage).
+    `url_name`: so heisst er in der URL bzw. im JSON, falls anders als `name` (z. B. `via[]`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: Kennung
+    typ: ParameterTyp = "string"
+    beschreibung: str = Field(default="", max_length=300)
+    pflicht: bool = False
+    ort: Literal["query", "json"] = "query"
+    url_name: str | None = Field(default=None, max_length=60)
+    optionen: list[str] = Field(default_factory=list)
+    standard: str | int | float | bool | None = None
+
+
 class Endpunkt(BaseModel):
     """Ein Endpunkt einer API, aus dem eine eigene Funktion wird (Feldtyp `endpunkte`).
 
@@ -92,6 +114,14 @@ class Endpunkt(BaseModel):
     methode: Methode = "GET"
     pfad: str = Field(min_length=1, max_length=300)
     beschreibung: str = Field(default="", max_length=500)
+    # Nur in Vorlagen (integration.yaml): genau beschriebene Parameter …
+    parameter: list[EndpunktParameter] = Field(default_factory=list)
+    # … feste URL-Parameter und feste Felder im JSON-Inhalt. `{{feld}}` setzt einen Formularwert ein,
+    # z. B. `topic: "{{thema}}"`.
+    query: dict[str, str] = Field(default_factory=dict)
+    daten: dict[str, Any] = Field(default_factory=dict)
+    # Lesend oder schreibend – Standard: GET ist lesend, alles andere schreibend.
+    schreibend: bool | None = None
 
     @field_validator("methode", mode="before")
     @classmethod
@@ -111,6 +141,10 @@ class Endpunkt(BaseModel):
         if ".." in wert.split("?")[0].split("/"):
             raise ValueError("Der Pfad darf kein „..“ enthalten")
         return wert
+
+    @property
+    def ist_schreibend(self) -> bool:
+        return self.schreibend if self.schreibend is not None else self.methode != "GET"
 
     def platzhalter(self) -> list[str]:
         """Die Namen der Platzhalter im Pfad, z. B. `["id"]` für `/artikel/{id}`."""
@@ -167,6 +201,12 @@ class Manifest(BaseModel):
     hinweis: str = ""
     # Karte steht im Katalog ganz vorne und ist hervorgehoben.
     hervorgehoben: bool = False
+    # Gruppe im Katalog, z. B. „Vorlagen“ (leer = ohne Gruppe).
+    gruppe: str = Field(default="", max_length=40)
+    # Nur bei `art: api` – eine Vorlage nur mit YAML: feste Adresse (sonst aus dem Feld „adresse“)
+    # und fest beschriebene Endpunkte. Gibt es `endpunkte`, sucht das Panel keine Beschreibung.
+    basis_url: str | None = Field(default=None, max_length=300)
+    endpunkte: list[Endpunkt] = Field(default_factory=list)
 
     @field_validator("version", mode="before")
     @classmethod
@@ -179,6 +219,20 @@ class Manifest(BaseModel):
         doppelt = sorted({name for name in namen if namen.count(name) > 1})
         if doppelt:
             raise ValueError(f"Feldnamen kommen mehrfach vor: {', '.join(doppelt)}")
+        return self
+
+    @model_validator(mode="after")
+    def _vorlage(self) -> Manifest:
+        if (self.basis_url or self.endpunkte) and self.art != "api":
+            raise ValueError("„basis_url“ und „endpunkte“ gibt es nur bei „art: api“")
+        if self.basis_url and not re.match(r"^https?://[^\s/]+", self.basis_url):
+            raise ValueError("„basis_url“ muss mit http:// oder https:// beginnen")
+        if self.art == "api" and not self.basis_url and not self.feld("adresse"):
+            raise ValueError("Bei „art: api“ braucht es „basis_url“ oder ein Feld „adresse“")
+        namen = [endpunkt.name for endpunkt in self.endpunkte]
+        doppelt = sorted({name for name in namen if namen.count(name) > 1})
+        if doppelt:
+            raise ValueError(f"Endpunkte kommen mehrfach vor: {', '.join(doppelt)}")
         return self
 
     def feld(self, name: str) -> Feld | None:

@@ -66,6 +66,15 @@ export function Katalog() {
         text.toLowerCase().includes(begriff),
       ),
   );
+  // Karten ohne Gruppe zuerst, danach je Gruppe ein eigener Abschnitt (z. B. „Vorlagen“).
+  const gruppen: [string, KatalogEintrag[]][] = [];
+  for (const eintrag of treffer) {
+    const gruppe = eintrag.gruppe ?? "";
+    const vorhanden = gruppen.find(([name]) => name === gruppe);
+    if (vorhanden) vorhanden[1].push(eintrag);
+    else gruppen.push([gruppe, [eintrag]]);
+  }
+  gruppen.sort(([a], [b]) => Number(!!a) - Number(!!b));
 
   return (
     <div className="stapel">
@@ -118,44 +127,56 @@ export function Katalog() {
         </Meldung>
       ))}
 
-      <div className="karten">
-        {treffer.map((eintrag) => (
-          <article className={`karte katalog-karte${eintrag.hervorgehoben ? " hervorgehoben" : ""}`} key={eintrag.id}>
-            <div className="katalog-kopf">
-              <span className="symbol" aria-hidden>
-                {eintrag.symbol}
-              </span>
-              <div className="fuellen">
-                <h2>{eintrag.name}</h2>
-                <div className="reihe" style={{ gap: "0.35rem" }}>
-                  <span className="etikett">{eintrag.art_name}</span>
-                  {!eintrag.eingebaut && <span className="etikett eigen">eigene</span>}
-                  {eintrag.eingerichtet > 0 && (
-                    <Link className="etikett aktiv" to="/integrationen">
-                      {eintrag.eingerichtet}× eingerichtet
-                    </Link>
-                  )}
-                </div>
-              </div>
-              {!eintrag.eingebaut && (
-                <Knopf art="still" aria-label={`${eintrag.name} aus dem Katalog löschen`} onClick={() => setZuLoeschen(eintrag)}>
-                  <Trash2 aria-hidden />
-                </Knopf>
+      {gruppen.map(([gruppe, eintraege]) => (
+        <section key={gruppe || "ohne"} className="stapel eng" aria-label={gruppe || "Integrationen"}>
+          {gruppe && (
+            <div>
+              <h2 className="gruppen-titel">{gruppe}</h2>
+              {gruppe === "Vorlagen" && (
+                <p className="gedaempft klein">Fertig beschriebene Dienste: nur noch Adresse bzw. Key eintragen.</p>
               )}
             </div>
-            <p className="gedaempft fuellen">{eintrag.beschreibung}</p>
-            <Knopf art="haupt" disabled={!eintrag.kann_hinzufuegen} onClick={() => oeffnen(eintrag.id)}>
-              {!eintrag.verfuegbar
-                ? "Kommt mit einer späteren Version"
-                : eintrag.kann_hinzufuegen
-                  ? eintrag.art === "api"
-                    ? "API hinzufügen"
-                    : "Einrichten"
-                  : "Bereits eingerichtet"}
-            </Knopf>
-          </article>
-        ))}
-      </div>
+          )}
+          <div className="karten">
+            {eintraege.map((eintrag) => (
+              <article className={`karte katalog-karte${eintrag.hervorgehoben ? " hervorgehoben" : ""}`} key={eintrag.id}>
+                <div className="katalog-kopf">
+                  <span className="symbol" aria-hidden>
+                    {eintrag.symbol}
+                  </span>
+                  <div className="fuellen">
+                    <h2>{eintrag.name}</h2>
+                    <div className="reihe" style={{ gap: "0.35rem" }}>
+                      <span className="etikett">{eintrag.art_name}</span>
+                      {!eintrag.eingebaut && <span className="etikett eigen">eigene</span>}
+                      {eintrag.eingerichtet > 0 && (
+                        <Link className="etikett aktiv" to="/integrationen">
+                          {eintrag.eingerichtet}× eingerichtet
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                  {!eintrag.eingebaut && (
+                    <Knopf art="still" aria-label={`${eintrag.name} aus dem Katalog löschen`} onClick={() => setZuLoeschen(eintrag)}>
+                      <Trash2 aria-hidden />
+                    </Knopf>
+                  )}
+                </div>
+                <p className="gedaempft fuellen">{eintrag.beschreibung}</p>
+                <Knopf art="haupt" disabled={!eintrag.kann_hinzufuegen} onClick={() => oeffnen(eintrag.id)}>
+                  {!eintrag.verfuegbar
+                    ? "Kommt mit einer späteren Version"
+                    : eintrag.kann_hinzufuegen
+                      ? eintrag.art === "api"
+                        ? "API hinzufügen"
+                        : "Einrichten"
+                      : "Bereits eingerichtet"}
+                </Knopf>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
       {treffer.length === 0 && <div className="karte leer">Keine Integration passt zu „{suche}“.</div>}
 
       {offen && <Assistent key={offen.id} eintrag={offen} onSchliessen={() => oeffnen(null)} />}

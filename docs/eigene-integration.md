@@ -269,3 +269,54 @@ Eigene Integrationen laufen direkt im Panel und dürfen alles, was das Panel dar
 - Im Panel stehen u. a. `httpx2`, `pydantic` und `pyyaml` bereit. Weitere Python-Pakete müssen ins
   Image (in `backend/pyproject.toml` eintragen und `./scripts/update.sh` ausführen).
 - missa-core wird von Integrationen nie verändert – Missa holt sich ihre Funktionen selbst ab.
+
+## Eigene Vorlage nur mit YAML
+
+Für eine REST-API, deren Funktionen du genau beschreiben willst, braucht es keinen Code: ein Ordner
+mit einer einzigen `integration.yaml` der Art `api` genügt. So sind auch die mitgelieferten
+Vorlagen „ÖV-Fahrplan Schweiz“, „ntfy“ und „SearXNG“ gebaut (`integrations/oev-fahrplan/` usw.).
+
+```yaml
+id: meine-abfahrten
+name: Meine Abfahrten
+beschreibung: Abfahrten ab meiner Haltestelle
+symbol: "🚏"
+art: api
+gruppe: Vorlagen            # erscheint im Katalog unter „Vorlagen“
+basis_url: https://transport.opendata.ch/v1   # feste Adresse (sonst ein Feld „adresse“)
+endpunkte:
+  - name: abfahrten
+    methode: GET
+    pfad: /stationboard
+    beschreibung: Nächste Abfahrten an einer Haltestelle
+    parameter:
+      - name: haltestelle
+        url_name: station   # so heisst er in der URL
+        pflicht: true
+        beschreibung: Name der Haltestelle
+      - name: anzahl
+        url_name: limit
+        typ: integer
+        standard: 10
+```
+
+| Eintrag | Bedeutung |
+| --- | --- |
+| `basis_url` | Feste Adresse der API. Ohne sie braucht die Vorlage ein Formularfeld `adresse` (Typ `url`). |
+| `endpunkte` | Je Eintrag eine Funktion für Missa. Gibt es Endpunkte, sucht das Panel keine OpenAPI-Beschreibung. |
+| `endpunkte → methode, pfad` | GET, POST, PUT, PATCH oder DELETE; Pfad relativ zur Adresse, Platzhalter wie `{id}` werden Parameter. |
+| `endpunkte → parameter` | `name` (für Missa), `typ` (`string`, `integer`, `number`, `boolean`, `array`), `beschreibung`, `pflicht`, `standard`, `optionen` (erlaubte Werte), `ort` (`query` = URL-Parameter, `json` = Feld im JSON-Inhalt), `url_name` (Name in der URL bzw. im JSON, z. B. `via[]`). |
+| `endpunkte → query` | Feste URL-Parameter, z. B. `format: json`. |
+| `endpunkte → daten` | Feste Felder im JSON-Inhalt. `{{feld}}` setzt einen Formularwert ein, z. B. `topic: "{{thema}}"`. |
+| `endpunkte → schreibend` | Überschreibt die Regel „GET = lesend, alles andere = schreibend“. |
+| `standardrechte` | Wie bei jeder Integration, z. B. `nachricht_senden: erlaubt`. |
+
+Für den Zugang gelten dieselben Felder wie bei „API hinzufügen“: ein Feld `zugang` (Typ `zugang`) und
+optional `key_art` (`bearer`, `header`, `query`, `basic`) mit `key_name`. Ohne `key_art` wird ein
+Token als `Authorization: Bearer …` und Benutzer + Passwort als Basic gesendet. Aufrufe gehen auch
+hier nur an die Adresse der Vorlage.
+
+Ordner nach `data/integrations/` legen (oder als ZIP hochladen), im Katalog **„Neu einlesen“** – fertig.
+Braucht eine Vorlage zwei verschiedene Adressen (wie „Wetter“: Ortssuche und Wetter liegen bei
+Open-Meteo auf zwei Hosts), ist eine kleine Python-Integration der bessere Weg – siehe
+`integrations/wetter/`.

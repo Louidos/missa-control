@@ -1,0 +1,83 @@
+# Vorlage nur mit YAML: ÖV-Fahrplan Schweiz über transport.opendata.ch (ohne Key).
+# Endpunkte und Parameter nach der offiziellen Doku: https://transport.opendata.ch/docs.html
+id: oev-fahrplan
+name: ÖV-Fahrplan Schweiz
+beschreibung: Verbindungen von A nach B und Abfahrten ab einer Haltestelle – Zug, Tram, Bus und Schiff in der ganzen Schweiz.
+symbol: "🚆"
+art: api
+version: 1.0.0
+gruppe: Vorlagen
+mehrfach: false
+kennung: oev
+basis_url: https://transport.opendata.ch/v1
+hinweis: >-
+  Ohne Key: Die Daten kommen von transport.opendata.ch (Fahrplan der Schweiz). Einfach testen und
+  aktivieren. Die Schnittstelle begrenzt die Zahl der Anfragen pro Tag.
+endpunkte:
+  - name: haltestelle_suchen
+    methode: GET
+    pfad: /locations
+    beschreibung: Sucht Haltestellen, Orte und Adressen nach Namen (z. B. „Zürich HB“).
+    parameter:
+      - name: suchbegriff
+        url_name: query
+        beschreibung: Name der Haltestelle oder des Orts
+        pflicht: true
+      - name: art
+        url_name: type
+        beschreibung: "all = alles, station = Haltestellen, poi = Sehenswürdigkeiten, address = Adressen"
+        optionen: [all, station, poi, address]
+        standard: station
+  - name: verbindungen
+    methode: GET
+    pfad: /connections
+    beschreibung: Sucht die nächsten Verbindungen von einem Ort zu einem anderen.
+    parameter:
+      - name: von
+        url_name: from
+        beschreibung: Abfahrtsort, z. B. „Bern“
+        pflicht: true
+      - name: nach
+        url_name: to
+        beschreibung: Zielort, z. B. „Zürich HB“
+        pflicht: true
+      - name: via
+        url_name: "via[]"
+        typ: array
+        beschreibung: Bis zu fünf Orte, über die die Verbindung führen soll
+      - name: datum
+        url_name: date
+        beschreibung: Datum im Format JJJJ-MM-TT (Standard heute)
+      - name: zeit
+        url_name: time
+        beschreibung: Uhrzeit im Format hh:mm (Standard jetzt)
+      - name: ankunftszeit
+        url_name: isArrivalTime
+        beschreibung: "1 = Datum und Uhrzeit sind die gewünschte Ankunft, 0 = Abfahrt"
+        optionen: ["0", "1"]
+      - name: anzahl
+        url_name: limit
+        typ: integer
+        beschreibung: Wie viele Verbindungen (1 bis 16)
+        standard: 4
+  - name: abfahrten
+    methode: GET
+    pfad: /stationboard
+    beschreibung: Zeigt die nächsten Abfahrten (oder Ankünfte) an einer Haltestelle.
+    parameter:
+      - name: haltestelle
+        url_name: station
+        beschreibung: Name der Haltestelle, z. B. „Aarau“
+        pflicht: true
+      - name: anzahl
+        url_name: limit
+        typ: integer
+        beschreibung: Wie viele Abfahrten
+        standard: 10
+      - name: zeitpunkt
+        url_name: datetime
+        beschreibung: Ab wann, im Format JJJJ-MM-TT hh:mm (Standard jetzt)
+      - name: richtung
+        url_name: type
+        beschreibung: "departure = Abfahrten, arrival = Ankünfte"
+        optionen: [departure, arrival]

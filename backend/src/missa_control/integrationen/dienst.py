@@ -127,7 +127,12 @@ class IntegrationsDienst:
         eintraege = []
         for eintrag in sorted(
             self.katalog.eintraege.values(),
-            key=lambda e: (not e.manifest.hervorgehoben, not e.eingebaut, e.manifest.name.lower()),
+            key=lambda e: (
+                not e.manifest.hervorgehoben,
+                bool(e.manifest.gruppe),
+                not e.eingebaut,
+                e.manifest.name.lower(),
+            ),
         ):
             manifest = eintrag.manifest
             eingerichtet = int(anzahl.get(manifest.id, 0))
@@ -159,6 +164,7 @@ class IntegrationsDienst:
             "mehrfach": manifest.mehrfach,
             "hinweis": manifest.hinweis,
             "hervorgehoben": manifest.hervorgehoben,
+            "gruppe": manifest.gruppe,
             "felder": [feld.model_dump() for feld in manifest.felder],
         }
 

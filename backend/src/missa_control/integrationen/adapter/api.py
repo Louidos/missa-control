@@ -298,19 +298,44 @@ def allgemeine_funktionen(adresse: str, zur_api: str) -> list[FunktionsInfo]:
     ]
 
 
+_JSON_TYPEN = {"string": "string", "integer": "integer", "number": "number", "boolean": "boolean"}
+
+
 def endpunkt_funktion(endpunkt: Endpunkt, zur_api: str = "") -> FunktionsInfo:
-    """Ein eigener Endpunkt als Funktion: Platzhalter werden Parameter, bei Nicht-GET kommt `daten` dazu."""
+    """Ein Endpunkt als Funktion: Platzhalter werden Parameter.
+
+    Eigene Endpunkte aus dem Formular bekommen dazu `parameter` (URL-Parameter) und – ausser bei GET –
+    `daten`. Endpunkte aus einer Vorlage haben genau die Parameter, die die Vorlage beschreibt.
+    """
     eigenschaften: dict[str, Any] = {
         name: {"type": "string", "description": f"Wert für {{{name}}} im Pfad"}
         for name in endpunkt.platzhalter()
     }
-    eigenschaften["parameter"] = {
-        "type": "object",
-        "description": "Weitere URL-Parameter (optional)",
-        "additionalProperties": True,
-    }
-    if endpunkt.methode != "GET":
-        eigenschaften["daten"] = {"description": "Inhalt der Anfrage (JSON)"}
+    pflicht = list(endpunkt.platzhalter())
+    if endpunkt.parameter:
+        for parameter in endpunkt.parameter:
+            schema: dict[str, Any] = (
+                {"type": "array", "items": {"type": "string"}}
+                if parameter.typ == "array"
+                else {"type": _JSON_TYPEN[parameter.typ]}
+            )
+            if parameter.beschreibung:
+                schema["description"] = parameter.beschreibung
+            if parameter.optionen:
+                schema["enum"] = list(parameter.optionen)
+            if parameter.standard is not None:
+                schema["default"] = parameter.standard
+            eigenschaften[parameter.name] = schema
+            if parameter.pflicht:
+                pflicht.append(parameter.name)
+    else:
+        eigenschaften["parameter"] = {
+            "type": "object",
+            "description": "Weitere URL-Parameter (optional)",
+            "additionalProperties": True,
+        }
+        if endpunkt.methode != "GET":
+            eigenschaften["daten"] = {"description": "Inhalt der Anfrage (JSON)"}
     kopf = f"{endpunkt.methode} {endpunkt.pfad}"
     beschreibung = endpunkt.beschreibung.strip()
     return FunktionsInfo(
@@ -319,11 +344,29 @@ def endpunkt_funktion(endpunkt: Endpunkt, zur_api: str = "") -> FunktionsInfo:
         parameter={
             "type": "object",
             "properties": eigenschaften,
-            **({"required": endpunkt.platzhalter()} if endpunkt.platzhalter() else {}),
+            **({"required": pflicht} if pflicht else {}),
         },
-        schreibend=endpunkt.methode != "GET",
-        extra={"typ": "endpunkt", "methode": endpunkt.methode, "pfad": endpunkt.pfad},
+        schreibend=endpunkt.ist_schreibend,
+        extra={"typ": "endpunkt", **endpunkt.model_dump(exclude={"name", "beschreibung", "schreibend"})},
     )
+
+
+def _einsetzen(wert: Any, konfig: Any) -> Any:
+    """Setzt `{{feld}}` aus dem Formular ein (in Texten, Listen und verschachtelten Feldern)."""
+    if isinstance(wert, str):
+        return re.sub(
+            r"\{\{([a-z][a-z0-9_]*)\}\}", lambda treffer: _als_text(konfig.get(treffer.group(1), "")), wert
+        )
+    if isinstance(wert, list):
+        return [_einsetzen(eintrag, konfig) for eintrag in wert]
+    if isinstance(wert, dict):
+        return {schluessel: _einsetzen(inhalt, konfig) for schluessel, inhalt in wert.items()}
+    return wert
+
+
+def _adresse(kontext: Kontext) -> Adresse:
+    """Die Adresse der API: aus dem Formular – oder fest aus der Vorlage (`basis_url`)."""
+    return Adresse(str(kontext.konfig.get("adresse") or kontext.manifest.basis_url or ""))
 
 
 def eigene_endpunkte(kontext: Kontext) -> list[Endpunkt]:
@@ -371,7 +414,7 @@ class ApiAdapter:
 
     async def pruefen(self, kontext: Kontext) -> TestErgebnis:
         """Die regelmässige Prüfung: nur erreichbar und Zugang angenommen? (keine Suche nach der Beschreibung)"""
-        adresse = Adresse(str(kontext.konfig.get("adresse") or ""))
+        adresse = _adresse(kontext)
         antwort = await self._erreichbar(kontext, adresse, 8.0)
         return TestErgebnis(ok=True, meldung=f"Erreichbar (Antwort {antwort.status_code}).")
 
@@ -410,17 +453,36 @@ class ApiAdapter:
         return None
 
     async def testen(self, kontext: Kontext) -> TestErgebnis:
-        adresse = Adresse(str(kontext.konfig.get("adresse") or ""))
+        adresse = _adresse(kontext)
         auth, _zugang = _auth(kontext)
         await self._erreichbar(kontext, adresse, 10.0)
         endpunkte = eigene_endpunkte(kontext)
         zur_api = _zur_api(kontext)
         eigene = [endpunkt_funktion(endpunkt, zur_api) for endpunkt in endpunkte]
         eigene_namen = {funktion.name for funktion in eigene}
-
-        gefunden = await self._spec_suchen(kontext, adresse)
         details = [f"Adresse der API: {adresse.url}"]
         zustand: dict[str, Any] = {"auth": auth}
+
+        vorlage = kontext.manifest.endpunkte
+        if vorlage:
+            # Eine Vorlage bringt ihre Funktionen fertig beschrieben mit – keine Suche nötig.
+            funktionen = [
+                *[endpunkt_funktion(e, zur_api) for e in vorlage if e.name not in eigene_namen],
+                *eigene,
+            ]
+            lesend = sum(1 for funktion in funktionen if not funktion.schreibend)
+            details.append(f"{lesend} lesend, {len(funktionen) - lesend} schreibend")
+            if auth["art"] != "keine":
+                details.append(f"Key wird gesendet als: {_auth_text(auth)}")
+            return TestErgebnis(
+                ok=True,
+                meldung=f"{kontext.manifest.name}: verbunden – {len(funktionen)} Funktion(en) bereit.",
+                details=details,
+                funktionen=funktionen,
+                zustand=zustand,
+            )
+
+        gefunden = await self._spec_suchen(kontext, adresse)
         if gefunden is not None:
             spec, spec_url = gefunden
             aus_spec = [
@@ -470,7 +532,7 @@ class ApiAdapter:
     async def aufrufen(
         self, kontext: Kontext, funktion: Funktion, argumente: dict[str, Any]
     ) -> AufrufErgebnis:
-        adresse = Adresse(str(kontext.konfig.get("adresse") or ""))
+        adresse = _adresse(kontext)
         extra = funktion.extra or {}
         typ = extra.get("typ")
         headers: dict[str, str] = {"Accept": "application/json, */*"}
@@ -499,8 +561,13 @@ class ApiAdapter:
                     raise IntegrationsFehler(f"Der Parameter „{name}“ fehlt.")
                 pfad = pfad.replace("{" + name + "}", quote(_als_text(argumente[name]), safe=""))
             url = adresse.url + pfad_pruefen(pfad)
-            query.extend(_parameter_liste(argumente.get("parameter")))
-            if methode != "GET" and argumente.get("daten") is not None:
+            if not extra.get("parameter"):
+                query.extend(_parameter_liste(argumente.get("parameter")))
+            if extra.get("parameter") or extra.get("query") or extra.get("daten"):
+                koerper = self._vorlage_werte(kontext, extra, argumente, query)
+                if koerper is not None:
+                    optionen["json"] = koerper
+            elif methode != "GET" and argumente.get("daten") is not None:
                 optionen["json"] = argumente["daten"]
         elif typ == "spec":
             methode, url, optionen = self._spec_anfrage(kontext, adresse, extra, argumente, headers, query)
@@ -520,6 +587,30 @@ class ApiAdapter:
         inhalt = _antwort_lesen(antwort)
         _fehler_pruefen(antwort, inhalt)
         return AufrufErgebnis(wert=inhalt if inhalt != "" else {"status": antwort.status_code})
+
+    @staticmethod
+    def _vorlage_werte(
+        kontext: Kontext, extra: dict[str, Any], argumente: dict[str, Any], query: list[tuple[str, str]]
+    ) -> dict[str, Any] | None:
+        """Parameter eines Endpunkts aus einer Vorlage: URL-Parameter in `query`, JSON-Felder als Rückgabe."""
+        koerper: dict[str, Any] = dict(_einsetzen(extra.get("daten") or {}, kontext.konfig))
+        for name, wert in (extra.get("query") or {}).items():
+            query.append((name, _als_text(_einsetzen(wert, kontext.konfig))))
+        for parameter in extra.get("parameter") or []:
+            wert = argumente.get(parameter["name"])
+            if wert is None or wert == "":
+                wert = parameter.get("standard")
+            if wert is None or wert == "":
+                if parameter.get("pflicht"):
+                    raise IntegrationsFehler(f"Der Parameter „{parameter['name']}“ fehlt.")
+                continue
+            ziel = parameter.get("url_name") or parameter["name"]
+            if parameter.get("ort") == "json":
+                koerper[ziel] = wert
+            else:
+                for eintrag in wert if isinstance(wert, list) else [wert]:
+                    query.append((ziel, _als_text(eintrag)))
+        return koerper or None
 
     @staticmethod
     def _spec_anfrage(

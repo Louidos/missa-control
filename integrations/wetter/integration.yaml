@@ -1,0 +1,34 @@
+# Vorlage „Wetter“ über Open-Meteo (ohne Key). Weil Ortssuche und Wetter auf zwei verschiedenen
+# Adressen liegen (geocoding-api.open-meteo.com und api.open-meteo.com), ist sie eine
+# Python-Integration statt einer reinen YAML-Vorlage.
+id: wetter
+name: Wetter
+beschreibung: Wetter aktuell und Vorhersage für jeden Ort – über Open-Meteo, ohne Key.
+symbol: "🌦️"
+art: python
+version: 1.0.0
+gruppe: Vorlagen
+mehrfach: false
+kennung: wetter
+hinweis: >-
+  Ohne Key: Die Daten kommen von Open-Meteo (frei für nicht-kommerzielle Nutzung). Trag einen
+  Standard-Ort ein, dann weiss Missa, wo „hier“ ist. Die beiden Adressen unten nur ändern, wenn du
+  Open-Meteo selbst betreibst.
+felder:
+  - name: ort
+    titel: Standard-Ort
+    typ: text
+    platzhalter: Zürich
+    hilfe: Gilt, wenn Missa keinen Ort nennt.
+  - name: wetter_url
+    titel: Adresse der Wetter-API
+    typ: url
+    standard: https://api.open-meteo.com
+  - name: ort_url
+    titel: Adresse der Ortssuche
+    typ: url
+    standard: https://geocoding-api.open-meteo.com
+standardrechte:
+  ort_suchen: erlaubt
+  wetter_aktuell: erlaubt
+  vorhersage: erlaubt

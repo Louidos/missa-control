@@ -1911,3 +1911,8 @@ textarea:focus-visible {
     animation: none;
   }
 }
+
+.gruppen-titel {
+  margin-top: 0.75rem;
+  font-size: 1.05rem;
+}

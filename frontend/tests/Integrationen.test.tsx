@@ -868,3 +868,19 @@ test("Seite Integrationen: Stufe mit einem Klick wechseln, neue Funktionen als g
   await waitFor(() => expect(screen.queryByText(/neue Funktion – bitte prüfen/)).not.toBeInTheDocument());
   expect(aufrufe.find((a) => a.methode === "PUT")?.koerper).toEqual({ zugriff: "lesen" });
 });
+
+// ---------------------------------------------------------------- Vorlagen
+
+test("Vorlagen stehen in einer eigenen Gruppe nach den übrigen Karten", async () => {
+  const wetter = karte({ id: "wetter", name: "Wetter", art: "python", art_name: "Python", gruppe: "Vorlagen", felder: [] });
+  const ntfy = karte({ id: "ntfy", name: "ntfy", art: "api", art_name: "API", gruppe: "Vorlagen" });
+  backend({ "GET /api/katalog": { eintraege: [wetter, karte({}), ntfy, API_KARTE], probleme: [] } });
+  zeige(<Katalog />, "/katalog");
+  const gruppe = await screen.findByRole("region", { name: "Vorlagen" });
+  expect(within(gruppe).getByRole("heading", { name: "Vorlagen" })).toBeInTheDocument();
+  expect(within(gruppe).getByRole("heading", { name: "Wetter" })).toBeInTheDocument();
+  expect(within(gruppe).getByRole("heading", { name: "ntfy" })).toBeInTheDocument();
+  expect(within(gruppe).queryByRole("heading", { name: "MCP-Server" })).not.toBeInTheDocument();
+  const titel = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+  expect(titel).toEqual(["API hinzufügen", "MCP-Server", "Vorlagen", "Wetter", "ntfy"]);
+});

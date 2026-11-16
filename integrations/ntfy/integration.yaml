@@ -1,0 +1,61 @@
+# Vorlage nur mit YAML: Nachricht aufs Handy über ntfy (ntfy.sh oder ein eigener Server).
+# Nach der offiziellen Doku: Veröffentlichen als JSON per POST an die Adresse des Servers
+# (https://docs.ntfy.sh/publish/#publish-as-json); Zugang als Bearer-Token oder Benutzer + Passwort.
+id: ntfy
+name: ntfy
+beschreibung: Missa schickt dir eine Nachricht aufs Handy – über ntfy.sh oder deinen eigenen ntfy-Server.
+symbol: "📲"
+art: api
+version: 1.0.0
+gruppe: Vorlagen
+kennung: ntfy
+hinweis: >-
+  In der ntfy-App das Thema abonnieren, das du hier einträgst. Wähle auf ntfy.sh einen schwer zu
+  erratenden Namen – jeder, der ihn kennt, kann mitlesen. Bei einem eigenen Server mit Anmeldung ein
+  Zugriffs-Token (tk_…) oder Benutzer + Passwort als Zugang eintragen. Senden ist standardmässig erlaubt.
+felder:
+  - name: adresse
+    titel: Adresse des ntfy-Servers
+    typ: url
+    pflicht: true
+    standard: https://ntfy.sh
+    platzhalter: https://ntfy.sh
+  - name: thema
+    titel: Thema
+    typ: text
+    pflicht: true
+    platzhalter: missa-louis-7f3k
+    hilfe: Das Thema (Topic), das du in der ntfy-App abonniert hast.
+  - name: zugang
+    titel: Zugang (optional)
+    typ: zugang
+    zugang_typen: [bearer_token, benutzer_passwort, api_key]
+    hilfe: Nur nötig, wenn der Server eine Anmeldung verlangt.
+endpunkte:
+  - name: nachricht_senden
+    methode: POST
+    pfad: /
+    beschreibung: Schickt eine Nachricht aufs Handy des Besitzers.
+    daten:
+      topic: "{{thema}}"
+    parameter:
+      - name: nachricht
+        url_name: message
+        ort: json
+        pflicht: true
+        beschreibung: Der Text der Nachricht
+      - name: titel
+        url_name: title
+        ort: json
+        beschreibung: Überschrift (optional)
+      - name: prioritaet
+        url_name: priority
+        ort: json
+        typ: integer
+        beschreibung: "1 = minimal, 3 = normal, 5 = dringend"
+      - name: tags
+        ort: json
+        typ: array
+        beschreibung: Schlagwörter oder Emoji-Kurznamen, z. B. warning
+standardrechte:
+  nachricht_senden: erlaubt

@@ -42,9 +42,33 @@ Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
 - **Übersicht:** Startseite mit allem Eingerichteten als Verbindungsbaum und Live-Status.
 - **Login:** Passwort und Zwei-Faktor-Anmeldung; ein einziger Besitzer, keine Benutzerverwaltung.
 
-## Installation in 3 Befehlen
+## Installation in 1 Befehl
 
-Voraussetzung: Linux (ai01: Debian) mit Docker und Docker Compose.
+Voraussetzung: Linux (ai01: Debian) mit git, Docker und Docker Compose.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Louidos/missa-control/main/scripts/schnellstart.sh | bash
+```
+
+Holt das Repo nach `~/missa-control`, prüft alles, startet das Panel und zeigt die Adresse. Installiert
+nichts selbst (auch nicht Docker), fragt nichts und kann beliebig oft ausgeführt werden – `.env` und
+`data/` bleiben unverändert. Anderer Ordner: `… | MISSA_CONTROL_ORDNER=/opt/missa-control bash`.
+
+**Erst ansehen, dann ausführen:**
+
+```bash
+curl -fsSL -o schnellstart.sh https://raw.githubusercontent.com/Louidos/missa-control/main/scripts/schnellstart.sh
+```
+
+```bash
+less schnellstart.sh
+```
+
+```bash
+bash schnellstart.sh
+```
+
+### Von Hand: Installation in 3 Befehlen
 
 ```bash
 git clone https://github.com/Louidos/missa-control.git
@@ -217,7 +241,7 @@ einen Reverse Proxy, Telemetrie, Cloud-Dienste. Was sich wann geändert hat: [CH
 | `frontend/` | React + TypeScript (Vite), vitest-Tests in `frontend/tests/` |
 | `integrations/` | eingebaute Integrationen, je ein Ordner mit `integration.yaml` |
 | `examples/geraete/` | Beispiel-Firmware für Geräte (Pico 2 W, ESP32) |
-| `scripts/` | `install.sh`, `update.sh`, `backup.sh`, `reset-2fa.sh` |
+| `scripts/` | `schnellstart.sh`, `install.sh`, `update.sh`, `backup.sh`, `reset-2fa.sh` |
 | `docs/` | Anleitungen |
 | `config/` | Beispiel-Charakterprofil (`profil.example.yaml`), Zusatz für GPU-Werte (`compose.gpu.yaml`), Einstellungen des MQTT-Brokers (`mosquitto.conf`) |
 

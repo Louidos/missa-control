@@ -23,6 +23,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   mit eigenem Passwort (#43)
 - Seite „Meldungen“: Nachricht an ntfy oder einen Webhook, wenn eine Freigabe wartet oder eine
   Integration ausfällt (#44)
+- Installation mit einem einzigen Befehl (`scripts/schnellstart.sh`); die bisherigen 3 Befehle
+  funktionieren weiter (#45)
 
 ## [0.1.0] - 2026-11-10
 

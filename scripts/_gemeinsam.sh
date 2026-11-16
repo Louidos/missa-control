@@ -19,7 +19,7 @@ fehler() {
 
 # Wechselt in den Repo-Ordner (eine Ebene über scripts/).
 in_repo_ordner() {
-  cd "$(dirname "${BASH_SOURCE[1]}")/.."
+  cd "$(dirname "${BASH_SOURCE[1]}")/.." || exit 1
   [ -f compose.yaml ] || fehler "compose.yaml nicht gefunden – das Skript muss im Repo von Missa Control liegen."
 }
 
@@ -76,8 +76,8 @@ dienst_laeuft() {
 
 # Wartet, bis das Panel im eigenen Container antwortet (höchstens ca. 2 Minuten).
 warte_auf_start() {
-  local versuch
-  for versuch in $(seq 1 60); do
+  local _versuch
+  for _versuch in $(seq 1 60); do
     if compose exec -T "$DIENST" python -c \
       "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/api/health', timeout=3)" \
       >/dev/null 2>&1; then

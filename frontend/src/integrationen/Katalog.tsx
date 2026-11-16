@@ -57,7 +57,9 @@ export function Katalog() {
   if (katalog.isError) return <FehlerMeldung fehler={katalog.error} />;
 
   const begriff = suche.trim().toLowerCase();
-  const treffer = katalog.data.eintraege.filter(
+  // Hervorgehobene Karten („API hinzufügen“) stehen immer vorne.
+  const sortiert = [...katalog.data.eintraege].sort((a, b) => Number(!!b.hervorgehoben) - Number(!!a.hervorgehoben));
+  const treffer = sortiert.filter(
     (eintrag) =>
       !begriff ||
       [eintrag.name, eintrag.beschreibung, eintrag.art_name, eintrag.id].some((text) =>
@@ -118,7 +120,7 @@ export function Katalog() {
 
       <div className="karten">
         {treffer.map((eintrag) => (
-          <article className="karte katalog-karte" key={eintrag.id}>
+          <article className={`karte katalog-karte${eintrag.hervorgehoben ? " hervorgehoben" : ""}`} key={eintrag.id}>
             <div className="katalog-kopf">
               <span className="symbol" aria-hidden>
                 {eintrag.symbol}
@@ -146,7 +148,9 @@ export function Katalog() {
               {!eintrag.verfuegbar
                 ? "Kommt mit einer späteren Version"
                 : eintrag.kann_hinzufuegen
-                  ? "Einrichten"
+                  ? eintrag.art === "api"
+                    ? "API hinzufügen"
+                    : "Einrichten"
                   : "Bereits eingerichtet"}
             </Knopf>
           </article>

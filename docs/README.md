@@ -5,6 +5,7 @@
 | Installation, alle Einstellungen, Update, Backup, Fehlerbehebung | [installation.md](installation.md) |
 | Sicherheit: wer das Panel erreichen darf, Firewall, VPN, `.env` und Backups | [sicherheit.md](sicherheit.md) |
 | missa-core anbinden (Funktionen, Ereignisse, Modelle, Profil) | [anbindung-missa-core.md](anbindung-missa-core.md) |
+| Eine API mit Adresse und Key hinzufügen | [api-hinzufuegen.md](api-hinzufuegen.md) |
 | Eigene Integration schreiben | [eigene-integration.md](eigene-integration.md) |
 | Geräte anbinden (ESP32, Raspberry Pi Pico), eigene Firmware | [geraete.md](geraete.md) |
 | Telefonie: Einstellungen und eigene Adapter | [telefonie.md](telefonie.md) |

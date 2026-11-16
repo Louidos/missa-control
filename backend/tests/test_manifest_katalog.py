@@ -57,7 +57,7 @@ def test_gueltiges_manifest() -> None:
     ("aenderung", "erwartet"),
     [
         (("id: wetter", "id: Wetter App"), "„id“ hat ein ungültiges Format"),
-        (("art: python", "art: zauberei"), "„art“ hat einen ungültigen Wert (erlaubt: 'mcp', 'openapi'"),
+        (("art: python", "art: zauberei"), "„art“ hat einen ungültigen Wert (erlaubt: 'api', 'mcp', 'openapi'"),
         (("name: Wetter\n", ""), "„name“ fehlt (Pflichtangabe)"),
         (("beschreibung:", "beschreibnug:"), "„beschreibnug“ ist kein bekannter Eintrag (Tippfehler?)"),
         (

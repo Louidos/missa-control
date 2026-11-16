@@ -7,6 +7,11 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## Unveröffentlicht
 
+### Hinzugefügt
+
+- Neue Karte „API hinzufügen“: Adresse und Key eintragen, testen, aktivieren – das Panel findet die
+  Funktionen selbst oder gibt Missa zwei allgemeine Funktionen zum Abrufen und Senden (#38)
+
 ## [0.1.0] - 2026-11-10
 
 Erste Veröffentlichung: Alle Bereiche des Panels sind vorhanden. Noch nicht gegen die echte

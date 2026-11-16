@@ -1871,3 +1871,27 @@ textarea:focus-visible {
 .knoten-liste-text {
   display: block;
 }
+
+/* Karte „API hinzufügen“: steht vorne und fällt auf */
+.katalog-karte.hervorgehoben {
+  border: 2px solid var(--akzent);
+  background: linear-gradient(var(--akzent-hell), var(--flaeche) 70%);
+}
+
+.endpunkte > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.endpunkt-zeile {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) 6rem minmax(8rem, 1.3fr) minmax(8rem, 2fr) auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+  .endpunkt-zeile {
+    grid-template-columns: 1fr 6rem;
+  }
+}

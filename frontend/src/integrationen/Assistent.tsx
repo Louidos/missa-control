@@ -35,6 +35,8 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
   const [rechte, setRechte] = useState<Record<string, Recht>>({});
   const [fertig, setFertig] = useState<Integration | null>(null);
 
+  // Bei „API hinzufügen“ geht es in einem Schritt: testen und gleich mit den Vorschlägen aktivieren.
+  const direkt = eintrag.art === "api";
   const vorTest = eintrag.felder.filter((feld) => !feld.nach_test);
   const nachTest = eintrag.felder.filter((feld) => feld.nach_test);
 
@@ -43,7 +45,12 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
     onSuccess: (ergebnis) => {
       if (!ergebnis.ok) return;
       setTest(ergebnis);
-      setRechte(Object.fromEntries(ergebnis.funktionen.map((funktion) => [funktion.name, funktion.recht])));
+      const vorschlag = Object.fromEntries(ergebnis.funktionen.map((funktion) => [funktion.name, funktion.recht]));
+      setRechte(vorschlag);
+      if (direkt) {
+        aktivieren.mutate({ test: ergebnis, rechte: vorschlag });
+        return;
+      }
       // Auswahlfelder, die erst der Test füllt (z. B. die gefundenen Kalender): die erste Möglichkeit vorschlagen.
       const vorschlaege = Object.fromEntries(
         nachTest
@@ -54,13 +61,13 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
     },
   });
   const aktivieren = useMutation({
-    mutationFn: () =>
+    mutationFn: (direktDaten?: { test: Erfolg; rechte: Record<string, Recht> }) =>
       api.post<Integration>("/api/integrationen", {
         manifest_id: eintrag.id,
         name,
         konfig: werte,
-        rechte,
-        test_id: test?.test_id,
+        rechte: direktDaten?.rechte ?? rechte,
+        test_id: direktDaten?.test.test_id ?? test?.test_id,
       }),
     onSuccess: async (integration) => {
       setFertig(integration);
@@ -71,7 +78,8 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
     },
   });
 
-  const schritt = fertig ? 3 : test ? 2 : 1;
+  const schritt = fertig ? 3 : test && !direkt ? 2 : 1;
+  const laeuft = testen.isPending || aktivieren.isPending;
   const fehlgeschlagen = testen.data && !testen.data.ok ? testen.data : null;
   const sichtbar = Object.values(rechte).filter((recht) => recht !== "gesperrt").length;
 
@@ -79,7 +87,9 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
     <Dialog titel={`${eintrag.symbol} ${eintrag.name} einrichten`} onSchliessen={onSchliessen} breit>
       <ol className="schritte" aria-label="Fortschritt">
         <li className={schritt === 1 ? "aktiv" : "fertig"}>1 · Formular</li>
-        <li className={schritt === 2 ? "aktiv" : schritt > 2 ? "fertig" : ""}>2 · Testen und Rechte</li>
+        <li className={schritt === 2 ? "aktiv" : schritt > 2 ? "fertig" : ""}>
+          {direkt ? "2 · Testen und aktivieren" : "2 · Testen und Rechte"}
+        </li>
         <li className={schritt === 3 ? "fertig" : ""}>3 · Aktiv</li>
       </ol>
 
@@ -102,10 +112,24 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
             </Meldung>
           )}
           <FehlerMeldung fehler={testen.error} />
+          {direkt && <FehlerMeldung fehler={aktivieren.error} />}
           <div className="dialog-fuss">
             <Knopf onClick={onSchliessen}>Abbrechen</Knopf>
-            <Knopf art="haupt" type="submit" disabled={testen.isPending}>
-              {testen.isPending ? "Teste Verbindung …" : "Verbindung testen"}
+            <Knopf
+              art="haupt"
+              type="submit"
+              disabled={laeuft}
+              onClick={() => aktivieren.reset()}
+            >
+              {testen.isPending
+                ? direkt
+                  ? "Suche Funktionen …"
+                  : "Teste Verbindung …"
+                : aktivieren.isPending
+                  ? "Aktiviere …"
+                  : direkt
+                    ? "Testen und aktivieren"
+                    : "Verbindung testen"}
             </Knopf>
           </div>
         </form>
@@ -116,7 +140,7 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
           className="stapel"
           onSubmit={(ereignis: FormEvent) => {
             ereignis.preventDefault();
-            aktivieren.mutate();
+            aktivieren.mutate(undefined);
           }}
         >
           <Meldung art="ok" hinweis={test.details.join(" · ") || undefined}>
@@ -180,6 +204,27 @@ export function Assistent({ eintrag, onSchliessen }: { eintrag: KatalogEintrag; 
               </p>
             )}
           </div>
+          {direkt && test && (
+            <>
+              <Meldung art="ok" hinweis={test.details.join(" · ") || undefined}>
+                {test.meldung}
+              </Meldung>
+              <ul className="funktionen kompakt" aria-label="Neue Funktionen">
+                {fertig.funktionen.map((funktion) => (
+                  <li key={funktion.id}>
+                    <code>{funktion.gateway_name}</code>
+                    <span className={`etikett ${funktion.schreibend ? "schreibend" : "lesend"}`}>
+                      {funktion.schreibend ? "schreibend" : "lesend"}
+                    </span>
+                    <span className="gedaempft klein">
+                      {funktion.recht === "nachfragen" ? "erst nachfragen" : funktion.recht}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="gedaempft klein">Rechte lassen sich jederzeit unter „Integrationen“ ändern.</p>
+            </>
+          )}
           {fertig.webhook?.pfad && <WebhookAdresse pfad={fertig.webhook.pfad} />}
           {fertig.kopplung && <KopplungsDaten name={fertig.name} kopplung={fertig.kopplung} />}
           <div className="dialog-fuss">

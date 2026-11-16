@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import anyio
+from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -25,7 +26,7 @@ from missa_control.integrationen.adapter import webhook as webhook_adapter
 from missa_control.integrationen.fehlertexte import fehler_erklaeren
 from missa_control.integrationen.katalog import Katalog, KatalogEintrag
 from missa_control.integrationen.kontext import Kontext
-from missa_control.integrationen.manifest import ART_NAMEN, Feld, Manifest
+from missa_control.integrationen.manifest import ART_NAMEN, Endpunkt, Feld, Manifest, fehler_als_text
 from missa_control.integrationen.modelle import Funktion, Integration
 from missa_control.integrationen.typen import (
     RECHTE,
@@ -48,11 +49,12 @@ TEST_SEKUNDEN = 45.0
 PRUEF_SEKUNDEN = 8.0
 # Arten mit einer Gegenstelle, die ausfallen kann. Geräte melden ihren Zustand selbst (MQTT),
 # ein Webhook wartet nur auf Eingänge.
-REGELMAESSIG_GEPRUEFT = ("mcp", "openapi", "python")
+REGELMAESSIG_GEPRUEFT = ("api", "mcp", "openapi", "python")
 VORSCHAU_SEKUNDEN = 10.0
 TEST_GUELTIG = timedelta(minutes=15)
 # Ab so vielen Funktionen (grosse REST-APIs) ist zunächst nichts ausgewählt – man wählt gezielt aus.
 VORAUSWAHL_GRENZE = 40
+MAX_ENDPUNKTE = 50
 _UMLAUTE = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
 
 
@@ -81,6 +83,23 @@ class _GemerkterTest:
     ergebnis: TestErgebnis
 
 
+class _NurPruefen:
+    """Für die regelmässige Prüfung: Hat ein Adapter eine günstigere Anfrage als den ganzen Test
+    (`pruefen`), wird diese verwendet – z. B. sucht „API hinzufügen“ dann nicht jedes Mal neu nach
+    der Beschreibung."""
+
+    def __init__(self, adapter: Adapter) -> None:
+        self.art = adapter.art
+        self._adapter = adapter
+
+    @classmethod
+    def fuer(cls, adapter: Adapter) -> Adapter:
+        return cls(adapter) if hasattr(adapter, "pruefen") else adapter  # type: ignore[return-value]
+
+    async def testen(self, kontext: Kontext) -> TestErgebnis:
+        return await self._adapter.pruefen(kontext)  # type: ignore[attr-defined]
+
+
 def _pruefsumme(konfig: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(konfig, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -103,7 +122,8 @@ class IntegrationsDienst:
         )
         eintraege = []
         for eintrag in sorted(
-            self.katalog.eintraege.values(), key=lambda e: (not e.eingebaut, e.manifest.name.lower())
+            self.katalog.eintraege.values(),
+            key=lambda e: (not e.manifest.hervorgehoben, not e.eingebaut, e.manifest.name.lower()),
         ):
             manifest = eintrag.manifest
             eingerichtet = int(anzahl.get(manifest.id, 0))
@@ -134,6 +154,7 @@ class IntegrationsDienst:
             "version": manifest.version,
             "mehrfach": manifest.mehrfach,
             "hinweis": manifest.hinweis,
+            "hervorgehoben": manifest.hervorgehoben,
             "felder": [feld.model_dump() for feld in manifest.felder],
         }
 
@@ -168,6 +189,8 @@ class IntegrationsDienst:
         if wert is None or wert == "":
             return None
         titel = feld.titel
+        if feld.typ == "endpunkte":
+            return self._endpunkte_pruefen(titel, wert)
         if feld.typ == "schalter":
             return (
                 wert
@@ -208,6 +231,33 @@ class IntegrationsDienst:
         if feld.typ == "auswahl" and feld.optionen and text not in {option.wert for option in feld.optionen}:
             raise PanelFehler(422, f"„{titel}“: „{text}“ steht nicht zur Auswahl.")
         return text
+
+    @staticmethod
+    def _endpunkte_pruefen(titel: str, wert: Any) -> list[dict[str, Any]] | None:
+        if not isinstance(wert, list):
+            raise PanelFehler(422, f"„{titel}“ muss eine Liste sein.")
+        if len(wert) > MAX_ENDPUNKTE:
+            raise PanelFehler(422, f"„{titel}“: höchstens {MAX_ENDPUNKTE} Endpunkte.")
+        geprueft: list[dict[str, Any]] = []
+        for nummer, eintrag in enumerate(wert, start=1):
+            if isinstance(eintrag, dict) and not any(
+                str(eintrag.get(k) or "").strip() for k in ("name", "pfad")
+            ):
+                continue  # leere Zeile im Formular
+            try:
+                endpunkt = Endpunkt.model_validate(eintrag)
+            except ValidationError as fehler:
+                raise PanelFehler(
+                    422,
+                    f"„{titel}“, Zeile {nummer}: " + "; ".join(fehler_als_text(fehler)),
+                    "Name: Kleinbuchstaben, Ziffern und _ (z. B. artikel_lesen); Pfad z. B. /artikel/{id}.",
+                ) from None
+            geprueft.append(endpunkt.model_dump())
+        namen = [eintrag["name"] for eintrag in geprueft]
+        doppelt = sorted({name for name in namen if namen.count(name) > 1})
+        if doppelt:
+            raise PanelFehler(422, f"„{titel}“: Der Name „{doppelt[0]}“ kommt mehrfach vor.")
+        return geprueft or None
 
     def _kontext(
         self,
@@ -645,7 +695,9 @@ class IntegrationsDienst:
 
         async def pruefen(nummer: int, name: str, adapter: Adapter, kontext: Kontext) -> None:
             try:
-                ergebnisse[nummer] = await self._test_ausfuehren(adapter, kontext, PRUEF_SEKUNDEN)
+                ergebnisse[nummer] = await self._test_ausfuehren(
+                    _NurPruefen.fuer(adapter), kontext, PRUEF_SEKUNDEN
+                )
             except Exception:
                 log.exception("Prüfung der Integration „%s“ fehlgeschlagen", name)
 

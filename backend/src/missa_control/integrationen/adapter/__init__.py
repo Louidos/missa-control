@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from missa_control.integrationen.adapter.api import ApiAdapter
 from missa_control.integrationen.adapter.geraet import GeraetAdapter
 from missa_control.integrationen.adapter.mcp import McpAdapter
 from missa_control.integrationen.adapter.openapi import OpenApiAdapter
@@ -26,6 +27,7 @@ class Adapter(Protocol):
 
 def standard_adapter() -> dict[str, Adapter]:
     adapter: tuple[Adapter, ...] = (
+        ApiAdapter(),
         McpAdapter(),
         OpenApiAdapter(),
         PythonAdapter(),

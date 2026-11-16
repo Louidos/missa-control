@@ -20,7 +20,7 @@ export interface Option {
 export interface Feld {
   name: string;
   titel: string;
-  typ: "text" | "zahl" | "url" | "auswahl" | "zugang" | "schalter" | "datei";
+  typ: "text" | "zahl" | "url" | "auswahl" | "zugang" | "schalter" | "datei" | "endpunkte";
   pflicht: boolean;
   hilfe: string;
   platzhalter: string;
@@ -29,6 +29,16 @@ export interface Feld {
   zugang_typen: ZugangTyp[];
   endungen: string[];
   nach_test: boolean;
+  /** Feld erscheint nur, wenn ein anderes Feld einen dieser Werte hat. */
+  sichtbar_wenn?: Record<string, string[]>;
+}
+
+/** Ein eigener Endpunkt einer API (Feldtyp „endpunkte“): wird zu einer eigenen Funktion. */
+export interface Endpunkt {
+  name: string;
+  methode: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  pfad: string;
+  beschreibung: string;
 }
 
 export interface Manifest {
@@ -41,6 +51,8 @@ export interface Manifest {
   version: string;
   mehrfach: boolean;
   hinweis: string;
+  /** Karte steht im Katalog ganz vorne und ist hervorgehoben. */
+  hervorgehoben?: boolean;
   felder: Feld[];
 }
 
@@ -82,7 +94,7 @@ export interface Funktion extends TestFunktion {
   parameter: { properties?: Record<string, unknown>; required?: string[] };
 }
 
-export type Wert = string | number | boolean | null | { datei: true; zeichen: number };
+export type Wert = string | number | boolean | null | { datei: true; zeichen: number } | Endpunkt[];
 export type Konfig = Record<string, Wert>;
 
 export interface Integration {
@@ -116,6 +128,11 @@ export function useKatalog() {
 
 export function useIntegrationen() {
   return useQuery({ queryKey: INTEGRATIONEN, queryFn: () => api.get<Integration[]>("/api/integrationen") });
+}
+
+/** Ist das Feld bei diesen Werten sichtbar? (`sichtbar_wenn` im Manifest) */
+export function feldSichtbar(feld: Feld, werte: Konfig): boolean {
+  return Object.entries(feld.sichtbar_wenn ?? {}).every(([name, erlaubt]) => erlaubt.includes(String(werte[name] ?? "")));
 }
 
 /** Startwerte eines Formulars: die Standardwerte aus dem Manifest. */

@@ -55,7 +55,7 @@ schnellstart() {
   _schritt "Prüfe git und Docker"
   command -v git >/dev/null 2>&1 \
     || _abbruch "git ist nicht installiert." \
-      "Unter Debian/Ubuntu: sudo apt install git" \
+      "Anleitung: https://git-scm.com/download/linux" \
       "Danach diesen Befehl erneut ausführen."
   command -v docker >/dev/null 2>&1 \
     || _abbruch "Docker ist nicht installiert." \

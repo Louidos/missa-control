@@ -15,6 +15,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   mit einem Klick (#39)
 - „Missa-Core verbinden“: zwei Zeilen kopieren, Missa-Core neu starten, das Panel zeigt, sobald
   Missa verbunden ist (#40)
+- Fertige Vorlagen für Wetter, ÖV-Fahrplan Schweiz, ntfy und SearXNG; eigene Vorlagen nur mit einer
+  YAML-Datei (#41)
 
 ## [0.1.0] - 2026-11-10
 

@@ -1,0 +1,53 @@
+# Vorlage nur mit YAML: Websuche über die eigene SearXNG-Instanz.
+# Nach der offiziellen Doku (https://docs.searxng.org/dev/search_api.html): GET /search mit q und
+# format=json – das Format muss in settings.yml eingeschaltet sein, sonst antwortet SearXNG mit 403.
+id: searxng
+name: SearXNG
+beschreibung: Missa sucht im Web – über deine eigene SearXNG-Instanz, ohne Tracking.
+symbol: "🔎"
+art: api
+version: 1.0.0
+gruppe: Vorlagen
+kennung: websuche
+hinweis: >-
+  Wichtig: In SearXNG muss das JSON-Format eingeschaltet sein. In der settings.yml der Instanz unter
+  „search:“ bei „formats:“ auch „json“ eintragen (z. B. „formats: [html, json]“) und SearXNG neu
+  starten. Sonst antwortet die Suche mit „403“. Öffentliche Instanzen haben das meist ausgeschaltet.
+felder:
+  - name: adresse
+    titel: Adresse von SearXNG
+    typ: url
+    pflicht: true
+    platzhalter: http://192.168.1.20:8888
+    hilfe: So, wie sie im Browser steht. ai01 muss diese Adresse erreichen können.
+  - name: zugang
+    titel: Zugang (optional)
+    typ: zugang
+    zugang_typen: [benutzer_passwort, bearer_token]
+    hilfe: Nur nötig, wenn die Instanz hinter einer Anmeldung liegt.
+endpunkte:
+  - name: suchen
+    methode: GET
+    pfad: /search
+    beschreibung: Sucht im Web und liefert Treffer mit Titel, Adresse und Auszug.
+    query:
+      format: json
+    parameter:
+      - name: suchbegriff
+        url_name: q
+        pflicht: true
+        beschreibung: Wonach gesucht wird
+      - name: kategorien
+        url_name: categories
+        beschreibung: Kommagetrennt, z. B. general, news, images
+      - name: sprache
+        url_name: language
+        beschreibung: Sprachcode, z. B. de oder de-CH
+      - name: zeitraum
+        url_name: time_range
+        optionen: [day, month, year]
+        beschreibung: Nur Treffer aus diesem Zeitraum
+      - name: seite
+        url_name: pageno
+        typ: integer
+        beschreibung: Seite der Ergebnisse (ab 1)

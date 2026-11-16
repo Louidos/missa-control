@@ -77,6 +77,8 @@ export interface Manifest {
   hinweis: string;
   /** Karte steht im Katalog ganz vorne und ist hervorgehoben. */
   hervorgehoben?: boolean;
+  /** Gruppe im Katalog, z. B. „Vorlagen“ (leer = ohne Gruppe). */
+  gruppe?: string;
   felder: Feld[];
 }
 

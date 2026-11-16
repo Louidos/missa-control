@@ -14,9 +14,9 @@ Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
 
 - **Integrationen in 3 Schritten:** Karte im Katalog wählen, Formular ausfüllen, „Testen und
   aktivieren“. Ohne Code für beliebige APIs (nur Adresse und Key), MCP-Server (per URL), REST-APIs
-  (per OpenAPI-Datei), eingehende Webhooks und
-  Geräte; fertige Karten für Nextcloud-Kalender und Home Assistant; eigene Integrationen als Ordner
-  mit wenig Python.
+  (per OpenAPI-Datei), eingehende Webhooks und Geräte; fertige Karten für Nextcloud-Kalender und
+  Home Assistant; Vorlagen für Wetter, ÖV-Fahrplan Schweiz, ntfy und SearXNG; eigene Integrationen
+  als Ordner mit wenig Python oder als Vorlage nur mit YAML.
 - **Ein Anschluss für Missa:** Alle Funktionen kommen über ein MCP-Gateway bei missa-core an – mit
   Rechten pro Funktion (lesen: erlaubt, alles andere: erst nachfragen), Freigaben, Protokoll und
   Ereignissen. Pro Integration legt ein Klick fest, wie viel Missa darf: „Nur lesen“, „Schreiben erst
@@ -86,9 +86,19 @@ Gateway, die Integration erscheint in der Übersicht. Mehr dazu: [docs/api-hinzu
 Bei den anderen Karten ist es genauso: Karte wählen, Formular ausfüllen (beim MCP-Server nur die
 URL), **Verbindung testen**, Rechte prüfen und **Aktivieren**.
 
-Fertige Karten gibt es für beliebige APIs („API hinzufügen“), MCP-Server, REST-APIs (OpenAPI-Datei), Nextcloud-Kalender, Home Assistant,
-eingehende Webhooks, Geräte sowie Serverlast, Gedächtnis, Regeln und Telefonie. Eigene Integrationen
-mit wenig Code: siehe [docs/eigene-integration.md](docs/eigene-integration.md).
+Fertige Karten gibt es für beliebige APIs („API hinzufügen“), MCP-Server, REST-APIs (OpenAPI-Datei),
+Nextcloud-Kalender, Home Assistant, eingehende Webhooks, Geräte sowie Serverlast, Gedächtnis, Regeln
+und Telefonie. Dazu fertige **Vorlagen**, bei denen die Funktionen schon beschrieben sind:
+
+| Vorlage | Was Missa damit kann | Key nötig? |
+| --- | --- | --- |
+| Wetter (Open-Meteo) | Ort suchen, Wetter aktuell, Vorhersage | nein |
+| ÖV-Fahrplan Schweiz (transport.opendata.ch) | Verbindungen von–nach, Abfahrten ab einer Haltestelle | nein |
+| ntfy | Nachricht aufs Handy schicken (Senden ist standardmässig erlaubt) | nur bei eigenem Server mit Anmeldung |
+| SearXNG | Websuche über die eigene Instanz (dort muss das JSON-Format eingeschaltet sein) | nein |
+
+Eigene Integrationen mit wenig Code – oder eine eigene Vorlage nur mit einer YAML-Datei: siehe
+[docs/eigene-integration.md](docs/eigene-integration.md).
 
 ## Update, Backup und Betrieb
 
@@ -182,6 +192,8 @@ gegen die echte Gegenstelle erprobt ist:
 | Geräte | MQTT-Broker und Panel gegen den echten Broker geprüft; die Beispiel-Firmware lief nur am Prüfstand, nicht auf echter Hardware |
 | Telefonie | nur Schnittstelle mit Test-Adapter – noch kein echtes Telefon |
 | GPU-Werte der Serverlast | ohne GPU nicht geprüft |
+| Vorlagen Wetter, ÖV-Fahrplan, ntfy, SearXNG | nach der offiziellen Doku der Dienste gebaut und gegen Nachbauten der Schnittstellen geprüft, nicht gegen die echten Dienste |
+| „API hinzufügen“ | gegen einen Test-Server geprüft (mit und ohne OpenAPI-Beschreibung), nicht gegen eine echte fremde API |
 
 Nicht enthalten und nicht geplant: Benutzerverwaltung für mehrere Personen, Veröffentlichung über
 einen Reverse Proxy, Telemetrie, Cloud-Dienste. Was sich wann geändert hat: [CHANGELOG](CHANGELOG.md).

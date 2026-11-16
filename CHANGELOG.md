@@ -17,6 +17,8 @@ die Versionsnummern nach [Semantic Versioning](https://semver.org/lang/de/).
   Missa verbunden ist (#40)
 - Fertige Vorlagen für Wetter, ÖV-Fahrplan Schweiz, ntfy und SearXNG; eigene Vorlagen nur mit einer
   YAML-Datei (#41)
+- Seite „Statistik“: Aufrufe, Fehler und Dauer pro Integration und Funktion, dazu nie benutzte
+  Funktionen (#42)
 
 ## [0.1.0] - 2026-11-10
 

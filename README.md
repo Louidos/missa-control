@@ -21,6 +21,8 @@ Klicks: MCP-Server, REST-APIs, Geräte, Kalender und mehr.
   Rechten pro Funktion (lesen: erlaubt, alles andere: erst nachfragen), Freigaben, Protokoll und
   Ereignissen. Pro Integration legt ein Klick fest, wie viel Missa darf: „Nur lesen“, „Schreiben erst
   nachfragen“ (Standard) oder „Voller Zugriff“.
+- **Statistik:** welche Funktionen Missa wie oft benutzt, wie oft sie scheitern und wie schnell sie
+  sind – für 24 Stunden, 7 oder 30 Tage, mit „Nie benutzt“ für Funktionen ohne einen einzigen Aufruf.
 - **Zugänge:** API-Keys, Tokens und Passwörter verschlüsselt gespeichert, nach dem Speichern nur noch
   maskiert sichtbar.
 - **Modelle:** Rollen „schnell“ und „stark“ mit Haupt- und Ersatzmodell, OpenAI-kompatibler Anschluss.

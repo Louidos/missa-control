@@ -120,7 +120,7 @@ export function Integrationen() {
         const istOffen = aufgeklappt.has(integration.id);
         const sichtbar = integration.funktionen.filter((f) => f.recht !== "gesperrt" && f.vorhanden).length;
         return (
-          <section className="karte stapel eng" key={integration.id} aria-label={integration.name}>
+          <section className="karte stapel eng" key={integration.id} id={`integration-${integration.id}`} aria-label={integration.name}>
             <div className="integration-kopf">
               <span className="symbol" aria-hidden>
                 {integration.symbol}

@@ -1,5 +1,6 @@
 import {
   Activity,
+  BarChart3,
   BellRing,
   Brain,
   Cpu,
@@ -29,6 +30,7 @@ import { Katalog } from "../integrationen/Katalog";
 import { Modelle } from "../modelle/Modelle";
 import { Regeln } from "../regeln/Regeln";
 import { Serverlast } from "../serverlast/Serverlast";
+import { Statistik } from "../statistik/Statistik";
 import { Uebersicht } from "../uebersicht/Uebersicht";
 import { Zugaenge } from "../zugaenge/Zugaenge";
 
@@ -156,6 +158,13 @@ export const NAVIGATION: NavGruppe[] = [
         symbol: ScrollText,
         beschreibung: "Alle Aufrufe von Funktionen: wann, von wem, mit welchem Ergebnis.",
         seite: Protokoll,
+      },
+      {
+        pfad: "/statistik",
+        titel: "Statistik",
+        symbol: BarChart3,
+        beschreibung: "Welche Funktionen Missa wie oft benutzt, wie oft sie scheitern und wie schnell sie sind.",
+        seite: Statistik,
       },
       {
         pfad: "/serverlast",

@@ -45,6 +45,8 @@ from missa_control.regeln import routen as regel_routen
 from missa_control.regeln.dienst import RegelDienst
 from missa_control.serverlast import routen as serverlast_routen
 from missa_control.serverlast.dienst import ServerlastDienst
+from missa_control.statistik import routen as statistik_routen
+from missa_control.statistik.dienst import StatistikDienst
 from missa_control.status import routen as status_routen
 from missa_control.status.dienst import StatusDienst
 from missa_control.status.missa_core import MissaCore
@@ -89,6 +91,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.state.clients = clients
     app.state.ereignisse = ereignisse
     app.state.protokoll = protokoll
+    app.state.statistik = StatistikDienst(einstellungen.zeitzone)
     app.state.freigaben = freigaben
     app.state.zugaenge = zugaenge
     app.state.serverlast = ServerlastDienst(einstellungen, datenbank)
@@ -173,6 +176,7 @@ def create_app(einstellungen: Einstellungen | None = None) -> FastAPI:
     app.include_router(telefonie_routen.adapter_router)
     app.include_router(telefonie_routen.panel_router)
     app.include_router(status_routen.router)
+    app.include_router(statistik_routen.router)
     # Der MCP-Anschluss ist eine eigene kleine ASGI-App (Zugriff nur mit Client-Token, siehe Zugriffsschutz).
     app.router.routes.append(Route("/mcp", endpoint=app.state.gateway))
     app.router.routes.append(Route("/mcp/", endpoint=app.state.gateway))
